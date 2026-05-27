@@ -104,8 +104,12 @@ function pickBestSendHourUTC(market, analytics) {
   // From analytics.bestHourByMarket if present; else market default (UTC).
   const a = analytics?.bestHourByMarket?.[market];
   if (typeof a === 'number') return a;
-  // Reasonable defaults: target local 9-10am
-  return market === 'US' ? 14 : market === 'UK' ? 9 : 6;
+  // Reasonable defaults: target local 9-10am for each market
+  // US-Eastern 9:30am ≈ 14 UTC · UK 9am ≈ 9 UTC · IN 9:30am ≈ 4 UTC · Global 6 UTC
+  if (market === 'US') return 14;
+  if (market === 'UK') return 9;
+  if (market === 'IN') return 4;
+  return 6;
 }
 
 function pickArchetype(segment, festival, content_type) {
@@ -220,7 +224,7 @@ module.exports = async function handler(req, res) {
 
   const startDate = body.start_date ? new Date(body.start_date) : new Date();
   const days = Math.min(60, Math.max(7, +body.days || 30));
-  const markets = Array.isArray(body.markets) && body.markets.length ? body.markets : ['US', 'UK', 'Global'];
+  const markets = Array.isArray(body.markets) && body.markets.length ? body.markets : ['US', 'UK', 'Global', 'IN'];
   const capacity = +body.capacity_per_market_per_week || 4;
   const analytics = body.analytics || {};
 

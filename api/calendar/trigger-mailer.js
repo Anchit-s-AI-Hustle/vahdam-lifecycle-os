@@ -170,6 +170,7 @@ function renderTextVariant({ style, subject, hero_headline, hero_subline, body_b
   const baseUrl =
     market === 'UK' ? 'https://uk.vahdamteas.com' :
     market === 'US' ? 'https://www.vahdamteas.com' :
+    market === 'IN' ? 'https://www.vahdamindia.com' :
     'https://www.vahdamteas.com';
 
   const palette = {

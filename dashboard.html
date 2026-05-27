@@ -146,6 +146,7 @@
           <button class="filter-chip" data-region="US">US</button>
           <button class="filter-chip" data-region="UK">UK</button>
           <button class="filter-chip" data-region="Global">Global</button>
+          <button class="filter-chip" data-region="IN">India</button>
         </div>
         <div class="h-5 w-px bg-gold/20"></div>
         <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold">Window</div>
@@ -479,7 +480,7 @@ function rngFromSeed(seed) {
   return () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h >>> 0) % 100000) / 100000; };
 }
 
-const REGIONS = ['US', 'UK', 'Global'];
+const REGIONS = ['US', 'UK', 'Global', 'IN'];
 const CHANNELS = ['email', 'sms'];
 const CONTENT_TYPES = ['promo','editorial','lifecycle','transactional','winback','launch'];
 const SEGMENT_NAMES = ['Champions','Loyal','Promising','New','Need-Attention','About-to-Sleep','At-Risk','Hibernating','Lost'];
@@ -1123,7 +1124,7 @@ const APEX_BASE = {
   legend: { labels: { colors: '#9aaaa1' }, fontSize: '11px' },
 };
 
-const REGION_COLORS = { US: '#3b82f6', UK: '#f97316', Global: '#AB8743' };
+const REGION_COLORS = { US: '#3b82f6', UK: '#f97316', Global: '#AB8743', IN: '#22c55e' };
 
 // ─── 1. Executive Overview ──────────────────────────────────────────────
 function renderExec() {
@@ -1152,7 +1153,7 @@ function renderExec() {
     series: REGIONS.map((r) => ({ name: r, data: dates.map((d) => +(byDay[d][r] || 0).toFixed(0)) })),
     xaxis: { categories: dates.map(fmtDate), labels: { rotate: -40, style: { fontSize: '10px' } } },
     yaxis: { labels: { formatter: (v) => '$' + (v >= 1000 ? (v/1000).toFixed(1) + 'k' : v) } },
-    colors: [REGION_COLORS.US, REGION_COLORS.UK, REGION_COLORS.Global],
+    colors: REGIONS.map((r) => REGION_COLORS[r]),
     stroke: { curve: 'smooth', width: 1.5 },
     fill: { type: 'gradient', gradient: { opacityFrom: 0.5, opacityTo: 0.05 } },
   });
