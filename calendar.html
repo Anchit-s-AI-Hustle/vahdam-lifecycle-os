@@ -11,6 +11,8 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="/auth.js" defer></script>
+<script src="/table-sort.js" defer></script>
 <script>
   tailwind.config = { theme: { extend: {
     colors: {
@@ -139,9 +141,9 @@
       <input id="planSearch" type="text" placeholder="Filter…" class="text-xs bg-bg-card border border-gold/20 rounded px-3 py-1.5 text-ink w-56">
     </div>
     <div class="overflow-x-auto">
-      <table class="w-full min-w-[1000px]">
+      <table class="w-full min-w-[1000px]" data-sortable>
         <thead><tr>
-          <th>Date</th><th>Mkt</th><th>Segment</th><th>Content</th><th>Archetype</th><th>Hero</th><th>Subject hint</th><th>Festival</th><th></th>
+          <th data-sort="date">Date</th><th>Mkt</th><th>Segment</th><th>Content</th><th>Archetype</th><th>Hero</th><th>Subject hint</th><th>Festival</th><th data-no-sort></th>
         </tr></thead>
         <tbody id="planTable"><tr><td colspan="9" class="text-center text-ink-mute py-8">Click "Generate plan" to build the 30-day calendar.</td></tr></tbody>
       </table>

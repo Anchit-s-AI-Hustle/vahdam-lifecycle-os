@@ -8,6 +8,7 @@
 <link rel="apple-touch-icon" href="/favicon.png">
 <meta name="theme-color" content="#004A2B">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<script src="/auth.js" defer></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -122,7 +123,7 @@
   </section>
 
   <div class="pipeline">
-    <a class="stage" href="/dashboard.html">
+    <a class="stage" href="/dashboard.html" target="_blank" rel="noopener">
       <div class="stage-num">STAGE 01</div>
       <h2>Data <em>Analysis</em></h2>
       <p>Upload CSV / XLSX, or use the live seed. RFM segmentation, cohort retention, channel mix, cross-sell affinity, time-behavior — all computed client-side, no DB needed.</p>
@@ -136,7 +137,7 @@
       <span class="stage-cta">Open the dashboard</span>
     </a>
 
-    <a class="stage" href="/calendar.html">
+    <a class="stage" href="/calendar.html" target="_blank" rel="noopener">
       <div class="stage-num">STAGE 02</div>
       <h2>Marketing <em>Calendar</em></h2>
       <p>Reads the analysis state, slots a 30-day plan: which mailer goes to which segment in which market on which day. Festivals + bank holidays auto-injected. Send-time tuned per market.</p>
@@ -150,7 +151,7 @@
       <span class="stage-cta">Build the calendar</span>
     </a>
 
-    <a class="stage" href="/studio">
+    <a class="stage" href="/studio" target="_blank" rel="noopener">
       <div class="stage-num">STAGE 03</div>
       <h2>Mailer <em>Studio</em></h2>
       <p>The existing 6-LLM cascade pipeline. Now produces <b>4 variants per send</b>: two image-driven (hero + lifestyle) and two pure-text (editorial + founder's note) — pick what fits the moment.</p>
