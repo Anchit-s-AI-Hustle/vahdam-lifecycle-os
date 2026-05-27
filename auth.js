@@ -329,25 +329,173 @@
       window.LifecycleAuth.session = session;
       window.LifecycleAuth.user = session.user;
       injectTopbar(session.user);
+      await maybeShowProfileModal(client, session.user);
     } else {
       injectLoginWall();
     }
 
     // Listen for sign-in / sign-out and react globally.
-    client.auth.onAuthStateChange((_event, sess) => {
+    client.auth.onAuthStateChange(async (_event, sess) => {
       window.LifecycleAuth.session = sess;
       window.LifecycleAuth.user = sess?.user || null;
       if (sess?.user) {
         removeLoginWall();
         injectTopbar(sess.user);
+        await maybeShowProfileModal(client, sess.user);
       } else {
-        // signed out — back to wall
         const tb = document.getElementById('lifecycle-topbar');
         if (tb) tb.remove();
         injectLoginWall();
       }
     });
   }
+
+  // ─── Profile modal — show on first sign-in if not yet skipped/completed ─
+  const SKIP_KEY = 'lifecycle-profile-skipped';
+  async function maybeShowProfileModal(client, user) {
+    // Fetch the row created by the auth.users → app_users trigger.
+    let row;
+    try {
+      const { data, error } = await client
+        .from('app_users')
+        .select('profile_completed, name, mobile, region')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (error && error.code !== 'PGRST116') {
+        // Table missing or RLS blocking — fail silently so app still works.
+        console.warn('[auth.js] app_users not readable:', error.message);
+        return;
+      }
+      row = data;
+    } catch (e) {
+      console.warn('[auth.js] profile check failed:', e.message);
+      return;
+    }
+
+    // If already completed OR user dismissed permanently, skip.
+    if (row?.profile_completed) return;
+    if (localStorage.getItem(SKIP_KEY) === 'forever') return;
+
+    showProfileModal(client, user, row);
+  }
+
+  function showProfileModal(client, user, currentRow) {
+    if (document.getElementById('lifecycle-profile-modal')) return;
+    const modal = document.createElement('div');
+    modal.id = 'lifecycle-profile-modal';
+    modal.innerHTML = `
+      <style>
+        #lifecycle-profile-modal {
+          position: fixed; inset: 0; z-index: 9000;
+          background: rgba(0,0,0,0.72); backdrop-filter: blur(8px);
+          display: flex; align-items: center; justify-content: center; padding: 20px;
+          font-family: 'Inter', system-ui, sans-serif;
+        }
+        #lifecycle-profile-modal .lpm-card {
+          max-width: 460px; width: 100%;
+          background: #0f1d18; border: 1px solid rgba(171,135,67,0.25);
+          border-radius: 14px; padding: 28px 26px; box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+        }
+        #lifecycle-profile-modal .lpm-eyebrow { font-size: 11px; letter-spacing: 0.18em; color: #AB8743; text-transform: uppercase; font-weight: 700; margin-bottom: 6px; }
+        #lifecycle-profile-modal h2 { font-family: 'Lora','Inter',serif; font-size: 22px; color: #FBF5EA; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.01em; }
+        #lifecycle-profile-modal h2 em { color: #AB8743; font-style: italic; }
+        #lifecycle-profile-modal .lpm-sub { color: #9aaaa1; font-size: 13px; line-height: 1.55; margin: 0 0 18px; }
+        #lifecycle-profile-modal label { display: block; font-size: 11px; color: #5d6e64; text-transform: uppercase; letter-spacing: 0.1em; margin: 12px 0 5px; font-weight: 600; }
+        #lifecycle-profile-modal input, #lifecycle-profile-modal select {
+          width: 100%; box-sizing: border-box;
+          background: #0a1410; border: 1px solid rgba(171,135,67,0.2); border-radius: 8px;
+          color: #e8ede9; padding: 10px 12px; font-size: 13px; font-family: inherit;
+        }
+        #lifecycle-profile-modal input:focus, #lifecycle-profile-modal select:focus { outline: none; border-color: #AB8743; }
+        #lifecycle-profile-modal .lpm-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        #lifecycle-profile-modal .lpm-actions { display: flex; gap: 10px; margin-top: 22px; }
+        #lifecycle-profile-modal button { font-family: inherit; font-size: 12.5px; padding: 11px 18px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; letter-spacing: 0.02em; transition: opacity .15s; }
+        #lifecycle-profile-modal .lpm-skip   { background: transparent; color: #9aaaa1; border: 1px solid rgba(171,135,67,0.25); }
+        #lifecycle-profile-modal .lpm-skip:hover { color: #e8ede9; }
+        #lifecycle-profile-modal .lpm-save   { background: #AB8743; color: #0a1410; flex: 1; }
+        #lifecycle-profile-modal .lpm-save:hover { opacity: 0.92; }
+        #lifecycle-profile-modal .lpm-foot { font-size: 11px; color: #5d6e64; margin-top: 14px; text-align: center; font-family: 'JetBrains Mono', monospace; }
+        #lifecycle-profile-modal .lpm-err { color: #f87171; font-size: 12px; margin-top: 10px; padding: 8px; background: rgba(239,68,68,0.08); border-radius: 6px; }
+      </style>
+      <div class="lpm-card">
+        <div class="lpm-eyebrow">Welcome to Lifecycle OS</div>
+        <h2>Tell us a bit about <em>you</em></h2>
+        <p class="lpm-sub">Helps us tailor the dashboard, calendar, and mailer suggestions to your region.
+          <b>Skip anytime</b> — nothing here is required.</p>
+
+        <label for="lpm-name">Name</label>
+        <input id="lpm-name" type="text" placeholder="${(user.user_metadata?.name || '').replace(/"/g, '&quot;')}" value="${(currentRow?.name || user.user_metadata?.name || '').replace(/"/g, '&quot;')}" autocomplete="name">
+
+        <div class="lpm-row">
+          <div>
+            <label for="lpm-mobile">Mobile</label>
+            <input id="lpm-mobile" type="tel" placeholder="+91 98xxx-xxxxx" value="${(currentRow?.mobile || '').replace(/"/g, '&quot;')}" autocomplete="tel">
+          </div>
+          <div>
+            <label for="lpm-region">Region</label>
+            <select id="lpm-region">
+              <option value="">—</option>
+              <option value="IN">India</option>
+              <option value="US">United States</option>
+              <option value="UK">United Kingdom</option>
+              <option value="EU">Europe</option>
+              <option value="ME">Middle East</option>
+              <option value="AU">Australia</option>
+              <option value="CA">Canada</option>
+              <option value="JP">Japan</option>
+              <option value="SG">Singapore</option>
+              <option value="Global">Other / Global</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="lpm-err"></div>
+        <div class="lpm-actions">
+          <button class="lpm-skip" id="lpm-skip-btn" type="button">Skip for now</button>
+          <button class="lpm-save" id="lpm-save-btn" type="button">Save profile</button>
+        </div>
+        <div class="lpm-foot">Stored only in your app_users row · visible only to you</div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    // Pre-fill region from previous row if any
+    if (currentRow?.region) {
+      modal.querySelector('#lpm-region').value = currentRow.region;
+    }
+
+    const close = () => modal.remove();
+
+    modal.querySelector('#lpm-skip-btn').addEventListener('click', async () => {
+      // Skip = remember this session only. The trigger created the row;
+      // we don't flip profile_completed so the prompt may re-appear on a
+      // fresh device. Use localStorage to suppress within this device.
+      localStorage.setItem(SKIP_KEY, String(Date.now()));
+      close();
+    });
+
+    modal.querySelector('#lpm-save-btn').addEventListener('click', async function () {
+      const btn = this;
+      btn.disabled = true; btn.textContent = 'Saving…';
+      const name   = modal.querySelector('#lpm-name').value.trim()   || null;
+      const mobile = modal.querySelector('#lpm-mobile').value.trim() || null;
+      const region = modal.querySelector('#lpm-region').value        || null;
+      try {
+        const { error } = await client.from('app_users').update({
+          name, mobile, region,
+          profile_completed: true,
+        }).eq('id', user.id);
+        if (error) throw error;
+        close();
+      } catch (e) {
+        const err = modal.querySelector('#lpm-err');
+        err.className = 'lpm-err';
+        err.textContent = 'Could not save: ' + (e.message || e);
+        btn.disabled = false; btn.textContent = 'Save profile';
+      }
+    });
+  }
+
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
