@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VAHDAM · Data Analysis + Marketing Calendar + Mailer Creator</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/favicon.png">
+<meta name="theme-color" content="#004A2B">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #0a1410; color: #e8ede9;
+    min-height: 100vh; padding: 32px 24px;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 48px; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand-dot { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #AB8743, #004A2B); }
+  .brand-title { font-family: 'Lora', serif; font-weight: 600; font-size: 18px; }
+  .brand-sub { font-size: 11px; color: #9aaaa1; font-style: italic; }
+  .header-meta { font-size: 11px; color: #5d6e64; font-family: 'JetBrains Mono', monospace; text-align: right; }
+  .hero { margin-bottom: 56px; }
+  .eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.22em; color: #AB8743; margin-bottom: 18px; font-weight: 600; }
+  h1 { font-family: 'Lora', serif; font-size: 44px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 16px; }
+  h1 em { font-style: italic; color: #AB8743; }
+  p.lede { color: #9aaaa1; font-size: 16px; line-height: 1.65; max-width: 780px; }
+  p.lede b { color: #FBF5EA; font-weight: 600; }
+
+  .pipeline { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-bottom: 36px; }
+  @media (max-width: 860px) { .pipeline { grid-template-columns: 1fr; } h1 { font-size: 32px; } }
+  .stage {
+    display: block; padding: 28px 26px; border-radius: 16px;
+    background: #0f1d18; border: 1px solid rgba(171,135,67,0.18);
+    text-decoration: none; color: inherit;
+    transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+    position: relative; overflow: hidden;
+  }
+  .stage::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, transparent, #AB8743, transparent);
+    transform: translateX(-100%); transition: transform 0.5s;
+  }
+  .stage:hover { transform: translateY(-3px); border-color: #AB8743; box-shadow: 0 14px 36px rgba(0,0,0,0.5); }
+  .stage:hover::before { transform: translateX(0); }
+  .stage-num {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #AB8743;
+    background: rgba(171,135,67,0.12); padding: 4px 9px; border-radius: 99px;
+    display: inline-block; margin-bottom: 16px; letter-spacing: 0.05em;
+  }
+  .stage h2 {
+    font-family: 'Lora', serif; font-size: 22px; font-weight: 600; margin-bottom: 8px;
+    letter-spacing: -0.01em;
+  }
+  .stage h2 em { font-style: italic; color: #AB8743; }
+  .stage p { font-size: 13.5px; color: #9aaaa1; line-height: 1.55; margin-bottom: 18px; }
+  .stage-meta {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em;
+    color: #5d6e64; font-weight: 600; margin-bottom: 4px;
+  }
+  .stage-bullets { font-size: 12px; color: #9aaaa1; line-height: 1.7; padding-left: 0; list-style: none; margin-bottom: 18px; }
+  .stage-bullets li { padding-left: 14px; position: relative; }
+  .stage-bullets li::before { content: '·'; position: absolute; left: 0; color: #AB8743; font-weight: 700; }
+  .stage-cta { font-size: 12px; color: #AB8743; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; letter-spacing: 0.04em; }
+  .stage-cta::after { content: '→'; transition: transform 0.2s; }
+  .stage:hover .stage-cta::after { transform: translateX(4px); }
+
+  .arrow {
+    display: flex; align-items: center; justify-content: center;
+    color: #5d6e64; font-size: 22px; padding: 4px;
+  }
+  @media (max-width: 860px) { .arrow { transform: rotate(90deg); } }
+
+  .strip {
+    margin: 0 -24px; padding: 32px 24px; background: rgba(171,135,67,0.04);
+    border-top: 1px solid rgba(171,135,67,0.15);
+    border-bottom: 1px solid rgba(171,135,67,0.15);
+  }
+  .strip-inner { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  @media (max-width: 720px) { .strip-inner { grid-template-columns: repeat(2, 1fr); } }
+  .stat { }
+  .stat-val { font-family: 'Lora', serif; font-size: 28px; font-weight: 600; }
+  .stat-val em { font-style: italic; color: #AB8743; }
+  .stat-label { font-size: 11px; color: #9aaaa1; text-transform: uppercase; letter-spacing: 0.12em; margin-top: 4px; }
+
+  .foot {
+    margin-top: 48px; padding-top: 24px; border-top: 1px solid rgba(171,135,67,0.15);
+    font-size: 11px; color: #5d6e64; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  }
+  .foot a { color: #9aaaa1; text-decoration: none; margin-left: 14px; }
+  .foot a:hover { color: #AB8743; }
+  .foot code { font-family: 'JetBrains Mono', monospace; color: #AB8743; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="header">
+    <div class="brand">
+      <div class="brand-dot"></div>
+      <div>
+        <div class="brand-title">VAHDAM · Lifecycle OS</div>
+        <div class="brand-sub">Data → Calendar → Mailer · one tool</div>
+      </div>
+    </div>
+    <div class="header-meta">
+      Data Analysis +<br>Marketing Calendar +<br>Mailer Creator
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="eyebrow">For the retention growth team</div>
+    <h1>Stop guessing what to <em>send next</em>.</h1>
+    <p class="lede">
+      A single workflow that reads your <b>campaign + customer + order data</b>, builds an executive-grade
+      <b>retention dashboard</b>, generates a <b>30-day mailer calendar</b> tuned to segments &amp; festivals,
+      and then <b>writes every mailer</b> through the existing brand-locked Mailer Studio — image and text variants.
+    </p>
+  </section>
+
+  <div class="pipeline">
+    <a class="stage" href="/dashboard.html">
+      <div class="stage-num">STAGE 01</div>
+      <h2>Data <em>Analysis</em></h2>
+      <p>Upload CSV / XLSX, or use the live seed. RFM segmentation, cohort retention, channel mix, cross-sell affinity, time-behavior — all computed client-side, no DB needed.</p>
+      <div class="stage-meta">Outputs</div>
+      <ul class="stage-bullets">
+        <li>Executive KPI deck</li>
+        <li>9 RFM customer segments</li>
+        <li>Product cross-sell affinity</li>
+        <li>10 auto-generated strategic insights</li>
+      </ul>
+      <span class="stage-cta">Open the dashboard</span>
+    </a>
+
+    <a class="stage" href="/calendar.html">
+      <div class="stage-num">STAGE 02</div>
+      <h2>Marketing <em>Calendar</em></h2>
+      <p>Reads the analysis state, slots a 30-day plan: which mailer goes to which segment in which market on which day. Festivals + bank holidays auto-injected. Send-time tuned per market.</p>
+      <div class="stage-meta">Plan engine</div>
+      <ul class="stage-bullets">
+        <li>Weekly capacity guardrails by segment</li>
+        <li>Festival weights drive archetype hints</li>
+        <li>11 layout archetypes × 6 content types</li>
+        <li>One-click → mailer build for any day</li>
+      </ul>
+      <span class="stage-cta">Build the calendar</span>
+    </a>
+
+    <a class="stage" href="/studio">
+      <div class="stage-num">STAGE 03</div>
+      <h2>Mailer <em>Studio</em></h2>
+      <p>The existing 6-LLM cascade pipeline. Now produces <b>4 variants per send</b>: two image-driven (hero + lifestyle) and two pure-text (editorial + founder's note) — pick what fits the moment.</p>
+      <div class="stage-meta">Cascade</div>
+      <ul class="stage-bullets">
+        <li>OpenAI → Anthropic → Gemini → xAI → Groq → Cerebras</li>
+        <li>Strict brand voice + palette lock</li>
+        <li>11 layout archetypes, region-aware URLs</li>
+        <li>Score + audit + export-ready HTML</li>
+      </ul>
+      <span class="stage-cta">Open the Studio</span>
+    </a>
+  </div>
+
+  <section class="strip">
+    <div class="strip-inner">
+      <div class="stat">
+        <div class="stat-val">3<em> stages</em></div>
+        <div class="stat-label">Single workflow</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">9 <em>segments</em></div>
+        <div class="stat-label">RFM with overlays</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">4 <em>variants</em></div>
+        <div class="stat-label">Per planned send</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">3 <em>markets</em></div>
+        <div class="stat-label">US · UK · Global</div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <div>
+      © VAHDAM India · Lifecycle OS · <code>v1.0</code><br>
+      <span style="color:#4a5750">Forked from <code>marketing_mailers__html_architect</code> · Lifecycle layer + calendar generator on top.</span>
+    </div>
+    <div>
+      <a href="/api/health">/api/health</a>
+      <a href="/dashboard.html">Dashboard</a>
+      <a href="/calendar.html">Calendar</a>
+      <a href="/studio">Mailer Studio</a>
+    </div>
+  </footer>
+
+</div>
+
+</body>
+</html>

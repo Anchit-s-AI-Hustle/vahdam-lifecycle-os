@@ -1,0 +1,18 @@
+name: CI
+on:
+  push: { branches: [main] }
+  pull_request: {}
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - name: HTML smoke test
+        run: |
+          test -f vahdam_mailer_architect_v34.html
+          node -e "const fs=require('fs');const s=fs.readFileSync('vahdam_mailer_architect_v34.html','utf8');if(!s.includes('<!DOCTYPE html>'))process.exit(1);console.log('v34 OK ('+s.length+' bytes)')"
+      - name: Build catalog
+        run: npm run build

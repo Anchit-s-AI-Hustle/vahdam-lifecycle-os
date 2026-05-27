@@ -1,0 +1,55 @@
+# Netlify
+.netlify/
+.cache/
+
+# Vercel CLI link state (org/project IDs — not secrets, but no need to track)
+.vercel/
+
+# Node / npm
+node_modules/
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*~
+
+# Env / secrets — NEVER commit these
+.env
+.env.local
+.env.*.local
+supabase/.env
+
+# Build outputs
+dist/
+build/
+.next/
+data/catalog/
+
+# Logs
+*.log
+
+# Local downloads / generated artefacts
+*.html.bak
+test-output/
+
+# Reference projects / accidental nested clones — never commit these
+vahdam-tea-architect/
+marketing_mailers__html_architect/
+
+# Supabase CLI runtime files
+supabase/.temp/
+
+# Claude Code local config
+.claude/
+
+# Credentials and PATs
+*.pat
+*.token
+.tokens/
+.env*.local
+.vercel

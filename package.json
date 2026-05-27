@@ -1,0 +1,20 @@
+{
+  "name": "vahdam-lifecycle-os",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VAHDAM Lifecycle OS — Data Analysis + 30-day Marketing Calendar + Mailer Creator. Forked from marketing_mailers__html_architect; adds retention dashboard + calendar generator on top of the existing 6-LLM mailer pipeline.",
+  "engines": {
+    "node": ">=20.x"
+  },
+  "scripts": {
+    "build": "node scripts/build-catalog.js",
+    "dev": "node -e \"require('http').createServer().listen(3001)\"",
+    "deploy": "vercel --prod",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:install": "playwright install"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0"
+  }
+}

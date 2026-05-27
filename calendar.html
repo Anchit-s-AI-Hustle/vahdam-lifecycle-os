@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VAHDAM · 30-Day Marketing Calendar</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/favicon.png">
+<meta name="theme-color" content="#004A2B">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+  tailwind.config = { theme: { extend: {
+    colors: {
+      bg: { DEFAULT:'#0a1410', soft:'#0f1d18', card:'#142822' },
+      ink: { DEFAULT:'#e8ede9', dim:'#9aaaa1', mute:'#5d6e64' },
+      green: { DEFAULT:'#004A2B', bright:'#16a34a' },
+      gold: { DEFAULT:'#AB8743' }, cream: '#FBF5EA',
+    },
+    fontFamily: { sans:['Inter','sans-serif'], mono:['"JetBrains Mono"','monospace'] },
+  }}};
+</script>
+<style>
+  body { background:#0a1410; color:#e8ede9; font-family:'Inter',sans-serif; }
+  .label { font-size:10px; text-transform:uppercase; letter-spacing:0.12em; color:#5d6e64; font-weight:500; }
+  .card { background:#0f1d18; border:1px solid rgba(171,135,67,0.18); border-radius:12px; }
+  .pill { display:inline-flex; align-items:center; gap:6px; font-size:10px; font-weight:600; padding:3px 9px; border-radius:99px; }
+  .b-US { background:rgba(59,130,246,0.15); color:#93c5fd; }
+  .b-UK { background:rgba(234,88,12,0.15); color:#fdba74; }
+  .b-Global { background:rgba(171,135,67,0.18); color:#AB8743; }
+  .ct-promo       { background:rgba(239,68,68,0.12); color:#fca5a5; }
+  .ct-editorial   { background:rgba(168,85,247,0.12); color:#d8b4fe; }
+  .ct-lifecycle   { background:rgba(34,197,94,0.12); color:#86efac; }
+  .ct-launch      { background:rgba(59,130,246,0.12); color:#93c5fd; }
+  .ct-winback     { background:rgba(245,158,11,0.12); color:#fcd34d; }
+  .ct-transactional { background:rgba(148,163,184,0.12); color:#cbd5e1; }
+  .seg-Champions     { color:#16a34a; }
+  .seg-Loyal         { color:#22c55e; }
+  .seg-Promising     { color:#84cc16; }
+  .seg-New           { color:#3b82f6; }
+  .seg-Need-Attention{ color:#f59e0b; }
+  .seg-About-to-Sleep{ color:#fb923c; }
+  .seg-At-Risk       { color:#ef4444; }
+  .seg-Hibernating   { color:#a855f7; }
+  .day { background:#0f1d18; border:1px solid rgba(171,135,67,0.18); border-radius:10px; padding:10px; min-height:96px; transition: border-color .15s; }
+  .day:hover { border-color:rgba(171,135,67,0.35); cursor:pointer; }
+  .day.festival { border-color: rgba(171,135,67,0.45); background: rgba(171,135,67,0.04); }
+  .day-num { font-family:'JetBrains Mono',monospace; font-size:11px; color:#9aaaa1; }
+  .day-fest { font-size:9px; color:#AB8743; text-transform:uppercase; letter-spacing:0.08em; font-weight:600; margin-top:2px; }
+  .entry { font-size:10px; line-height:1.25; padding:3px 5px; margin-top:4px; border-radius:4px; background:#142822; }
+  .entry-market { font-weight:700; font-family:'JetBrains Mono',monospace; }
+  .filter-chip { padding:5px 11px; border-radius:99px; font-size:11px; font-weight:600; border:1px solid rgba(171,135,67,0.25); color:#9aaaa1; cursor:pointer; }
+  .filter-chip.active { background:#AB8743; color:#0a1410; border-color:#AB8743; }
+  th { font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:#5d6e64; padding:10px 8px; border-bottom:1px solid rgba(171,135,67,0.18); text-align:left; }
+  td { padding:10px 8px; border-bottom:1px solid rgba(171,135,67,0.06); font-size:12.5px; vertical-align:top; }
+  tr:hover td { background:rgba(171,135,67,0.04); }
+  .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.75); backdrop-filter:blur(4px); z-index:80; display:none; align-items:center; justify-content:center; padding:20px; }
+  .modal-backdrop.open { display:flex; }
+  .modal-card { background:#0f1d18; border:1px solid rgba(171,135,67,0.3); border-radius:12px; max-width:920px; width:100%; max-height:90vh; overflow-y:auto; }
+  iframe.preview { width:100%; min-height:600px; background:#FBF5EA; border:0; border-radius:8px; }
+</style>
+</head>
+<body class="min-h-screen">
+
+<header class="border-b border-gold/15 px-6 py-4 sticky top-0 bg-bg/95 backdrop-blur z-30">
+  <div class="max-w-7xl mx-auto flex flex-wrap items-center gap-3">
+    <div>
+      <div class="text-[10px] uppercase tracking-widest text-gold font-bold">VAHDAM</div>
+      <div class="text-cream font-semibold text-base">Marketing Calendar · 30-day plan</div>
+    </div>
+    <div class="flex-1"></div>
+    <div class="flex gap-2 items-center">
+      <a href="/" class="text-[11px] uppercase tracking-wider text-ink-mute hover:text-ink">← Home</a>
+      <a href="/dashboard.html" class="text-[11px] uppercase tracking-wider text-ink-mute hover:text-ink">Dashboard</a>
+      <a href="/studio" target="_blank" class="text-[11px] uppercase tracking-wider text-ink-mute hover:text-ink">Mailer Studio ↗</a>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto p-6 space-y-6">
+
+  <!-- Filter & action bar -->
+  <section class="card p-4">
+    <div class="flex flex-wrap items-center gap-3">
+      <div>
+        <div class="label">Markets</div>
+        <div class="flex gap-1.5 mt-2" id="marketChips">
+          <button class="filter-chip active" data-market="US">US</button>
+          <button class="filter-chip active" data-market="UK">UK</button>
+          <button class="filter-chip active" data-market="Global">Global</button>
+        </div>
+      </div>
+      <div>
+        <div class="label">Plan window</div>
+        <div class="flex gap-1.5 mt-2" id="daysChips">
+          <button class="filter-chip" data-days="14">14d</button>
+          <button class="filter-chip active" data-days="30">30d</button>
+          <button class="filter-chip" data-days="45">45d</button>
+        </div>
+      </div>
+      <div>
+        <div class="label">Send capacity / market / week</div>
+        <input id="capInput" type="number" min="2" max="10" value="4" class="mt-2 w-16 px-2 py-1.5 text-sm bg-bg-card border border-gold/20 rounded text-ink">
+      </div>
+      <div class="flex-1"></div>
+      <button id="btnGenerate" class="text-[11px] uppercase tracking-wider font-semibold px-4 py-2 rounded bg-gold text-bg hover:opacity-90">⚡ Generate plan</button>
+      <button id="btnExport" class="text-[11px] uppercase tracking-wider font-semibold px-3 py-2 rounded border border-gold/30 text-ink-dim hover:border-gold hover:text-ink">↓ Export CSV</button>
+    </div>
+    <div id="planMeta" class="mt-3 text-[11px] text-ink-mute font-mono"></div>
+  </section>
+
+  <!-- Calendar grid -->
+  <section>
+    <div class="flex items-end justify-between mb-3">
+      <div>
+        <h2 class="text-lg font-bold tracking-tight">Calendar</h2>
+        <p class="text-xs text-ink-dim mt-1">Each day shows the planned sends. Click a day to drill into entries.</p>
+      </div>
+      <div class="flex gap-3 text-[11px] text-ink-mute">
+        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full" style="background:rgba(171,135,67,0.45);"></span> Festival</span>
+        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-bright"></span> Lifecycle</span>
+        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full" style="background:#fca5a5;"></span> Promo</span>
+      </div>
+    </div>
+    <div id="calendarGrid" class="grid grid-cols-7 gap-2"></div>
+  </section>
+
+  <!-- Table view -->
+  <section class="card p-4">
+    <div class="flex items-end justify-between mb-3">
+      <div>
+        <h2 class="text-lg font-bold tracking-tight">All planned sends</h2>
+        <p class="text-xs text-ink-dim mt-1">Click "Generate mailer" to run the row through the strategy → variants pipeline.</p>
+      </div>
+      <input id="planSearch" type="text" placeholder="Filter…" class="text-xs bg-bg-card border border-gold/20 rounded px-3 py-1.5 text-ink w-56">
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-[1000px]">
+        <thead><tr>
+          <th>Date</th><th>Mkt</th><th>Segment</th><th>Content</th><th>Archetype</th><th>Hero</th><th>Subject hint</th><th>Festival</th><th></th>
+        </tr></thead>
+        <tbody id="planTable"><tr><td colspan="9" class="text-center text-ink-mute py-8">Click "Generate plan" to build the 30-day calendar.</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<!-- Mailer preview modal -->
+<div id="mailerModal" class="modal-backdrop">
+  <div class="modal-card p-5">
+    <div class="flex items-center justify-between mb-3">
+      <div>
+        <h2 class="text-lg font-semibold" id="mailerTitle">Mailer preview</h2>
+        <p class="text-xs text-ink-dim" id="mailerSubtitle"></p>
+      </div>
+      <button class="text-ink-mute hover:text-ink text-2xl leading-none" onclick="closeMailer()">×</button>
+    </div>
+    <div class="flex gap-2 mb-3" id="variantTabs"></div>
+    <div id="variantPanels"></div>
+    <div class="flex items-center justify-end gap-2 mt-4 pt-4 border-t border-gold/15">
+      <a id="openInStudio" href="/studio" target="_blank" class="text-[11px] uppercase tracking-wider px-3 py-2 rounded border border-gold/30 text-ink-dim hover:border-gold hover:text-ink">Open in Studio ↗</a>
+      <button onclick="closeMailer()" class="text-[11px] uppercase tracking-wider px-3 py-2 rounded bg-gold text-bg font-semibold">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+const STATE = {
+  markets: ['US', 'UK', 'Global'],
+  days: 30,
+  capacity: 4,
+  plan: [],
+  meta: {},
+  analytics: null,
+};
+
+// Load analytics summary from localStorage (set by retention-intelligence dashboard if present).
+function loadAnalyticsSummary() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('vahdam-retention-data') || 'null');
+    if (!stored) return null;
+
+    // Aggregate quickly: segments + products
+    const segCount = {}; const segRev = {};
+    (stored.customers || []).forEach((c) => {
+      const seg = c.rfm_segment || guessSegment(c);
+      segCount[seg] = (segCount[seg] || 0) + 1;
+      segRev[seg] = (segRev[seg] || 0) + (c.total_spent || 0);
+    });
+    const segments = Object.keys(segCount).map((name) => ({
+      name, count: segCount[name], revenue: +segRev[name].toFixed(0),
+    }));
+
+    const prodAgg = {};
+    (stored.orders || []).forEach((o) => (o.lines || []).forEach((l) => {
+      prodAgg[l.sku] = prodAgg[l.sku] || { sku: l.sku, units: 0, revenue: 0, promos: 0 };
+      prodAgg[l.sku].units += l.qty || 0;
+      prodAgg[l.sku].revenue += (l.qty || 0) * (l.price || 0);
+    }));
+    (stored.campaigns || []).forEach((c) => {
+      if (c.primary_sku && prodAgg[c.primary_sku]) prodAgg[c.primary_sku].promos++;
+    });
+    const products = Object.values(prodAgg).map((p) => {
+      const def = (stored.products || []).find((x) => x.sku === p.sku) || {};
+      return { ...p, title: def.title || p.sku, category: def.category || '—' };
+    });
+    return { segments, products };
+  } catch { return null; }
+}
+
+function guessSegment(c) {
+  const days = (Date.now() - new Date(c.last_order_at).getTime()) / 86400000;
+  if (days <= 30 && c.orders_count >= 5) return 'Champions';
+  if (days <= 60 && c.orders_count >= 3) return 'Loyal';
+  if (days <= 30 && c.orders_count === 2) return 'Promising';
+  if (days <= 30 && c.orders_count === 1) return 'New';
+  if (days <= 90 && c.orders_count >= 2)  return 'Need-Attention';
+  if (days <= 120) return 'About-to-Sleep';
+  if (days <= 180) return 'At-Risk';
+  if (c.orders_count >= 1) return 'Hibernating';
+  return 'Lost';
+}
+
+// Fall back to a minimal seed if no analytics in localStorage.
+function seedAnalytics() {
+  return {
+    segments: [
+      { name: 'Champions',     count: 480,  revenue: 92000 },
+      { name: 'Loyal',         count: 1200, revenue: 168000 },
+      { name: 'Promising',     count: 760,  revenue: 41000 },
+      { name: 'New',           count: 900,  revenue: 28000 },
+      { name: 'Need-Attention',count: 720,  revenue: 38000 },
+      { name: 'About-to-Sleep',count: 540,  revenue: 22000 },
+      { name: 'At-Risk',       count: 410,  revenue: 16000 },
+      { name: 'Hibernating',   count: 380,  revenue: 12000 },
+    ],
+    products: [
+      { sku:'DRJ-100', title:'Darjeeling Summer Black', category:'Black tea', revenue: 38500, units: 1700, promos: 4 },
+      { sku:'CHA-400', title:'Masala Chai Classic',     category:'Chai',      revenue: 31200, units: 1450, promos: 5 },
+      { sku:'GFT-900', title:'Discovery Gift Set',      category:'Gift',      revenue: 28100, units: 580,  promos: 2 },
+      { sku:'GRN-300', title:'Himalayan Green',         category:'Green tea', revenue: 21500, units: 980,  promos: 3 },
+      { sku:'BLD-810', title:'Sleep Blend',             category:'Wellness',  revenue: 18600, units: 700,  promos: 1 },
+      { sku:'WHT-600', title:'Silver Tips White',       category:'White tea', revenue: 17200, units: 350,  promos: 0 },
+    ],
+    bestHourByMarket: { US: 14, UK: 9, Global: 6 },
+  };
+}
+
+async function generatePlan() {
+  const analytics = loadAnalyticsSummary() || seedAnalytics();
+  STATE.analytics = analytics;
+
+  $('btnGenerate').disabled = true;
+  $('btnGenerate').textContent = 'Generating…';
+
+  try {
+    const res = await fetch('/api/calendar/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        days: STATE.days,
+        markets: STATE.markets,
+        capacity_per_market_per_week: STATE.capacity,
+        analytics,
+      }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    STATE.plan = data.plan;
+    STATE.meta = data.meta || {};
+    $('planMeta').textContent =
+      `Generated ${data.total_sends_planned} sends · ${data.markets.join(' / ')} · ` +
+      `archetypes: ${Object.entries(data.meta.archetype_distribution).filter(([,v])=>v).map(([k,v])=>`${k}=${v}`).join(', ')}`;
+    renderCalendar();
+    renderTable();
+  } catch (e) {
+    $('planMeta').innerHTML = `<span class="text-red-400">Failed: ${e.message}</span>`;
+  } finally {
+    $('btnGenerate').disabled = false;
+    $('btnGenerate').textContent = '⚡ Generate plan';
+  }
+}
+
+function renderCalendar() {
+  const today = new Date();
+  const start = new Date(today.toISOString().slice(0, 10));
+  // align to Sunday
+  const offset = start.getUTCDay();
+  const gridStart = new Date(start);
+  gridStart.setUTCDate(gridStart.getUTCDate() - offset);
+
+  const cells = [];
+  const total = Math.ceil((STATE.days + offset) / 7) * 7;
+  for (let i = 0; i < total; i++) {
+    const day = new Date(gridStart);
+    day.setUTCDate(gridStart.getUTCDate() + i);
+    const ds = day.toISOString().slice(0, 10);
+    const entriesForDay = STATE.plan.filter((p) => p.date === ds);
+    const festival = entriesForDay.find((p) => p.festival)?.festival;
+    const inPlan = day >= start && day < new Date(start.getTime() + STATE.days * 86400000);
+
+    cells.push(`
+      <div class="day ${festival ? 'festival' : ''} ${!inPlan ? 'opacity-40' : ''}" data-date="${ds}">
+        <div class="flex items-start justify-between">
+          <div class="day-num">${day.getUTCDate()}</div>
+          <div class="text-[9px] text-ink-mute">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][day.getUTCDay()]}</div>
+        </div>
+        ${festival ? `<div class="day-fest">★ ${festival}</div>` : ''}
+        ${entriesForDay.slice(0, 4).map((e) => `
+          <div class="entry ct-${e.content_type}">
+            <span class="entry-market">${e.market}</span> · ${e.segment} · ${e.archetype.split('-')[0]}
+          </div>
+        `).join('')}
+        ${entriesForDay.length > 4 ? `<div class="text-[9px] text-ink-mute mt-1">+${entriesForDay.length - 4} more</div>` : ''}
+      </div>
+    `);
+  }
+  $('calendarGrid').innerHTML = cells.join('');
+  $$('#calendarGrid .day').forEach((cell) => {
+    cell.addEventListener('click', () => {
+      const ds = cell.dataset.date;
+      const list = STATE.plan.filter((p) => p.date === ds);
+      if (list.length === 1) openMailer(list[0]);
+      else if (list.length > 1) {
+        // scroll table to first matching row
+        const row = document.querySelector(`#planTable tr[data-id="${list[0].id}"]`);
+        if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+  });
+}
+
+function renderTable(filter = '') {
+  const f = filter.toLowerCase();
+  const rows = STATE.plan.filter((p) =>
+    !f || [p.market, p.segment, p.archetype, p.hero_product, p.subject_hint, p.festival, p.date]
+      .join(' ').toLowerCase().includes(f)
+  );
+  if (!rows.length) {
+    $('planTable').innerHTML = `<tr><td colspan="9" class="text-center text-ink-mute py-8">No entries match.</td></tr>`;
+    return;
+  }
+  $('planTable').innerHTML = rows.map((p) => `
+    <tr data-id="${p.id}">
+      <td class="font-mono text-[11px]">${p.date}<div class="text-[10px] text-ink-mute">${String(p.send_hour_utc).padStart(2,'0')}:00 UTC</div></td>
+      <td><span class="pill b-${p.market}">${p.market}</span></td>
+      <td><span class="seg-${p.segment.replace(/[^a-zA-Z]/g,'-')} font-semibold">${p.segment}</span><div class="text-[10px] text-ink-mute">${p.segment_size ? p.segment_size.toLocaleString() + ' subs' : ''}</div></td>
+      <td><span class="pill ct-${p.content_type}">${p.content_type}</span></td>
+      <td class="text-[12px]">${p.archetype}</td>
+      <td class="text-[12px]">${p.hero_product || p.hero_sku || '—'}</td>
+      <td class="text-[12px] max-w-[260px]">${p.subject_hint}</td>
+      <td class="text-[11px]">${p.festival ? '★ ' + p.festival : '—'}</td>
+      <td><button onclick='openMailerById("${p.id}")' class="text-[10px] uppercase tracking-wider px-2 py-1 rounded bg-gold/20 text-gold hover:bg-gold hover:text-bg">Build →</button></td>
+    </tr>
+  `).join('');
+}
+
+function openMailerById(id) {
+  const entry = STATE.plan.find((p) => p.id === id);
+  if (entry) openMailer(entry);
+}
+
+async function openMailer(entry) {
+  $('mailerTitle').textContent = `${entry.date} · ${entry.market} · ${entry.segment}`;
+  $('mailerSubtitle').textContent = entry.rationale || '';
+  $('variantTabs').innerHTML = '';
+  $('variantPanels').innerHTML = `<div class="text-ink-mute text-center py-8">Calling strategy + variant pipeline…</div>`;
+  $('mailerModal').classList.add('open');
+
+  try {
+    const res = await fetch('/api/calendar/trigger-mailer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entry }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    const variants = data.variants || {};
+    const tabs = ['A','B','T1','T2'];
+    $('variantTabs').innerHTML = tabs.map((k, i) => `
+      <button class="filter-chip ${i===0 ? 'active' : ''}" data-variant="${k}">${variants[k]?.label || k}</button>
+    `).join('');
+    $('variantPanels').innerHTML = tabs.map((k, i) => `
+      <div data-panel="${k}" style="${i===0 ? '' : 'display:none'}">${renderVariantPanel(variants[k], data.strategy)}</div>
+    `).join('');
+    $$('#variantTabs .filter-chip').forEach((b) => b.addEventListener('click', (e) => {
+      const k = e.target.dataset.variant;
+      $$('#variantTabs .filter-chip').forEach((x) => x.classList.toggle('active', x === e.target));
+      $$('#variantPanels > [data-panel]').forEach((p) => p.style.display = p.dataset.panel === k ? 'block' : 'none');
+    }));
+  } catch (e) {
+    $('variantPanels').innerHTML = `<div class="text-red-400 text-center py-8">Pipeline error: ${e.message}</div>`;
+  }
+}
+
+function renderVariantPanel(v, strategy) {
+  if (!v) return `<div class="text-ink-mute">Variant unavailable.</div>`;
+  if (v.kind === 'text') {
+    return `
+      <div class="text-xs text-ink-dim mb-2">${v.label} · subject "${strategy.subject_line}"</div>
+      <iframe class="preview" srcdoc='${v.html.replace(/'/g, "&apos;")}'></iframe>
+    `;
+  }
+  // image variant — show the image brief + a placeholder pointing at the studio
+  return `
+    <div class="space-y-2">
+      <div class="text-xs uppercase tracking-wider text-gold">${v.label}</div>
+      <div class="card p-3 text-[12px] leading-relaxed">
+        <b class="text-cream">Image generation brief:</b><br>
+        ${v.hero_image_brief}
+      </div>
+      <div class="text-[11px] text-ink-mute">
+        Image variants render in the full Mailer Studio (api/ai/image.js cascade: Gemini Imagen → OpenAI → Pollinations).
+        Click <b>Open in Studio</b> below to render this brief.
+      </div>
+    </div>
+  `;
+}
+
+function closeMailer() { $('mailerModal').classList.remove('open'); }
+
+// Wire filters
+$('marketChips').addEventListener('click', (e) => {
+  if (!e.target.dataset.market) return;
+  e.target.classList.toggle('active');
+  STATE.markets = $$('#marketChips .filter-chip.active').map((c) => c.dataset.market);
+});
+$('daysChips').addEventListener('click', (e) => {
+  if (!e.target.dataset.days) return;
+  $$('#daysChips .filter-chip').forEach((c) => c.classList.toggle('active', c === e.target));
+  STATE.days = +e.target.dataset.days;
+});
+$('capInput').addEventListener('change', (e) => { STATE.capacity = +e.target.value || 4; });
+$('btnGenerate').addEventListener('click', generatePlan);
+$('planSearch').addEventListener('input', (e) => renderTable(e.target.value));
+
+$('btnExport').addEventListener('click', () => {
+  if (!STATE.plan.length) return alert('Generate a plan first.');
+  const csv = Papa.unparse(STATE.plan);
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `vahdam-calendar-${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+});
+
+// Auto-generate on first load if analytics present
+if (loadAnalyticsSummary()) generatePlan();
+else generatePlan(); // uses seed
+</script>
+</body>
+</html>
