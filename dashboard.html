@@ -11,7 +11,8 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.49.1/dist/apexcharts.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- xlsx-js-style: drop-in SheetJS fork that also writes cell fills/fonts (keeps colour in Excel exports) -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script src="/auth.js" defer></script>
 <script src="/table-sort.js" defer></script>
 <script src="/chart-enhance.js" defer></script>
@@ -102,21 +103,23 @@
   body.sb-collapsed .nav-item:hover::after {
     opacity: 1; transform: translateY(-50%) translateX(0);
   }
-  /* Collapse toggle button */
-  .sb-collapse-btn {
-    display:flex; align-items:center; gap:8px;
-    margin: 8px 12px 0;
-    padding: 8px 10px; border-radius: 7px;
-    border: 1px solid rgba(171,135,67,0.18);
-    background: transparent; color: #9aaaa1;
-    font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em;
-    font-family: inherit; font-weight: 600; cursor: pointer;
-    transition: all .15s;
+  /* Top hamburger toggle */
+  .sb-top { display:flex; align-items:center; gap:12px; padding:14px 16px 8px; }
+  .nav-brand-head { min-width:0; }
+  .sb-hamburger {
+    width:36px; height:32px; flex:none;
+    display:flex; flex-direction:column; justify-content:center; gap:4px;
+    padding:7px 8px; border-radius:8px;
+    border:1px solid rgba(171,135,67,0.2); background:transparent; cursor:pointer;
+    transition:all .15s;
   }
-  .sb-collapse-btn:hover { color:#FBF5EA; border-color: rgba(171,135,67,0.4); }
-  .sb-collapse-btn svg { width: 12px; height: 12px; transition: transform 0.22s; }
-  body.sb-collapsed .sb-collapse-btn { margin: 8px auto 0; padding: 8px 9px; }
-  body.sb-collapsed .sb-collapse-btn svg { transform: rotate(180deg); }
+  .sb-hamburger:hover { border-color:rgba(171,135,67,0.5); background:rgba(171,135,67,0.08); }
+  .sb-hamburger span { display:block; height:2px; border-radius:2px; background:#AB8743; transition:transform .22s, opacity .22s; }
+  .sb-hamburger span:nth-child(1){ width:18px; }
+  .sb-hamburger span:nth-child(2){ width:14px; }
+  .sb-hamburger span:nth-child(3){ width:18px; }
+  .sb-hamburger:hover span { width:18px; }
+  body.sb-collapsed .sb-top { justify-content:center; padding:14px 0 8px; }
   .filter-chip { padding:5px 11px; border-radius:99px; font-size:11px; font-weight:600; border:1px solid rgba(171,135,67,0.25); color:#9aaaa1; cursor:pointer; transition:all .15s; user-select:none; }
   .filter-chip:hover { border-color:#AB8743; color:#e8ede9; }
   .filter-chip.active { background:#AB8743; color:#0a1410; border-color:#AB8743; }
@@ -157,12 +160,17 @@
 
   <!-- Sidebar -->
   <aside class="sidebar bg-bg-deep border-r border-gold/20 flex-none flex flex-col">
-    <div class="nav-brand p-5 border-b border-gold/15">
-      <div class="nav-brand-dot w-2 h-2 rounded-full bg-gold inline-block mb-2"></div>
-      <div class="nav-brand-title text-gold font-bold tracking-widest text-[11px]">VAHDAM · DTC</div>
-      <div class="text-cream font-semibold text-base mt-1 sb-full-label">Retention OS</div>
-      <div class="nav-brand-sub text-ink-mute text-[10px] mt-1 font-mono">Intelligence Layer v1</div>
+    <!-- Top hamburger + brand -->
+    <div class="sb-top">
+      <button class="sb-hamburger" id="sbCollapseBtn" aria-label="Collapse sidebar" title="Collapse / expand menu">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-brand-head sb-full-label">
+        <div class="nav-brand-title text-gold font-bold tracking-widest text-[11px]">VAHDAM · DTC</div>
+        <div class="text-cream font-semibold text-sm leading-tight">Retention OS</div>
+      </div>
     </div>
+    <div class="nav-brand-sub text-ink-mute text-[10px] px-5 pt-2 pb-2 font-mono sb-full-label">Intelligence Layer v1</div>
     <nav class="flex-1 p-3 space-y-1 scrollbar-thin overflow-y-auto">
       <div class="nav-item active" data-view="exec" data-tip="Revenue Pulse" title="Top-line revenue, retention vs new, region split">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
@@ -214,13 +222,9 @@
         </div>
       </div>
     </nav>
-    <button class="sb-collapse-btn" id="sbCollapseBtn" aria-label="Collapse sidebar">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-      <span class="sb-collapse-label">Collapse</span>
-    </button>
     <div class="p-3 border-t border-gold/15">
       <button id="btnExport" class="w-full text-[11px] uppercase tracking-wider font-semibold py-2 rounded border border-gold/30 text-ink-dim hover:border-gold hover:text-ink transition">
-        ↓ Export view
+        ↓ Export…
       </button>
       <div class="text-[10px] text-ink-mute mt-3 font-mono leading-snug">
         Data source: <span id="dataSourceLabel">seed (synthetic)</span><br>
@@ -249,6 +253,12 @@
           <button class="filter-chip" data-days="30">30d</button>
           <button class="filter-chip active" data-days="90">90d</button>
           <button class="filter-chip" data-days="365">YTD</button>
+        </div>
+        <div class="h-5 w-px bg-gold/20"></div>
+        <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold">Currency</div>
+        <div class="flex gap-1.5" id="currencyChips" title="Show all revenue in US dollars or Indian rupees">
+          <button class="filter-chip" data-cur="USD">$ USD</button>
+          <button class="filter-chip" data-cur="INR">₹ INR</button>
         </div>
         <div class="flex-1"></div>
         <button id="btnLinkDb" class="text-[11px] uppercase tracking-wider font-semibold px-3 py-1.5 rounded border border-gold/30 text-ink-dim hover:border-gold hover:text-ink transition">⛓ Link database</button>
@@ -548,6 +558,70 @@
   </div>
 </div>
 
+<!-- Export modal -->
+<div id="exportModal" class="modal-backdrop">
+  <div class="card p-6 max-w-lg w-full">
+    <div class="flex items-start justify-between mb-4">
+      <div>
+        <h2 class="text-lg font-semibold">Export analysis</h2>
+        <p class="text-xs text-ink-dim mt-1">Choose what to export, in which format. Excel keeps the retention table colour-coding; CSV is plain text.</p>
+      </div>
+      <button id="exportClose" class="text-ink-mute hover:text-ink text-2xl leading-none">×</button>
+    </div>
+
+    <!-- Scope -->
+    <div class="mb-4">
+      <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold mb-2">What to export</div>
+      <div class="space-y-2">
+        <label class="flex items-start gap-2 cursor-pointer">
+          <input type="radio" name="expScope" value="view" checked class="mt-1 accent-gold">
+          <div>
+            <div class="text-sm font-medium">A single view</div>
+            <div class="text-[11px] text-ink-mute">Just the tables on the page you pick below.</div>
+          </div>
+        </label>
+        <label class="flex items-start gap-2 cursor-pointer">
+          <input type="radio" name="expScope" value="all" class="mt-1 accent-gold">
+          <div>
+            <div class="text-sm font-medium">Complete analysis — every page</div>
+            <div class="text-[11px] text-ink-mute">All tables of all pages compiled into one workbook (a sheet per page + a combined sheet). Reflects the data currently loaded.</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- View picker (only for single-view scope) -->
+    <div class="mb-4" id="exportViewWrap">
+      <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold mb-2">Which view</div>
+      <select id="exportView" class="w-full bg-bg-deep border border-gold/30 rounded px-3 py-2 text-sm text-ink focus:border-gold outline-none">
+        <option value="exec">Revenue Pulse</option>
+        <option value="campaigns">Campaigns Deep-Dive</option>
+        <option value="segments">Audience Segments</option>
+        <option value="products">Product Intelligence</option>
+        <option value="time">Send-Time &amp; Behavior</option>
+        <option value="cohorts">Cohorts &amp; Retention</option>
+        <option value="insights">Strategic Insights</option>
+      </select>
+    </div>
+
+    <!-- Format -->
+    <div class="mb-4">
+      <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold mb-2">Format</div>
+      <div class="flex gap-2" id="exportFormatChips">
+        <button class="filter-chip active" data-fmt="xlsx">Excel (.xlsx) — keeps colours</button>
+        <button class="filter-chip" data-fmt="csv">CSV (.csv)</button>
+      </div>
+    </div>
+
+    <div class="text-[11px] text-ink-mute mb-4 leading-snug" id="exportHint"></div>
+
+    <div class="flex gap-2 justify-end">
+      <button id="exportCancel" class="text-[12px] px-4 py-2 rounded border border-gold/30 text-ink-dim hover:border-gold hover:text-ink">Cancel</button>
+      <button id="exportRun" class="text-[12px] px-4 py-2 rounded bg-gold text-bg font-semibold hover:opacity-90">↓ Download</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ╔═══════════════════════════════════════════════════════════════════════
  * ║ DATA LAYER — synthetic seed + CSV/XLSX upload + localStorage persist
@@ -555,7 +629,24 @@
 
 const $ = (id) => document.getElementById(id);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
-const fmtCur = (n, c='$') => n == null || isNaN(n) ? '—' : c + Math.round(Number(n)).toLocaleString('en-US');
+
+// ─── Currency (USD ⇄ INR) ─────────────────────────────────────────────────
+// Source data is in USD; INR view multiplies by a fixed FX rate so Indian
+// reviewers can read every revenue figure in rupees. Toggle persists.
+const FX_RATES = {
+  USD: { symbol: '$', rate: 1,   locale: 'en-US' },
+  INR: { symbol: '₹', rate: 83,  locale: 'en-IN' },   // ~₹83 / $1
+};
+let CURRENCY = (() => { try { return localStorage.getItem('vahdam-currency') || 'USD'; } catch { return 'USD'; } })();
+if (!FX_RATES[CURRENCY]) CURRENCY = 'USD';
+function curMeta() { return FX_RATES[CURRENCY] || FX_RATES.USD; }
+// Currency-aware money formatter. Ignores any 2nd arg (older callers + Apex
+// formatters passed a stray opts object) and always uses the active currency.
+function fmtCur(n) {
+  if (n == null || isNaN(n)) return '—';
+  const f = curMeta();
+  return f.symbol + Math.round(Number(n) * f.rate).toLocaleString(f.locale);
+}
 const fmtInt = (n) => n == null || isNaN(n) ? '—' : Math.round(Number(n)).toLocaleString('en-US');
 const fmtPct = (n, d=1) => n == null || isNaN(n) ? '—' : (Number(n) * 100).toFixed(d) + '%';
 const fmtPctRaw = (n, d=1) => n == null || isNaN(n) ? '—' : Number(n).toFixed(d) + '%';
@@ -1273,7 +1364,7 @@ function renderExec() {
   const topC = [...filteredCampaigns()].sort((a, b) => b.revenue - a.revenue).slice(0, 5);
   $('execTopCampaigns').innerHTML = topC.map((c) => `
     <tr>
-      <td class="text-ink">${escapeHtml(c.name)}</td>
+      <td class="text-ink">${campNameCell(c)}</td>
       <td><span class="badge b-${c.region}">${c.region}</span></td>
       <td class="num">${fmtCur(c.revenue)}</td>
       <td class="num">${fmtPct(c.clicks ? c.conversions / c.clicks : 0)}</td>
@@ -1362,7 +1453,7 @@ function renderCampaigns(filter='') {
     .slice(0, 200);
   $('campTable').innerHTML = rows.map((c) => `
     <tr>
-      <td class="text-ink">${escapeHtml(c.name)}<div class="text-[10px] text-ink-mute">${escapeHtml(c.subject)}</div></td>
+      <td class="text-ink">${campNameCell(c)}<div class="text-[10px] text-ink-mute">${escapeHtml(c.subject)}</div></td>
       <td class="text-[10px] uppercase">${c.channel}</td>
       <td><span class="badge b-${c.region}">${c.region}</span></td>
       <td class="text-[11px] text-ink-mute">${fmtDate(c.sent_at)}</td>
@@ -1642,13 +1733,15 @@ function renderTime() {
   const indexed = dowRev.map((v) => Math.round((v / base) * 100));
   charts.timeSeas = new ApexCharts($('chartTimeSeasonality'), {
     ...APEX_BASE,
-    chart: { ...APEX_BASE.chart, type: 'radar', height: 280 },
+    chart: { ...APEX_BASE.chart, type: 'bar', height: 280 },
     series: [{ name: 'Revenue index (Mon=100)', data: indexed }],
     xaxis: { categories: DAYS },
+    yaxis: { labels: { formatter: (v) => Math.round(v) } },
     colors: ['#AB8743'],
-    fill: { opacity: 0.3 },
-    markers: { size: 4 },
-    tooltip: { theme: 'dark' },
+    plotOptions: { bar: { borderRadius: 4, columnWidth: '55%', distributed: false,
+      colors: { backgroundBarColors: [], ranges: [{ from: 100, to: 100000, color: '#22c55e' }] } } },
+    dataLabels: { enabled: true, style: { fontSize: '10px', colors: ['#0a1410'] }, formatter: (v) => Math.round(v) },
+    tooltip: { theme: 'dark', y: { formatter: (v) => 'Index ' + Math.round(v) + ' (Mon = 100)' } },
   });
   charts.timeSeas.render();
 }
@@ -1767,6 +1860,12 @@ function kpi(label, val, sub) {
   </div>`;
 }
 function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
+// Campaign name → hyperlink when a real URL exists in the data, plain text otherwise.
+function campNameCell(c) {
+  const u = (typeof campaignUrl === 'function') ? campaignUrl(c) : (c.url || null);
+  const nm = escapeHtml(c.name);
+  return u ? `<a href="${escapeHtml(u)}" target="_blank" rel="noopener" class="text-gold hover:underline" title="Open campaign">${nm} ↗</a>` : nm;
+}
 
 /* ╔═══════════════════════════════════════════════════════════════════════
  * ║ ROUTER + EVENTS
@@ -1821,6 +1920,20 @@ $('dateChips').addEventListener('click', (e) => {
   if (!e.target.dataset.days) return;
   STATE.days = +e.target.dataset.days;
   $$('#dateChips .filter-chip').forEach((c) => c.classList.toggle('active', c === e.target));
+  destroyCharts(); rerender();
+});
+
+// ─── Currency toggle (USD ⇄ INR) ────────────────────────────────────────
+function syncCurrencyChips() {
+  $$('#currencyChips .filter-chip').forEach((c) => c.classList.toggle('active', c.dataset.cur === CURRENCY));
+}
+syncCurrencyChips();
+$('currencyChips').addEventListener('click', (e) => {
+  const cur = e.target.dataset.cur;
+  if (!cur || cur === CURRENCY) return;
+  CURRENCY = cur;
+  try { localStorage.setItem('vahdam-currency', CURRENCY); } catch {}
+  syncCurrencyChips();
   destroyCharts(); rerender();
 });
 $('campSearch')?.addEventListener('input', (e) => {
@@ -1903,6 +2016,7 @@ function normalizeRow(slot, r) {
     content_type: cKey('content_type','type') || 'promo',
     primary_sku: cKey('primary_sku','sku','product_sku') || PRODUCTS[0].sku,
     subject: cKey('subject','subject_line') || '(no subject)',
+    url: cKey('url','campaign_url','link','web_url','view_url','report_url') || null,
   };
   if (slot === 'customers') return {
     id: cKey('id','customer_id'),
@@ -1946,24 +2060,302 @@ $('btnResetSeed').addEventListener('click', () => {
   destroyCharts(); rerender();
 });
 
-$('btnExport').addEventListener('click', () => {
-  // Export the current view's primary table as CSV
-  const view = STATE.view;
-  let rows = [];
-  let name = view;
-  if (view === 'exec') { rows = filteredOrders().map((o) => ({ id:o.id, region:o.region, ordered_at:o.ordered_at, total:o.total })); name = 'orders'; }
-  else if (view === 'campaigns') rows = filteredCampaigns();
-  else if (view === 'segments') rows = segmentSummary();
-  else if (view === 'products') rows = calcProductKpis();
-  else if (view === 'cohorts') rows = computeCohorts().map((c) => ({ cohort:c.cohort, size:c.size, ...Object.fromEntries((c.retPct||[]).map((p,i)=>['m'+i, (p*100).toFixed(1)+'%'])) }));
-  else if (view === 'insights') rows = computeInsights();
-  else return;
-  const csv = Papa.unparse(rows);
-  const blob = new Blob([csv], { type: 'text/csv' });
+/* ╔═══════════════════════════════════════════════════════════════════════
+ * ║ EXPORT ENGINE  — CSV + colour-preserving Excel, per-view or complete
+ * ╚═══════════════════════════════════════════════════════════════════════
+ * Every export reads the LIVE in-memory DATA at click time, so it always
+ * reflects the latest uploaded / linked data (no stale snapshot).
+ * A table descriptor = { sheet, title, columns:[{key,label}], rows:[{...}],
+ *                        cell?(rowObj,colKey,value)->{fill,font} }            */
+
+const VIEW_LABELS = {
+  exec: 'Revenue Pulse', campaigns: 'Campaigns Deep-Dive', segments: 'Audience Segments',
+  products: 'Product Intelligence', time: 'Send-Time & Behavior',
+  cohorts: 'Cohorts & Retention', insights: 'Strategic Insights',
+};
+
+// gold (#AB8743) blended over white at alpha — matches the on-screen heat cell
+function goldFillHex(pct) {
+  const a = Math.min((pct || 0) / 60, 1);
+  if (a <= 0) return null;
+  const mix = (base, gold) => Math.round(base * (1 - a) + gold * a);
+  const r = mix(255, 171), g = mix(255, 135), b = mix(255, 67);
+  const h = (x) => x.toString(16).padStart(2, '0').toUpperCase();
+  return 'FF' + h(r) + h(g) + h(b);
+}
+const HEX_HEADER_FILL = 'FF004A2B';      // forest green
+const HEX_HEADER_FONT = 'FFFBF5EA';      // cream
+const HEX_TITLE_FONT  = 'FF004A2B';
+
+function regionSummaryRows() {
+  const orders = filteredOrders();
+  const by = {};
+  orders.forEach((o) => {
+    const r = by[o.region] = by[o.region] || { region: o.region, orders: 0, revenue: 0, units: 0 };
+    r.orders++; r.revenue += o.total;
+    (o.lines || []).forEach((l) => r.units += (l.qty || 0));
+  });
+  return Object.values(by).sort((a, b) => b.revenue - a.revenue)
+    .map((r) => ({ ...r, aov: r.orders ? r.revenue / r.orders : 0 }));
+}
+
+function sendTimeSummaryRows() {
+  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const agg = DAYS.map(() => ({ sends: 0, opens: 0, hours: Array(24).fill(null).map(() => ({ s: 0, o: 0 })), rev: 0 }));
+  filteredCampaigns().forEach((c) => {
+    const d = new Date(c.sent_at); const dow = d.getUTCDay(); const hr = d.getUTCHours();
+    agg[dow].sends += c.sends; agg[dow].opens += c.opens;
+    agg[dow].hours[hr].s += c.sends; agg[dow].hours[hr].o += c.opens;
+  });
+  const dowRev = [0,0,0,0,0,0,0];
+  filteredOrders().forEach((o) => { dowRev[new Date(o.ordered_at).getUTCDay()] += o.total; });
+  const base = dowRev[1] || 1;
+  return DAYS.map((day, i) => {
+    let bestHr = '—', bestRate = -1;
+    agg[i].hours.forEach((h, hr) => { const rate = h.s ? h.o / h.s : 0; if (h.s && rate > bestRate) { bestRate = rate; bestHr = String(hr).padStart(2, '0') + ':00 UTC'; } });
+    return {
+      weekday: day, sends: agg[i].sends, opens: agg[i].opens,
+      open_rate: agg[i].sends ? agg[i].opens / agg[i].sends : 0,
+      best_hour: bestHr, revenue_index: Math.round((dowRev[i] / base) * 100),
+    };
+  });
+}
+
+// Build table descriptors for a given view
+function tablesForView(view) {
+  if (view === 'exec') {
+    const k = calcExecKpis();
+    const kpiRows = [
+      { metric: 'Total revenue', value: fmtCur(k.totalRevenue) },
+      { metric: 'Retention revenue', value: fmtCur(k.retentionRev) + ' (' + fmtPct(k.retentionRevPct, 0) + ')' },
+      { metric: 'Campaign-attributed revenue', value: fmtCur(k.campaignRev) + ' (' + fmtPct(k.campaignRevPct, 0) + ')' },
+      { metric: 'AOV', value: fmtCur(k.aov) },
+      { metric: 'Repeat rate', value: fmtPct(k.repeatRate, 0) },
+      { metric: 'Orders', value: fmtInt(k.nOrders) },
+      { metric: 'Customers', value: fmtInt(k.nCustomers) },
+      { metric: 'Campaigns', value: fmtInt(k.nCampaigns) },
+    ];
+    const topCamps = [...filteredCampaigns()].sort((a, b) => b.revenue - a.revenue).slice(0, 20)
+      .map((c) => ({ name: c.name, region: c.region, revenue: c.revenue, cvr: c.clicks ? c.conversions / c.clicks : 0, url: c.url || campaignUrl(c) }));
+    return [
+      { sheet: 'Revenue Pulse', title: 'Key metrics', columns: [{ key:'metric', label:'Metric' }, { key:'value', label:'Value' }], rows: kpiRows },
+      { sheet: 'Revenue Pulse', title: 'Revenue by region', columns: [
+        { key:'region', label:'Region' }, { key:'orders', label:'Orders' }, { key:'units', label:'Units' },
+        { key:'revenue', label:'Revenue', money:true }, { key:'aov', label:'AOV', money:true },
+      ], rows: regionSummaryRows() },
+      { sheet: 'Revenue Pulse', title: 'Top campaigns by revenue', columns: [
+        { key:'name', label:'Campaign', urlKey:'url' }, { key:'region', label:'Region' },
+        { key:'revenue', label:'Revenue', money:true }, { key:'cvr', label:'CVR', pct:true },
+      ], rows: topCamps },
+    ];
+  }
+  if (view === 'campaigns') {
+    const rows = [...filteredCampaigns()].sort((a, b) => b.revenue - a.revenue).map((c) => ({
+      name: c.name, region: c.region, channel: c.channel, sent_at: (c.sent_at || '').slice(0, 10),
+      sends: c.sends, opens: c.opens, open_rate: c.sends ? c.opens / c.sends : 0,
+      clicks: c.clicks, ctr: c.opens ? c.clicks / c.opens : 0,
+      conversions: c.conversions, cvr: c.clicks ? c.conversions / c.clicks : 0,
+      revenue: c.revenue, unsubs: c.unsubs, subject: c.subject, url: c.url || campaignUrl(c),
+    }));
+    return [{ sheet: 'Campaigns', title: 'Every send', columns: [
+      { key:'name', label:'Campaign', urlKey:'url' }, { key:'region', label:'Region' }, { key:'channel', label:'Channel' },
+      { key:'sent_at', label:'Sent' }, { key:'sends', label:'Sends' }, { key:'opens', label:'Opens' },
+      { key:'open_rate', label:'Open rate', pct:true }, { key:'clicks', label:'Clicks' }, { key:'ctr', label:'CTR', pct:true },
+      { key:'conversions', label:'Orders' }, { key:'cvr', label:'CVR', pct:true }, { key:'revenue', label:'Revenue', money:true },
+      { key:'unsubs', label:'Unsubs' }, { key:'subject', label:'Subject' },
+    ], rows }];
+  }
+  if (view === 'segments') {
+    return [{ sheet: 'Segments', title: 'RFM segments', columns: [
+      { key:'name', label:'Segment' }, { key:'count', label:'Customers' }, { key:'revenue', label:'Revenue', money:true },
+      { key:'avgLtv', label:'Avg LTV', money:true }, { key:'avgDiscount', label:'Avg discount', pct:true }, { key:'engagedPct', label:'Engaged %', pct:true },
+    ], rows: segmentSummary() }];
+  }
+  if (view === 'products') {
+    return [{ sheet: 'Products', title: 'Product performance', columns: [
+      { key:'sku', label:'SKU' }, { key:'title', label:'Product' }, { key:'category', label:'Category' },
+      { key:'units', label:'Units' }, { key:'revenue', label:'Revenue', money:true },
+      { key:'ordersWithIt', label:'Orders incl.' }, { key:'promos', label:'Times promoted' },
+    ], rows: [...calcProductKpis()].sort((a, b) => b.revenue - a.revenue) }];
+  }
+  if (view === 'time') {
+    return [{ sheet: 'Send-Time', title: 'Send-time & weekly seasonality', columns: [
+      { key:'weekday', label:'Weekday' }, { key:'sends', label:'Sends' }, { key:'opens', label:'Opens' },
+      { key:'open_rate', label:'Open rate', pct:true }, { key:'best_hour', label:'Best hour' }, { key:'revenue_index', label:'Revenue index (Mon=100)' },
+    ], rows: sendTimeSummaryRows() }];
+  }
+  if (view === 'cohorts') {
+    const cohorts = computeCohorts();
+    const cols = [{ key:'cohort', label:'Cohort' }, { key:'size', label:'Size' }];
+    for (let m = 1; m <= 11; m++) cols.push({ key:'m' + m, label:'M+' + m, pct:true, heat:true });
+    const rows = cohorts.map((c) => {
+      const o = { cohort: c.cohort, size: c.size };
+      for (let m = 1; m <= 11; m++) o['m' + m] = (c.retPct?.[m] || 0); // fraction
+      return o;
+    });
+    return [{
+      sheet: 'Cohorts', title: 'Retention triangle (colour = retention strength)', columns: cols, rows,
+      cell(row, colKey, col) {
+        if (!col.heat) return null;
+        const pct = (row[colKey] || 0) * 100;
+        const fill = goldFillHex(pct);
+        if (!fill) return null;
+        return { fill, font: pct > 30 ? 'FF0A1410' : 'FF5D6E64', bold: true };
+      },
+    }];
+  }
+  if (view === 'insights') {
+    return [{ sheet: 'Insights', title: 'Strategic insights', columns: [
+      { key:'sev', label:'Severity' }, { key:'title', label:'Insight' }, { key:'body', label:'Detail' },
+      { key:'why', label:'Why' }, { key:'impact', label:'Impact' }, { key:'action', label:'Action' },
+    ], rows: computeInsights().map((i) => ({ sev: (i.sev || '').toUpperCase(), title: i.title, body: i.body, why: i.why, impact: i.impact, action: i.action })) }];
+  }
+  return [];
+}
+
+function allTables() {
+  return ['exec','campaigns','segments','products','time','cohorts','insights'].flatMap(tablesForView);
+}
+
+// ── format a cell value for display in CSV/Excel
+function fmtExportVal(col, raw) {
+  if (raw == null) return '';
+  if (col.money) return fmtCur(raw);
+  if (col.pct)   return typeof raw === 'number' ? (raw * 100).toFixed(1) + '%' : raw;
+  return raw;
+}
+
+// ── CSV (single table or stacked tables) ───────────────────────────────
+function tablesToCsv(tables) {
+  const blocks = tables.map((t) => {
+    const head = t.columns.map((c) => c.label);
+    const body = t.rows.map((r) => t.columns.map((c) => fmtExportVal(c, r[c.key])));
+    const title = `# ${t.sheet} — ${t.title}`;
+    return [title, Papa.unparse([head, ...body])].join('\n');
+  });
+  return blocks.join('\n\n');
+}
+
+// Campaign deep-link: only return a URL if one was actually present in the
+// uploaded/linked data (Klaviyo "web view" link, etc.) — never fabricate one.
+function campaignUrl(c) {
+  return c.url || c.campaign_url || c.link || c.web_url || c.view_url || c.report_url || null;
+}
+
+// Excel worksheet from one-or-more stacked tables, with cell fills, fonts and
+// real hyperlinks for any column that declares a urlKey.
+function tablesToSheetWithLinks(tables) {
+  const aoa = []; const styles = {}; const links = [];
+  const setStyle = (r, c, s) => { styles[XLSX.utils.encode_cell({ r, c })] = s; };
+  tables.forEach((t, ti) => {
+    if (ti > 0) aoa.push([]);
+    const titleRow = aoa.length; aoa.push([t.title]);
+    setStyle(titleRow, 0, { font: { bold: true, sz: 13, color: { rgb: HEX_TITLE_FONT } } });
+    const headRow = aoa.length; aoa.push(t.columns.map((c) => c.label));
+    t.columns.forEach((_, ci) => setStyle(headRow, ci, {
+      fill: { patternType: 'solid', fgColor: { rgb: HEX_HEADER_FILL } },
+      font: { bold: true, color: { rgb: HEX_HEADER_FONT } },
+    }));
+    t.rows.forEach((row) => {
+      const r = aoa.length;
+      aoa.push(t.columns.map((c) => fmtExportVal(c, row[c.key])));
+      t.columns.forEach((c, ci) => {
+        const st = t.cell && t.cell(row, c.key, c);
+        const s = {};
+        if (st) { s.fill = { patternType: 'solid', fgColor: { rgb: st.fill } }; s.font = { color: { rgb: st.font }, bold: !!st.bold }; }
+        if (c.urlKey && row[c.urlKey]) {
+          s.font = Object.assign({ color: { rgb: 'FF1155CC' }, underline: true }, s.font || {});
+          links.push({ ref: XLSX.utils.encode_cell({ r, c: ci }), target: row[c.urlKey] });
+        }
+        if (Object.keys(s).length) setStyle(r, ci, s);
+      });
+    });
+  });
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  Object.keys(styles).forEach((ref) => { if (ws[ref]) ws[ref].s = styles[ref]; });
+  links.forEach((l) => { if (ws[l.ref]) ws[l.ref].l = { Target: l.target }; });
+  const maxCols = Math.max(1, ...tables.map((t) => t.columns.length));
+  ws['!cols'] = Array(maxCols).fill(0).map((_, i) => ({ wch: i === 0 ? 28 : 16 }));
+  return ws;
+}
+
+function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `vahdam-${name}-${new Date().toISOString().slice(0,10)}.csv`;
-  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+function runExport({ scope, format, view }) {
+  const stamp = new Date().toISOString().slice(0, 10);
+  if (scope === 'view') {
+    const tables = tablesForView(view);
+    if (!tables.length) return alert('Nothing to export for this view.');
+    const base = `vahdam-${view}-${stamp}`;
+    if (format === 'csv') {
+      downloadBlob(new Blob([tablesToCsv(tables)], { type: 'text/csv' }), base + '.csv');
+    } else {
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, tablesToSheetWithLinks(tables), VIEW_LABELS[view].slice(0, 28));
+      XLSX.writeFile(wb, base + '.xlsx', { cellStyles: true });
+    }
+    return;
+  }
+  // Complete analysis — every page
+  const all = allTables();
+  const base = `vahdam-complete-analysis-${stamp}`;
+  if (format === 'csv') {
+    downloadBlob(new Blob([tablesToCsv(all)], { type: 'text/csv' }), base + '.csv');
+    return;
+  }
+  const wb = XLSX.utils.book_new();
+  // 1 sheet per page
+  ['exec','campaigns','segments','products','time','cohorts','insights'].forEach((v) => {
+    const t = tablesForView(v);
+    if (t.length) XLSX.utils.book_append_sheet(wb, tablesToSheetWithLinks(t), (VIEW_LABELS[v] || v).slice(0, 28));
+  });
+  // combined "All Tables" sheet (everything stacked) — the single-sheet compile
+  XLSX.utils.book_append_sheet(wb, tablesToSheetWithLinks(all), 'All Tables');
+  XLSX.writeFile(wb, base + '.xlsx', { cellStyles: true });
+}
+
+// ── Export modal wiring ─────────────────────────────────────────────────
+const exportState = { format: 'xlsx' };
+function openExportModal() {
+  $('exportView').value = STATE.view;
+  updateExportHint();
+  $('exportModal').classList.add('open');
+}
+function closeExportModal() { $('exportModal').classList.remove('open'); }
+function currentExportScope() { return (document.querySelector('input[name="expScope"]:checked') || {}).value || 'view'; }
+function updateExportHint() {
+  const scope = currentExportScope();
+  $('exportViewWrap').style.display = scope === 'view' ? '' : 'none';
+  const fmt = exportState.format;
+  let h = '';
+  if (scope === 'all') h = 'One workbook: a sheet per page plus an “All Tables” sheet combining everything. ';
+  else h = `Exports the “${VIEW_LABELS[$('exportView').value]}” page. `;
+  if (fmt === 'xlsx') h += 'Retention colour-coding and clickable campaign links are preserved.';
+  else h += 'CSV is plain text (no colours/links); colour is kept only in Excel.';
+  $('exportHint').textContent = h;
+}
+
+$('btnExport').addEventListener('click', openExportModal);
+$('exportClose').addEventListener('click', closeExportModal);
+$('exportCancel').addEventListener('click', closeExportModal);
+$('exportModal').addEventListener('click', (e) => { if (e.target.id === 'exportModal') closeExportModal(); });
+document.querySelectorAll('input[name="expScope"]').forEach((r) => r.addEventListener('change', updateExportHint));
+$('exportView').addEventListener('change', updateExportHint);
+$('exportFormatChips').addEventListener('click', (e) => {
+  if (!e.target.dataset.fmt) return;
+  exportState.format = e.target.dataset.fmt;
+  $$('#exportFormatChips .filter-chip').forEach((c) => c.classList.toggle('active', c === e.target));
+  updateExportHint();
+});
+$('exportRun').addEventListener('click', () => {
+  runExport({ scope: currentExportScope(), format: exportState.format, view: $('exportView').value });
+  closeExportModal();
 });
 
 /* ╔═══════════════════════════════════════════════════════════════════════

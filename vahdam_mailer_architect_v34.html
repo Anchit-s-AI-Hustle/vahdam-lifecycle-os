@@ -9139,8 +9139,94 @@ function previewDashboardSideBySide(logIdx,mkt){
   _t('_resolveTables exists',function(){return _truthy(typeof _resolveTables==='function');});
 })();
 
+// ─── Calendar → Studio handoff ──────────────────────────────────────────
+// When the user clicks "Open in Studio" from the 30-day calendar, the calendar
+// stashes the chosen plan row + its pre-generated strategy in localStorage.
+// Here we read it, prefill Step 1 (brief, market, segment, campaign type) and
+// land the user on the relevant step — never an empty new session.
+function applyCalendarHandoff(){
+  var raw;
+  try{ raw = localStorage.getItem('vahdam-studio-handoff'); }catch(_){ return false; }
+  if(!raw) return false;
+  var H; try{ H = JSON.parse(raw); }catch(_){ return false; }
+  // single-use: clear so a manual refresh starts clean
+  try{ localStorage.removeItem('vahdam-studio-handoff'); }catch(_){}
+  if(!H || !H.entry) return false;
+  var e = H.entry, s = H.strategy || {};
+
+  // 1. Compose a rich brief from the plan row + pre-generated strategy.
+  var lines = [
+    'Lifecycle campaign from the 30-day plan.',
+    'Date: '+(e.date||'—')+'  ·  Market: '+(e.market||'—')+'  ·  Segment: '+(e.segment||'—'),
+    'Content type: '+(e.content_type||'—')+'  ·  Layout: '+(e.archetype||'—'),
+    e.hero_product ? ('Hero product: '+e.hero_product+(e.hero_sku?(' ('+e.hero_sku+')'):'')) : null,
+    e.festival ? ('Cultural moment: '+e.festival+(e.festival_weight?(' (weight '+e.festival_weight+'/10)'):'')) : null,
+    '',
+  ];
+  if(s.subject_line || s.hero_headline){
+    lines.push('Pre-generated strategy to build on:');
+    if(s.subject_line)  lines.push('• Subject: '+s.subject_line);
+    if(s.preview_text)  lines.push('• Preview: '+s.preview_text);
+    if(s.hero_headline) lines.push('• Headline: '+s.hero_headline);
+    if(s.hero_subline)  lines.push('• Subhead: '+s.hero_subline);
+    (s.body_blocks||[]).forEach(function(b){ if(b&&(b.heading||b.body)) lines.push('• '+(b.heading?(b.heading+': '):'')+(b.body||'')); });
+    if(s.cta_text) lines.push('• CTA: '+s.cta_text+(H.cta_url?(' → '+H.cta_url):''));
+  }
+  if(e.rationale){ lines.push(''); lines.push('Why this campaign: '+e.rationale); }
+  var brief = lines.filter(function(x){return x!==null;}).join('\n');
+
+  try{
+    var pin = document.getElementById('promptIn');
+    if(pin){ pin.value = brief; }
+    if(typeof S==='object'){ S.prompt = brief; }
+  }catch(_){}
+
+  // 2. Audience / segment.
+  try{
+    var aud = document.getElementById('audienceIn');
+    var segText = (e.segment||'')+(e.segment_size?(' segment (~'+e.segment_size+' customers)'):' segment');
+    if(aud && !aud.value){ aud.value = segText; if(typeof S==='object'){ S.audience = segText; } if(typeof _audienceManualSet!=='undefined'){ _audienceManualSet = true; } }
+  }catch(_){}
+
+  // 3. Market — map calendar market → an available studio chip (fallback Global).
+  try{
+    var avail = ['US','UK','IN','Global','ME','AU','EU'];
+    var mkt = avail.indexOf(e.market)>=0 ? e.market : 'Global';
+    document.querySelectorAll('.mkt-chip').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-mkt')===mkt); });
+    if(typeof S==='object'){ S.markets=[mkt]; S.market=mkt; S.activeMarket=mkt; S._mktManualSet=true; }
+  }catch(_){}
+
+  // 4. Campaign type — map content_type / festival → a studio type chip.
+  try{
+    var typeMap = { promo:'Sale', launch:'Launch', editorial:'Story', lifecycle:'Routine', winback:'Bestseller', seasonal:'Seasonal' };
+    var tags = (e.festival_tags||[]).map(function(t){return String(t).toLowerCase();});
+    var t = tags.indexOf('gift')>=0 ? 'Gift' : (typeMap[String(e.content_type||'').toLowerCase()] || '');
+    if(t && typeof selectType==='function'){
+      var btn = document.querySelector('.type-chip[data-type="'+t+'"]');
+      if(btn){ selectType(t, btn); }
+    }
+  }catch(_){}
+
+  // 5. Land on Step 1 and announce the prefill.
+  try{
+    if(typeof showOnly==='function') showOnly(1);
+    var p1 = document.getElementById('p1');
+    if(p1 && !document.getElementById('vhdHandoffBanner')){
+      var banner = document.createElement('div');
+      banner.id='vhdHandoffBanner';
+      banner.style.cssText='margin:14px 22px 0;padding:11px 14px;border-radius:10px;background:linear-gradient(135deg,#f0f7f3,#eef4f0);border:1.5px solid #cfe3d8;font-family:Proxima Nova,Helvetica Neue,Arial,sans-serif;font-size:12.5px;color:#004A2B;display:flex;align-items:center;gap:10px';
+      banner.innerHTML='<span style="font-size:15px">&#128197;</span><div><b>Prefilled from the 30-day plan</b> — '+(e.date||'')+' · '+(e.market||'')+' · '+(e.segment||'')+'. Review the brief below, then generate.</div>';
+      p1.insertBefore(banner, p1.firstChild);
+    }
+    window.scrollTo({top:0, behavior:'smooth'});
+  }catch(_){}
+  return true;
+}
+
 document.addEventListener('DOMContentLoaded',function(){
   initAuth();
+  // Prefill from a calendar handoff if present (fires before the auto-brief).
+  try{ applyCalendarHandoff(); }catch(_){}
   // Auto-trigger brief generation if the user clicked "New Brief" on a
   // generated mailer (the click did a hard reload + set this flag).
   try{

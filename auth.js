@@ -306,8 +306,16 @@
 
     const config = await getConfig();
     if (!config) {
-      // No Supabase configured yet — show the wall in "not-configured" mode
-      // and still inject the top-bar so the rest of the UI works locally.
+      // No Supabase configured. On localhost / file:// (dev preview) there is no
+      // backend to sign in against, so inject the cross-step top-bar and let the
+      // UI run — exactly as the team would see it post-login. In production
+      // (a real host) we still require sign-in, so show the wall there.
+      const isLocal = location.protocol === 'file:' ||
+        /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/.test(location.hostname);
+      if (isLocal) {
+        injectTopbar({ email: 'local@preview', user_metadata: { name: 'Local preview' } });
+        return;
+      }
       injectLoginWall();
       return;
     }

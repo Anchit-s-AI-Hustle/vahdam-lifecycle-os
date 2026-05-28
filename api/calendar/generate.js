@@ -292,9 +292,11 @@ module.exports = async function handler(req, res) {
         content_type,
         hero_sku: hero.sku || null,
         hero_product: hero.title || null,
+        hero_handle: hero.handle || hero.h || null,
         subject_hint,
         festival: festival ? festival.name : null,
         festival_weight: festival ? festival.weight : null,
+        festival_tags: festival ? (festival.tags || []) : [],
         rationale,
         status: 'planned',
       });

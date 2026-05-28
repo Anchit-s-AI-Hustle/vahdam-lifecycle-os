@@ -37,6 +37,13 @@ data/catalog/
 *.html.bak
 test-output/
 
+# Compiled analysis exports (keep the README, ignore the workbooks)
+output/*.xlsx
+output/*.csv
+
+# Linked-DB pointer written by the dashboard (may hold an anon key — not tracked)
+data/linked-db.public.json
+
 # Reference projects / accidental nested clones — never commit these
 vahdam-tea-architect/
 marketing_mailers__html_architect/

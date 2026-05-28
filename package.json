@@ -9,6 +9,7 @@
   "scripts": {
     "build": "node scripts/build-catalog.js",
     "dev": "node -e \"require('http').createServer().listen(3001)\"",
+    "export:complete": "node scripts/export-complete.js",
     "deploy": "vercel --prod",
     "test": "playwright test",
     "test:ui": "playwright test --ui",
@@ -16,5 +17,8 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.48.0"
+  },
+  "dependencies": {
+    "xlsx-js-style": "^1.2.0"
   }
 }

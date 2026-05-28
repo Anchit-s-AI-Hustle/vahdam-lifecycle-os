@@ -370,12 +370,30 @@ function openMailerById(id) {
   if (entry) openMailer(entry);
 }
 
+// Stash the plan row (+ strategy once generated) so the Studio can prefill the
+// relevant step instead of opening an empty session.
+function setStudioHandoff(entry, strategy, ctaUrl) {
+  try {
+    localStorage.setItem('vahdam-studio-handoff', JSON.stringify({
+      source: 'calendar', entry, strategy: strategy || null, cta_url: ctaUrl || null, ts: Date.now(),
+    }));
+  } catch {}
+  const btn = $('openInStudio');
+  if (btn) {
+    // Re-stash at click time too (in case multiple mailers were opened).
+    btn.onclick = () => { try { localStorage.setItem('vahdam-studio-handoff', JSON.stringify({ source:'calendar', entry, strategy: strategy||null, cta_url: ctaUrl||null, ts: Date.now() })); } catch {} };
+  }
+}
+
 async function openMailer(entry) {
   $('mailerTitle').textContent = `${entry.date} · ${entry.market} · ${entry.segment}`;
   $('mailerSubtitle').textContent = entry.rationale || '';
   $('variantTabs').innerHTML = '';
   $('variantPanels').innerHTML = `<div class="text-ink-mute text-center py-8">Calling strategy + variant pipeline…</div>`;
   $('mailerModal').classList.add('open');
+  // Even before the pipeline returns, a click on "Open in Studio" should prefill
+  // at least the brief from this plan row.
+  setStudioHandoff(entry, null, null);
 
   try {
     const res = await fetch('/api/calendar/trigger-mailer', {
@@ -386,12 +404,14 @@ async function openMailer(entry) {
     if (!res.ok) throw new Error(await res.text());
     const data = await res.json();
     const variants = data.variants || {};
+    // Now that we have the generated strategy, upgrade the handoff payload.
+    setStudioHandoff(entry, data.strategy, data.cta_url);
     const tabs = ['A','B','T1','T2'];
     $('variantTabs').innerHTML = tabs.map((k, i) => `
       <button class="filter-chip ${i===0 ? 'active' : ''}" data-variant="${k}">${variants[k]?.label || k}</button>
     `).join('');
     $('variantPanels').innerHTML = tabs.map((k, i) => `
-      <div data-panel="${k}" style="${i===0 ? '' : 'display:none'}">${renderVariantPanel(variants[k], data.strategy)}</div>
+      <div data-panel="${k}" style="${i===0 ? '' : 'display:none'}">${renderVariantPanel(variants[k], data.strategy, data.cta_url)}</div>
     `).join('');
     $$('#variantTabs .filter-chip').forEach((b) => b.addEventListener('click', (e) => {
       const k = e.target.dataset.variant;
@@ -403,12 +423,18 @@ async function openMailer(entry) {
   }
 }
 
-function renderVariantPanel(v, strategy) {
+function ctaLine(url) {
+  if (!url) return '';
+  return `<div class="text-[11px] text-ink-mute mt-2">CTA links to <a href="${url}" target="_blank" rel="noopener" class="text-gold hover:underline">${url} ↗</a></div>`;
+}
+function renderVariantPanel(v, strategy, ctaUrl) {
   if (!v) return `<div class="text-ink-mute">Variant unavailable.</div>`;
+  const cta = ctaUrl || v.cta_url || '';
   if (v.kind === 'text') {
     return `
       <div class="text-xs text-ink-dim mb-2">${v.label} · subject "${strategy.subject_line}"</div>
       <iframe class="preview" srcdoc='${v.html.replace(/'/g, "&apos;")}'></iframe>
+      ${ctaLine(cta)}
     `;
   }
   // image variant — show the image brief + a placeholder pointing at the studio
@@ -423,6 +449,7 @@ function renderVariantPanel(v, strategy) {
         Image variants render in the full Mailer Studio (api/ai/image.js cascade: Gemini Imagen → OpenAI → Pollinations).
         Click <b>Open in Studio</b> below to render this brief.
       </div>
+      ${ctaLine(cta)}
     </div>
   `;
 }

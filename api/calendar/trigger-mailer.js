@@ -16,6 +16,78 @@
  */
 
 const llm = require('../_shared/llm.js');
+const fs = require('fs');
+const path = require('path');
+
+// ─── VAHDAM store URLs (verified per CLAUDE.md) ─────────────────────────────
+function regionBase(market) {
+  const m = String(market || '').toUpperCase();
+  const map = {
+    US: 'https://www.vahdamteas.com',
+    UK: 'https://uk.vahdamteas.com',
+    IN: 'https://www.vahdamindia.com',
+    EU: 'https://eu.vahdamteas.com',
+    AU: 'https://au.vahdamteas.com',
+    CA: 'https://www.vahdamteas.com',
+    JP: 'https://www.vahdamteas.com',
+    SG: 'https://www.vahdamteas.com',
+    ME: 'https://www.vahdamteas.com',
+    GLOBAL: 'https://www.vahdamteas.com',
+  };
+  return map[m] || 'https://www.vahdamteas.com';
+}
+
+function slugify(s) {
+  return String(s || '').toLowerCase().trim()
+    .replace(/['’.]/g, '').replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+// Best-effort SKU→handle lookup from the built catalog (data/catalog/products_<region>.json).
+const _catalogCache = {};
+function lookupHandle(market, sku) {
+  if (!sku) return null;
+  const region = ({ US: 'usa', UK: 'uk' })[String(market || '').toUpperCase()] || 'global';
+  if (!(region in _catalogCache)) {
+    _catalogCache[region] = null;
+    try {
+      const p = path.join(__dirname, '..', '..', 'data', 'catalog', `products_${region}.json`);
+      if (fs.existsSync(p)) _catalogCache[region] = JSON.parse(fs.readFileSync(p, 'utf8'));
+    } catch { /* ignore */ }
+  }
+  const cat = _catalogCache[region];
+  if (!Array.isArray(cat)) return null;
+  const hit = cat.find((p) => (p.sku || p.variant_sku) === sku || p.s === sku);
+  return hit ? (hit.h || hit.handle || null) : null;
+}
+
+// Map a content type / festival to a sensible collection slug.
+function collectionForEntry(entry) {
+  const tags = (entry.festival_tags || []).map((t) => String(t).toLowerCase());
+  if (tags.includes('gift')) return 'gift-sets';
+  switch (String(entry.content_type || '').toLowerCase()) {
+    case 'launch':   return 'new-arrivals';
+    case 'editorial':return 'bestsellers';
+    case 'winback':  return 'bestsellers';
+    case 'lifecycle':return 'tea';
+    case 'promo':    return 'bestsellers';
+    default:         return 'bestsellers';
+  }
+}
+
+// Resolve the single CTA destination for a calendar entry → a real VAHDAM URL.
+function ctaUrlForEntry(entry, market) {
+  const base = regionBase(market);
+  // 1. Precise product page if we know the handle (or can resolve it from the SKU).
+  const handle = entry.hero_handle || lookupHandle(market, entry.hero_sku);
+  if (handle) return `${base}/products/${handle}`;
+  // 2. Otherwise the relevant collection page.
+  const slug = collectionForEntry(entry);
+  if (slug) return `${base}/collections/${slug}`;
+  // 3. Last resort: on-site search for the hero product so the link still lands somewhere real.
+  if (entry.hero_product) return `${base}/search?q=${encodeURIComponent(entry.hero_product)}`;
+  return base;
+}
 
 function buildBriefFromEntry(entry) {
   const parts = [
@@ -109,6 +181,7 @@ module.exports = async function handler(req, res) {
   }
 
   const S = strategy.data;
+  const ctaUrl = ctaUrlForEntry(entry, market);
 
   // ── Stage 2: 4 variants — A & B = image-driven, T1 & T2 = text-only ──
   // The downstream image pipeline (api/ai/image.js) handles image generation
@@ -129,6 +202,7 @@ module.exports = async function handler(req, res) {
       label: 'Text · Editorial',
       style: 'editorial',
       preview_text: S.preview_text,
+      cta_url: ctaUrl,
       html: renderTextVariant({
         style: 'editorial',
         subject: S.subject_line,
@@ -136,6 +210,7 @@ module.exports = async function handler(req, res) {
         hero_subline: S.hero_subline,
         body_blocks: S.body_blocks || [],
         cta_text: S.cta_text || 'Shop the edit',
+        cta_url: ctaUrl,
         market,
       }),
     },
@@ -144,6 +219,7 @@ module.exports = async function handler(req, res) {
       label: 'Text · Founder note',
       style: 'founder',
       preview_text: S.preview_text,
+      cta_url: ctaUrl,
       html: renderTextVariant({
         style: 'founder',
         subject: S.subject_line,
@@ -151,6 +227,7 @@ module.exports = async function handler(req, res) {
         hero_subline: S.hero_subline,
         body_blocks: S.body_blocks || [],
         cta_text: S.cta_text || 'Shop the edit',
+        cta_url: ctaUrl,
         market,
       }),
     },
@@ -160,18 +237,17 @@ module.exports = async function handler(req, res) {
     ok: true,
     entry,
     strategy: S,
+    cta_url: ctaUrl,
     variants,
     runs,
   });
 };
 
 // ─── Text-variant renderer (no images, brand-compliant) ─────────────────────
-function renderTextVariant({ style, subject, hero_headline, hero_subline, body_blocks, cta_text, market }) {
-  const baseUrl =
-    market === 'UK' ? 'https://uk.vahdamteas.com' :
-    market === 'US' ? 'https://www.vahdamteas.com' :
-    market === 'IN' ? 'https://www.vahdamindia.com' :
-    'https://www.vahdamteas.com';
+function renderTextVariant({ style, subject, hero_headline, hero_subline, body_blocks, cta_text, cta_url, market }) {
+  // CTA points at the resolved product/collection page; the brand domain still
+  // falls back per-market if no specific destination was provided.
+  const baseUrl = cta_url || regionBase(market);
 
   const palette = {
     green: '#004A2B', gold: '#AB8743', ink: '#171717', cream: '#FBF5EA',
