@@ -247,12 +247,12 @@
           <button class="filter-chip" data-region="IN">India</button>
         </div>
         <div class="h-5 w-px bg-gold/20"></div>
-        <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold">Window</div>
-        <div class="flex gap-1.5" id="dateChips">
-          <button class="filter-chip" data-days="7">7d</button>
-          <button class="filter-chip" data-days="30">30d</button>
-          <button class="filter-chip active" data-days="90">90d</button>
-          <button class="filter-chip" data-days="365">YTD</button>
+        <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold">Trend</div>
+        <div class="flex gap-1.5" id="granChips" title="Time granularity for the whole dashboard — day-on-day, week-on-week, month-on-month or year-on-year">
+          <button class="filter-chip" data-gran="day" title="Day-on-day · last 60 days">Day</button>
+          <button class="filter-chip" data-gran="week" title="Week-on-week · last ~26 weeks">Week</button>
+          <button class="filter-chip active" data-gran="month" title="Month-on-month · last 12 months">Month</button>
+          <button class="filter-chip" data-gran="year" title="Year-on-year · all years">Year</button>
         </div>
         <div class="h-5 w-px bg-gold/20"></div>
         <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold">Currency</div>
@@ -285,11 +285,11 @@
         <!-- Trend + region comparison -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
           <div class="card p-4 lg:col-span-2">
-            <h3 class="text-sm font-semibold mb-3">Daily net revenue · stacked by region</h3>
-            <div id="chartExecRevenue" data-chart-host data-chart-id="execRev" data-chart-title="Revenue Pulse · Daily net revenue stacked by region" style="height:300px"></div>
+            <h3 class="text-sm font-semibold mb-3" id="execRevTitle">Net revenue by region</h3>
+            <div id="chartExecRevenue" data-chart-host data-chart-id="execRev" data-chart-title="Revenue Pulse · Net revenue by region" style="height:300px"></div>
           </div>
           <div class="card p-4">
-            <h3 class="text-sm font-semibold mb-3">Region split · 30d</h3>
+            <h3 class="text-sm font-semibold mb-3">Region split · revenue share</h3>
             <div id="chartExecRegionSplit" data-chart-host data-chart-id="execReg" data-chart-title="Region split · 30-day revenue share" style="height:300px"></div>
           </div>
         </div>
@@ -647,6 +647,51 @@ function fmtCur(n) {
   const f = curMeta();
   return f.symbol + Math.round(Number(n) * f.rate).toLocaleString(f.locale);
 }
+// Compact, currency-aware money for axis labels (₹ uses lakh/crore, $ uses k/M/B).
+function fmtCurShort(n) {
+  if (n == null || isNaN(n)) return '—';
+  const f = curMeta();
+  const v = Number(n) * f.rate, a = Math.abs(v);
+  let s;
+  if (CURRENCY === 'INR') {
+    if (a >= 1e7) s = (v / 1e7).toFixed(a >= 1e8 ? 0 : 1) + 'Cr';
+    else if (a >= 1e5) s = (v / 1e5).toFixed(1) + 'L';
+    else if (a >= 1e3) s = (v / 1e3).toFixed(0) + 'k';
+    else s = Math.round(v);
+  } else {
+    if (a >= 1e9) s = (v / 1e9).toFixed(1) + 'B';
+    else if (a >= 1e6) s = (v / 1e6).toFixed(1) + 'M';
+    else if (a >= 1e3) s = (v / 1e3).toFixed(0) + 'k';
+    else s = Math.round(v);
+  }
+  return f.symbol + s;
+}
+
+// ─── Time bucketing for trend charts ──────────────────────────────────────
+// Returns { key (sortable), label (human) } for a date at the given cadence.
+function bucketKeyLabel(d, gran) {
+  const dt = (d instanceof Date) ? d : new Date(d);
+  const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  if (gran === 'year') {
+    const y = dt.getUTCFullYear();
+    return { key: String(y), label: String(y) };
+  }
+  if (gran === 'month') {
+    const y = dt.getUTCFullYear(), m = dt.getUTCMonth();
+    return { key: y + '-' + String(m + 1).padStart(2, '0'), label: MON[m] + " '" + String(y).slice(2) };
+  }
+  if (gran === 'week') {
+    // Monday-anchored week.
+    const tmp = new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate()));
+    const dow = (tmp.getUTCDay() + 6) % 7; // 0 = Monday
+    tmp.setUTCDate(tmp.getUTCDate() - dow);
+    const key = tmp.toISOString().slice(0, 10);
+    return { key, label: MON[tmp.getUTCMonth()] + ' ' + tmp.getUTCDate() };
+  }
+  // day
+  const key = dt.toISOString().slice(0, 10);
+  return { key, label: MON[dt.getUTCMonth()] + ' ' + dt.getUTCDate() };
+}
 const fmtInt = (n) => n == null || isNaN(n) ? '—' : Math.round(Number(n)).toLocaleString('en-US');
 const fmtPct = (n, d=1) => n == null || isNaN(n) ? '—' : (Number(n) * 100).toFixed(d) + '%';
 const fmtPctRaw = (n, d=1) => n == null || isNaN(n) ? '—' : Number(n).toFixed(d) + '%';
@@ -736,10 +781,11 @@ function genSeed() {
   const rng = rngFromSeed('vahdam-dtc-2026');
   const now = Date.now();
   const DAY = 86_400_000;
-  const N_DAYS = 120;
+  // ~13 months of history so month-on-month and year-on-year views are meaningful.
+  const N_DAYS = 400;
   const N_CUSTOMERS = 4000;
-  const N_CAMPAIGNS = 92;
-  const N_ORDERS = 11000;
+  const N_CAMPAIGNS = 150;
+  const N_ORDERS = 16000;
 
   // Customers
   const customers = [];
@@ -839,7 +885,7 @@ function genSeed() {
   const orders = [];
   for (let i = 0; i < N_ORDERS; i++) {
     const cust = customers[Math.floor(rng() * customers.length)];
-    const daysAgo = Math.floor(rng() * 120);
+    const daysAgo = Math.floor(rng() * N_DAYS);
     const ordered_at = new Date(now - daysAgo * DAY).toISOString();
     const linesCount = 1 + Math.floor(rng() * 3);
     const lines = [];
@@ -873,9 +919,19 @@ let DATA = genSeed();
 /* ╔═══════════════════════════════════════════════════════════════════════
  * ║ FILTER + STATE
  * ╚═══════════════════════════════════════════════════════════════════════ */
+// Time-granularity model. Each cadence sets both the dashboard look-back
+// (days) and how the trend chart buckets — day-on-day, week-on-week,
+// month-on-month (default) or year-on-year.
+const GRAN = {
+  day:   { label: 'Day on day',    days: 60,   bucket: 'day'   },
+  week:  { label: 'Week on week',  days: 182,  bucket: 'week'  },
+  month: { label: 'Month on month',days: 365,  bucket: 'month' },
+  year:  { label: 'Year on year',  days: 3650, bucket: 'year'  },
+};
 const STATE = {
   region: 'ALL',
-  days: 90,
+  granularity: 'month',
+  days: GRAN.month.days,
   view: 'exec',
 };
 
@@ -1290,6 +1346,8 @@ function computeInsights() {
  * ╚═══════════════════════════════════════════════════════════════════════ */
 
 const charts = {}; // store ApexCharts instances for cleanup
+// Expose for chart-enhance.js (table-view / expand auto-extraction reads window.charts[id]).
+window.charts = charts;
 
 function destroyCharts() {
   Object.values(charts).forEach((c) => { try { c.destroy(); } catch {} });
@@ -1324,24 +1382,38 @@ function renderExec() {
     kpi('Engaged subs', fmtInt(k.engagedSubs), fmtPct(k.engagedSubs / Math.max(1, k.nCustomers), 0) + ' of base'),
   ].join('');
 
-  // Daily revenue line chart
+  // Net revenue trend — bucketed at the selected cadence (default month-on-month).
   const orders = filteredOrders();
-  const byDay = {};
+  const gran = STATE.granularity || 'month';
+  const byBucket = {};
   orders.forEach((o) => {
-    const day = o.ordered_at.slice(0, 10);
-    if (!byDay[day]) byDay[day] = { US: 0, UK: 0, Global: 0 };
-    byDay[day][o.region] = (byDay[day][o.region] || 0) + o.total;
+    const { key, label } = bucketKeyLabel(o.ordered_at, gran);
+    if (!byBucket[key]) byBucket[key] = { label, US: 0, UK: 0, Global: 0, IN: 0 };
+    byBucket[key][o.region] = (byBucket[key][o.region] || 0) + o.total;
   });
-  const dates = Object.keys(byDay).sort();
+  const keys = Object.keys(byBucket).sort();
+  const labels = keys.map((k) => byBucket[k].label);
+  // Bars are most readable for coarse cadences; area for many fine-grained points.
+  const useBar = (gran === 'month' || gran === 'year') || keys.length <= 16;
+  // update the card title to reflect the active cadence
+  const titleEl = $('execRevTitle');
+  if (titleEl) titleEl.textContent = `Net revenue by region · ${(GRAN[gran] || {}).label || 'Month on month'}`;
   charts.execRev = new ApexCharts($('chartExecRevenue'), {
     ...APEX_BASE,
-    chart: { ...APEX_BASE.chart, type: 'area', stacked: true, height: 300 },
-    series: REGIONS.map((r) => ({ name: r, data: dates.map((d) => +(byDay[d][r] || 0).toFixed(0)) })),
-    xaxis: { categories: dates.map(fmtDate), labels: { rotate: -40, style: { fontSize: '10px' } } },
-    yaxis: { labels: { formatter: (v) => '$' + (v >= 1000 ? (v/1000).toFixed(1) + 'k' : v) } },
+    chart: { ...APEX_BASE.chart, type: useBar ? 'bar' : 'area', stacked: true, height: 300 },
+    series: REGIONS.map((r) => ({ name: r, data: keys.map((k) => +(byBucket[k][r] || 0).toFixed(0)) })),
+    xaxis: {
+      categories: labels,
+      tickAmount: Math.min(labels.length, 12),
+      labels: { rotate: -40, rotateAlways: false, hideOverlappingLabels: true, trim: false, style: { fontSize: '10px' } },
+    },
+    yaxis: { labels: { formatter: fmtCurShort } },
     colors: REGIONS.map((r) => REGION_COLORS[r]),
-    stroke: { curve: 'smooth', width: 1.5 },
-    fill: { type: 'gradient', gradient: { opacityFrom: 0.5, opacityTo: 0.05 } },
+    stroke: useBar ? { width: 0 } : { curve: 'smooth', width: 1.5 },
+    fill: useBar ? { opacity: 1 } : { type: 'gradient', gradient: { opacityFrom: 0.5, opacityTo: 0.05 } },
+    plotOptions: useBar ? { bar: { columnWidth: '62%', borderRadius: 3 } } : {},
+    dataLabels: { enabled: false },
+    tooltip: { theme: 'dark', y: { formatter: fmtCur } },
   });
   charts.execRev.render();
 
@@ -1916,10 +1988,12 @@ $('regionChips').addEventListener('click', (e) => {
   $$('#regionChips .filter-chip').forEach((c) => c.classList.toggle('active', c === e.target));
   destroyCharts(); rerender();
 });
-$('dateChips').addEventListener('click', (e) => {
-  if (!e.target.dataset.days) return;
-  STATE.days = +e.target.dataset.days;
-  $$('#dateChips .filter-chip').forEach((c) => c.classList.toggle('active', c === e.target));
+$('granChips').addEventListener('click', (e) => {
+  const g = e.target.dataset.gran;
+  if (!g || !GRAN[g]) return;
+  STATE.granularity = g;
+  STATE.days = GRAN[g].days;
+  $$('#granChips .filter-chip').forEach((c) => c.classList.toggle('active', c.dataset.gran === g));
   destroyCharts(); rerender();
 });
 
