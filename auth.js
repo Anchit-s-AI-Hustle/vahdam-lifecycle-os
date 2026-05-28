@@ -25,13 +25,21 @@
     { id: 'home',      label: 'Home',         href: '/',               match: ['/', '/index.html'] },
     { id: 'dashboard', label: 'Analysis',     href: '/dashboard.html', match: ['/dashboard.html', '/analytics'] },
     { id: 'calendar',  label: 'Calendar',     href: '/calendar.html',  match: ['/calendar.html', '/plan'] },
-    { id: 'studio',    label: 'Mailer Studio',href: '/studio',         match: ['/studio', '/vahdam_mailer_architect_v34.html', '/app', '/mailer'] },
+    // Mailer Studio is an OPEN feature — it never requires sign-in (works as an
+    // individual app). The Lifecycle OS sign-in done at the first step still
+    // carries through here, but it is not enforced.
+    { id: 'studio',    label: 'Mailer Studio',href: '/studio', open: true, match: ['/studio', '/vahdam_mailer_architect_v34.html', '/app', '/mailer'] },
   ];
 
   function currentStepId() {
     const p = location.pathname.toLowerCase();
     for (const s of STEPS) if (s.match.some((m) => p === m || p.startsWith(m))) return s.id;
     return 'home';
+  }
+  // Pages that must never gate behind the login wall.
+  function isOpenPage() {
+    const s = STEPS.find((x) => x.id === currentStepId());
+    return !!(s && s.open);
   }
 
   // ─── Top-bar (cross-step navigation) ────────────────────────────────
@@ -131,6 +139,22 @@
     });
 
     const userEl = document.getElementById('ltb-user');
+    if (!user) {
+      // Guest (open page, not signed in) — offer optional sign-in, never force it.
+      userEl.innerHTML = `<a class="ltb-signout" id="ltb-signin" href="/" title="Sign in to Lifecycle OS">Sign in</a>`;
+      const btn = document.getElementById('ltb-signin');
+      if (btn) btn.onclick = (e) => {
+        // If a Supabase client is ready, start Google sign-in in place; else go Home.
+        if (window.LifecycleAuth?.client) {
+          e.preventDefault();
+          window.LifecycleAuth.client.auth.signInWithOAuth({
+            provider: 'google',
+            options: { redirectTo: location.origin + location.pathname },
+          });
+        }
+      };
+      return;
+    }
     const initials = (user.user_metadata?.name || user.email || '?').trim().slice(0, 1).toUpperCase();
     const avatar = user.user_metadata?.avatar_url
       ? `<span class="ltb-avatar"><img src="${user.user_metadata.avatar_url}" alt=""></span>`
@@ -308,14 +332,16 @@
     if (!config) {
       // No Supabase configured. On localhost / file:// (dev preview) there is no
       // backend to sign in against, so inject the cross-step top-bar and let the
-      // UI run — exactly as the team would see it post-login. In production
-      // (a real host) we still require sign-in, so show the wall there.
+      // UI run — exactly as the team would see it post-login. Open pages (Mailer
+      // Studio) also never gate. In production (a real host) the other steps
+      // still require sign-in, so show the wall there.
       const isLocal = location.protocol === 'file:' ||
         /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/.test(location.hostname);
       if (isLocal) {
         injectTopbar({ email: 'local@preview', user_metadata: { name: 'Local preview' } });
         return;
       }
+      if (isOpenPage()) { injectTopbar(null); return; }
       injectLoginWall();
       return;
     }
@@ -337,7 +363,11 @@
       window.LifecycleAuth.session = session;
       window.LifecycleAuth.user = session.user;
       injectTopbar(session.user);
-      await maybeShowProfileModal(client, session.user);
+      // Keep the Studio frictionless: only prompt for profile on the gated steps.
+      if (!isOpenPage()) await maybeShowProfileModal(client, session.user);
+    } else if (isOpenPage()) {
+      // Open feature (Mailer Studio) — no sign-in required; show nav as guest.
+      injectTopbar(null);
     } else {
       injectLoginWall();
     }
@@ -348,12 +378,15 @@
       window.LifecycleAuth.user = sess?.user || null;
       if (sess?.user) {
         removeLoginWall();
+        const existing = document.getElementById('lifecycle-topbar');
+        if (existing) existing.remove();   // rebuild so the guest "Sign in" becomes the user chip
         injectTopbar(sess.user);
-        await maybeShowProfileModal(client, sess.user);
+        if (!isOpenPage()) await maybeShowProfileModal(client, sess.user);
       } else {
         const tb = document.getElementById('lifecycle-topbar');
         if (tb) tb.remove();
-        injectLoginWall();
+        if (isOpenPage()) injectTopbar(null);   // stay open — no wall on the Studio
+        else injectLoginWall();
       }
     });
   }
