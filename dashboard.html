@@ -14,6 +14,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="/auth.js" defer></script>
 <script src="/table-sort.js" defer></script>
+<script src="/chart-enhance.js" defer></script>
 <script>
   tailwind.config = {
     theme: { extend: {
@@ -44,6 +45,24 @@
   .card { background:#0f1d18; border:1px solid rgba(171,135,67,0.18); border-radius:12px; }
   .card-hover:hover { border-color:rgba(171,135,67,0.35); transition:border-color .2s; }
   .kpi-val { font-variant-numeric:tabular-nums; letter-spacing:-0.02em; }
+  /* ─── Mobile KPI tile clip fix ─────────────────────────────────────── */
+  .card .text-2xl, .kpi-val {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    line-height: 1.15;
+  }
+  @media (max-width: 640px) {
+    .card .text-2xl { font-size: 19px !important; }
+    .card .text-2xl.kpi-val { font-size: 19px !important; }
+    /* KPI grid: 2 columns on phone with a bit more breathing room */
+    .grid-cols-2.md\:grid-cols-3.lg\:grid-cols-6 { gap: 8px; }
+    .card { padding: 12px !important; }
+    .label { font-size: 9px; letter-spacing: 0.08em; }
+  }
+  @media (max-width: 380px) {
+    .card .text-2xl { font-size: 16px !important; }
+    .card .text-2xl.kpi-val { font-size: 16px !important; }
+  }
   .label { font-size:10px; text-transform:uppercase; letter-spacing:0.12em; color:#5d6e64; font-weight:500; }
   .pill { display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:600; padding:4px 10px; border-radius:99px; }
   .nav-item { display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border-radius:8px; font-size:13px; color:#9aaaa1; transition:all .15s; cursor:pointer; position:relative; }
@@ -232,6 +251,7 @@
           <button class="filter-chip" data-days="365">YTD</button>
         </div>
         <div class="flex-1"></div>
+        <button id="btnLinkDb" class="text-[11px] uppercase tracking-wider font-semibold px-3 py-1.5 rounded border border-gold/30 text-ink-dim hover:border-gold hover:text-ink transition">⛓ Link database</button>
         <button id="btnUpload" class="text-[11px] uppercase tracking-wider font-semibold px-3 py-1.5 rounded bg-gold text-bg hover:opacity-90 transition">⬆ Upload data</button>
         <button id="btnResetSeed" class="text-[11px] uppercase tracking-wider font-semibold px-3 py-1.5 rounded border border-gold/30 text-ink-dim hover:border-gold hover:text-ink transition">⟳ Reset</button>
       </div>
@@ -256,11 +276,11 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
           <div class="card p-4 lg:col-span-2">
             <h3 class="text-sm font-semibold mb-3">Daily net revenue · stacked by region</h3>
-            <div id="chartExecRevenue" style="height:300px"></div>
+            <div id="chartExecRevenue" data-chart-host data-chart-id="execRev" data-chart-title="Revenue Pulse · Daily net revenue stacked by region" style="height:300px"></div>
           </div>
           <div class="card p-4">
             <h3 class="text-sm font-semibold mb-3">Region split · 30d</h3>
-            <div id="chartExecRegionSplit" style="height:300px"></div>
+            <div id="chartExecRegionSplit" data-chart-host data-chart-id="execReg" data-chart-title="Region split · 30-day revenue share" style="height:300px"></div>
           </div>
         </div>
 
@@ -272,7 +292,7 @@
           </div>
           <div class="card p-4">
             <h3 class="text-sm font-semibold mb-3">Lifecycle revenue mix</h3>
-            <div id="chartExecLifecycle" style="height:240px"></div>
+            <div id="chartExecLifecycle" data-chart-host data-chart-id="execLife" data-chart-title="Lifecycle revenue mix · New vs Retention vs Reactivated" style="height:240px"></div>
           </div>
         </div>
       </section>
@@ -291,11 +311,11 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
           <div class="card p-4 lg:col-span-2">
             <h3 class="text-sm font-semibold mb-3">Open rate vs CVR · per campaign (size = revenue)</h3>
-            <div id="chartCampScatter" style="height:340px"></div>
+            <div id="chartCampScatter" data-chart-host data-chart-id="campScatter" data-chart-title="Campaigns · Open-rate vs CVR · bubble size = revenue" style="height:340px"></div>
           </div>
           <div class="card p-4">
             <h3 class="text-sm font-semibold mb-3">Channel mix · 30d</h3>
-            <div id="chartCampChannels" style="height:340px"></div>
+            <div id="chartCampChannels" data-chart-host data-chart-id="campChan" data-chart-title="Channel mix · Email vs SMS revenue split" style="height:340px"></div>
           </div>
         </div>
 
@@ -320,12 +340,12 @@
           <div class="card p-4">
             <h3 class="text-sm font-semibold mb-1">Subject line patterns</h3>
             <p class="text-xs text-ink-dim mb-3">Open-rate lift by subject-line trait. Sample = campaigns in window.</p>
-            <div id="chartCampSubjects" style="height:240px"></div>
+            <div id="chartCampSubjects" data-chart-host data-chart-id="campSubj" data-chart-title="Subject-line traits · open-rate lift vs baseline" style="height:240px"></div>
           </div>
           <div class="card p-4">
             <h3 class="text-sm font-semibold mb-1">Content-type performance</h3>
             <p class="text-xs text-ink-dim mb-3">Promo vs editorial vs lifecycle vs transactional.</p>
-            <div id="chartCampContent" style="height:240px"></div>
+            <div id="chartCampContent" data-chart-host data-chart-id="campContent" data-chart-title="Content type · revenue contribution" style="height:240px"></div>
           </div>
         </div>
       </section>
@@ -344,11 +364,11 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
           <div class="card p-4 lg:col-span-2">
             <h3 class="text-sm font-semibold mb-3">Segment value · revenue × headcount</h3>
-            <div id="chartSegTreemap" style="height:340px"></div>
+            <div id="chartSegTreemap" data-chart-host data-chart-id="segTree" data-chart-title="Segment value · revenue weighted treemap" style="height:340px"></div>
           </div>
           <div class="card p-4">
             <h3 class="text-sm font-semibold mb-3">LTV distribution</h3>
-            <div id="chartSegLtv" style="height:340px"></div>
+            <div id="chartSegLtv" data-chart-host data-chart-id="segLtv" data-chart-title="LTV distribution · customers per LTV bracket" style="height:340px"></div>
           </div>
         </div>
 
@@ -356,12 +376,12 @@
           <div class="card p-4">
             <h3 class="text-sm font-semibold mb-1">Discount sensitivity × LTV</h3>
             <p class="text-xs text-ink-dim mb-3">Top-right = engaged but discount-trained — pricing risk.</p>
-            <div id="chartSegSensitivity" style="height:260px"></div>
+            <div id="chartSegSensitivity" data-chart-host data-chart-id="segSens" data-chart-title="Discount sensitivity × LTV · pricing-risk scatter" style="height:260px"></div>
           </div>
           <div class="card p-4">
             <h3 class="text-sm font-semibold mb-1">Engagement decay by segment</h3>
             <p class="text-xs text-ink-dim mb-3">% of segment engaged in last 30 vs 90 days.</p>
-            <div id="chartSegEngagement" style="height:260px"></div>
+            <div id="chartSegEngagement" data-chart-host data-chart-id="segEng" data-chart-title="Engagement decay · % engaged in last 30 vs 90 days" style="height:260px"></div>
           </div>
         </div>
       </section>
@@ -381,12 +401,12 @@
           <div class="card p-4">
             <h3 class="text-sm font-semibold mb-1">Promoted vs purchased — gap analysis</h3>
             <p class="text-xs text-ink-dim mb-3">When a campaign features SKU X, what actually gets bought?</p>
-            <div id="chartProdGap" style="height:340px"></div>
+            <div id="chartProdGap" data-chart-host data-chart-id="prodGap" data-chart-title="Promoted vs purchased · campaigns featuring vs units sold" style="height:340px"></div>
           </div>
           <div class="card p-4">
             <h3 class="text-sm font-semibold mb-1">Cross-sell affinity matrix</h3>
             <p class="text-xs text-ink-dim mb-3">P(buy Y within 30 days | bought X). Darker = stronger.</p>
-            <div id="chartProdAffinity" style="height:340px"></div>
+            <div id="chartProdAffinity" data-chart-host data-chart-id="prodAff" data-chart-title="Cross-sell affinity · P(buy Y within 30d | bought X)" style="height:340px"></div>
           </div>
         </div>
 
@@ -413,19 +433,19 @@
         <div class="card p-4 mb-5">
           <h3 class="text-sm font-semibold mb-1">Best send time · open rate by day × hour</h3>
           <p class="text-xs text-ink-dim mb-3">Local time. Hot cells = highest opens. Switch region in the top filter to compare.</p>
-          <div id="chartTimeHeatmap" style="height:380px"></div>
+          <div id="chartTimeHeatmap" data-chart-host data-chart-id="timeHeat" data-chart-title="Send-time heatmap · open rate by day × hour" style="height:380px"></div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
           <div class="card p-4">
             <h3 class="text-sm font-semibold mb-1">Purchase window after send</h3>
             <p class="text-xs text-ink-dim mb-3">How many hours between a click and the order it produces.</p>
-            <div id="chartTimePurchaseWindow" style="height:280px"></div>
+            <div id="chartTimePurchaseWindow" data-chart-host data-chart-id="timePW" data-chart-title="Purchase window · hours from send to order" style="height:280px"></div>
           </div>
           <div class="card p-4">
             <h3 class="text-sm font-semibold mb-1">Weekly seasonality</h3>
             <p class="text-xs text-ink-dim mb-3">Revenue index by day-of-week (Mon=100).</p>
-            <div id="chartTimeSeasonality" style="height:280px"></div>
+            <div id="chartTimeSeasonality" data-chart-host data-chart-id="timeSeas" data-chart-title="Weekly seasonality · revenue index by day-of-week" style="height:280px"></div>
           </div>
         </div>
       </section>
@@ -450,11 +470,11 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div class="card p-4">
             <h3 class="text-sm font-semibold mb-3">Average retention curve</h3>
-            <div id="chartCohortCurve" style="height:280px"></div>
+            <div id="chartCohortCurve" data-chart-host data-chart-id="cohortCurve" data-chart-title="Average retention curve · all cohorts blended" style="height:280px"></div>
           </div>
           <div class="card p-4">
             <h3 class="text-sm font-semibold mb-3">Lifecycle stage funnel</h3>
-            <div id="chartCohortFunnel" style="height:280px"></div>
+            <div id="chartCohortFunnel" data-chart-host data-chart-id="cohortFunnel" data-chart-title="Lifecycle stage funnel · opens → clicks → buyers → repeat" style="height:280px"></div>
           </div>
         </div>
       </section>
