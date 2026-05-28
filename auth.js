@@ -61,10 +61,12 @@
           border-bottom: 1px solid rgba(171,135,67,0.18);
           font-family: 'Inter', system-ui, sans-serif;
         }
+        #lifecycle-topbar { flex-wrap: nowrap; }
         #lifecycle-topbar .ltb-brand {
           display: flex; align-items: center; gap: 8px;
           font-size: 12px; font-weight: 700; letter-spacing: 0.16em;
           color: #AB8743; text-transform: uppercase; text-decoration: none;
+          white-space: nowrap; flex-shrink: 0;
         }
         #lifecycle-topbar .ltb-brand:hover { color: #FBF5EA; }
         #lifecycle-topbar .ltb-dot {
@@ -105,11 +107,19 @@
           font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
         }
         #lifecycle-topbar .ltb-signout:hover { border-color: #AB8743; color: #FBF5EA; }
-        @media (max-width: 700px) {
-          #lifecycle-topbar { padding: 8px 12px; gap: 8px; }
-          #lifecycle-topbar nav a { padding: 5px 9px; font-size: 11px; }
+        @media (max-width: 760px) {
+          #lifecycle-topbar { padding: 8px 10px; gap: 8px; }
+          #lifecycle-topbar .ltb-brand { font-size: 10px; letter-spacing: 0.06em; gap: 6px; }
+          /* Nav scrolls horizontally instead of wrapping/overflowing */
+          #lifecycle-topbar nav { gap: 2px; overflow-x: auto; flex: 1 1 auto;
+            -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+          #lifecycle-topbar nav::-webkit-scrollbar { display: none; }
+          #lifecycle-topbar nav a { padding: 5px 8px; font-size: 11px; white-space: nowrap; flex-shrink: 0; }
           #lifecycle-topbar nav a .ltb-newtab { display: none; }
+          #lifecycle-topbar .ltb-spacer { display: none; }
+          #lifecycle-topbar .ltb-user { flex-shrink: 0; gap: 6px; }
           #lifecycle-topbar .ltb-user span:not(.ltb-avatar) { display: none; }
+          #lifecycle-topbar .ltb-signout { padding: 4px 7px; font-size: 9px; }
         }
       </style>
       <a class="ltb-brand" href="/">

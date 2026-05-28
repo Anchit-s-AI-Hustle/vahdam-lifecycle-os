@@ -13,9 +13,9 @@
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <!-- xlsx-js-style: drop-in SheetJS fork that also writes cell fills/fonts (keeps colour in Excel exports) -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
-<script src="/auth.js" defer></script>
-<script src="/table-sort.js" defer></script>
-<script src="/chart-enhance.js" defer></script>
+<script src="/auth.js?v=20260529b" defer></script>
+<script src="/table-sort.js?v=20260529b" defer></script>
+<script src="/chart-enhance.js?v=20260529b" defer></script>
 <script>
   tailwind.config = {
     theme: { extend: {
@@ -120,6 +120,47 @@
   .sb-hamburger span:nth-child(3){ width:18px; }
   .sb-hamburger:hover span { width:18px; }
   body.sb-collapsed .sb-top { justify-content:center; padding:14px 0 8px; }
+
+  /* ── Mobile / tablet: sidebar becomes an off-canvas drawer ───────────── */
+  .sb-backdrop { display:none; }
+  .sb-mobile-toggle { display:none; }
+  @media (max-width: 1024px) {
+    aside.sidebar {
+      position:fixed; top:0; left:0; height:100vh; height:100dvh;
+      width:16rem !important; z-index:70;
+      transform:translateX(-100%);
+      transition:transform .25s cubic-bezier(0.65,0,0.35,1);
+      box-shadow:0 0 50px rgba(0,0,0,0.6);
+      overflow-y:auto;
+    }
+    body.sb-open aside.sidebar { transform:translateX(0); }
+    /* On mobile we always show the full labelled drawer (ignore desktop collapse) */
+    body.sb-collapsed aside.sidebar { width:16rem !important; }
+    body.sb-collapsed .nav-text, body.sb-collapsed .sb-full-label,
+    body.sb-collapsed .nav-brand-sub, body.sb-collapsed .nav-brand-title { display:block !important; }
+    body.sb-collapsed aside.sidebar .nav-item { justify-content:flex-start; padding:10px 12px; }
+    body.sb-collapsed aside.sidebar .nav-item svg { margin-top:1px; }
+    body.sb-collapsed .sb-top { justify-content:flex-start; padding:14px 16px 8px; }
+    /* the in-drawer hamburger turns into a close affordance */
+    .sb-backdrop {
+      position:fixed; inset:0; background:rgba(0,0,0,0.55);
+      z-index:65; opacity:0; pointer-events:none; transition:opacity .25s;
+    }
+    body.sb-open .sb-backdrop { opacity:1; pointer-events:auto; }
+    /* hamburger button shown in the page header to open the drawer */
+    .sb-mobile-toggle {
+      display:inline-flex; flex-direction:column; justify-content:center; gap:4px;
+      width:40px; height:34px; flex:none; padding:8px 9px; border-radius:8px;
+      border:1px solid rgba(171,135,67,0.3); background:transparent; cursor:pointer;
+    }
+    .sb-mobile-toggle span { display:block; width:18px; height:2px; border-radius:2px; background:#AB8743; }
+  }
+  @media (max-width: 640px) {
+    /* tighten the filter header so chips never overlap */
+    header .flex.flex-wrap { gap:8px !important; row-gap:8px; }
+    header .h-5.w-px { display:none; }   /* drop vertical dividers when wrapped */
+    main > .p-6 { padding:16px 14px !important; }
+  }
   .filter-chip { padding:5px 11px; border-radius:99px; font-size:11px; font-weight:600; border:1px solid rgba(171,135,67,0.25); color:#9aaaa1; cursor:pointer; transition:all .15s; user-select:none; }
   .filter-chip:hover { border-color:#AB8743; color:#e8ede9; }
   .filter-chip.active { background:#AB8743; color:#0a1410; border-color:#AB8743; }
@@ -233,11 +274,15 @@
     </div>
   </aside>
 
+  <!-- Mobile drawer backdrop -->
+  <div class="sb-backdrop" id="sbBackdrop"></div>
+
   <!-- Main -->
   <main class="flex-1 min-w-0">
     <!-- Top filter bar -->
     <header class="sticky top-0 z-30 bg-bg/90 backdrop-blur border-b border-gold/15 px-6 py-3">
       <div class="flex flex-wrap items-center gap-3">
+        <button class="sb-mobile-toggle" id="sbMobileToggle" aria-label="Open menu" title="Menu"><span></span><span></span><span></span></button>
         <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold">Region</div>
         <div class="flex gap-1.5" id="regionChips">
           <button class="filter-chip active" data-region="ALL">All</button>
@@ -1960,26 +2005,44 @@ function rerender() {
   $('lastRefresh').textContent = fmtDateTime(Date.now());
 }
 
-$$('.nav-item').forEach((n) => n.addEventListener('click', () => switchView(n.dataset.view)));
+// ─── Sidebar: desktop collapse + mobile off-canvas drawer ───────────────
+const isMobileNav = () => window.matchMedia('(max-width: 1024px)').matches;
+function closeMobileDrawer() { document.body.classList.remove('sb-open'); }
+function openMobileDrawer()  { document.body.classList.add('sb-open'); }
 
-// ─── Sidebar collapse persistence ───────────────────────────────────
+$$('.nav-item').forEach((n) => n.addEventListener('click', () => {
+  switchView(n.dataset.view);
+  if (isMobileNav()) closeMobileDrawer();   // pick a section → close the drawer
+}));
+
 (function () {
   const KEY = 'vahdam-dashboard-sidebar-collapsed';
   if (localStorage.getItem(KEY) === '1') document.body.classList.add('sb-collapsed');
   const btn = $('sbCollapseBtn');
-  if (!btn) return;
+  const mobileBtn = $('sbMobileToggle');
+  const backdrop = $('sbBackdrop');
+
   function syncAria() {
     const collapsed = document.body.classList.contains('sb-collapsed');
-    btn.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+    if (btn) btn.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
   }
   syncAria();
-  btn.addEventListener('click', () => {
+
+  // In-drawer hamburger: on mobile it closes the drawer; on desktop it collapses.
+  if (btn) btn.addEventListener('click', () => {
+    if (isMobileNav()) { closeMobileDrawer(); return; }
     const collapsed = document.body.classList.toggle('sb-collapsed');
     localStorage.setItem(KEY, collapsed ? '1' : '0');
     syncAria();
-    // Force any visible chart to redraw at the new width
     setTimeout(() => { if (typeof rerender === 'function') rerender(); }, 240);
   });
+
+  // Header hamburger (mobile only) opens the drawer.
+  if (mobileBtn) mobileBtn.addEventListener('click', openMobileDrawer);
+  if (backdrop) backdrop.addEventListener('click', closeMobileDrawer);
+  // Esc closes the drawer; leaving mobile width also closes it.
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMobileDrawer(); });
+  window.addEventListener('resize', () => { if (!isMobileNav()) closeMobileDrawer(); });
 })();
 
 $('regionChips').addEventListener('click', (e) => {

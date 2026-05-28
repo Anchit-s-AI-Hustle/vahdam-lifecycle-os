@@ -11,7 +11,7 @@
 <!-- Supabase JS SDK (used for cross-device dashboard storage) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <!-- Lifecycle OS shared auth + cross-step nav -->
-<script src="/auth.js" defer></script>
+<script src="/auth.js?v=20260529b" defer></script>
 <style>
 /* ── Design tokens ───────────────────────────────────────────────────────── */
 :root{
@@ -8255,7 +8255,7 @@ function initAuth(){
   // Google sign-in already covers Dashboard, Calendar and this Studio. The
   // Lifecycle login wall sits on top until the user is signed in, then removes
   // itself, revealing the app we show here.
-  var lifecycleGoverns = !!document.querySelector('script[src="/auth.js"]') || !!window.LifecycleAuth;
+  var lifecycleGoverns = !!document.querySelector('script[src^="/auth.js"]') || !!window.LifecycleAuth;
   if(lifecycleGoverns){
     var ov=document.getElementById('authOverlay');
     if(ov)ov.style.display='none';
