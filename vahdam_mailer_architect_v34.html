@@ -8249,20 +8249,32 @@ function hideAuthError(){
   if(el)el.style.display='none';
 }
 function initAuth(){
-  // Check sessionStorage first (survives refresh), then localStorage (survives browser close)
+  // ── Single sign-in for the whole Lifecycle OS ──────────────────────────
+  // auth.js (LifecycleAuth) owns authentication via Google for every feature.
+  // When it's present, the Studio must NOT show its own sign-in overlay — one
+  // Google sign-in already covers Dashboard, Calendar and this Studio. The
+  // Lifecycle login wall sits on top until the user is signed in, then removes
+  // itself, revealing the app we show here.
+  var lifecycleGoverns = !!document.querySelector('script[src="/auth.js"]') || !!window.LifecycleAuth;
+  if(lifecycleGoverns){
+    var ov=document.getElementById('authOverlay');
+    if(ov)ov.style.display='none';
+    showAppForLifecycle();
+    return;
+  }
+
+  // ── Legacy standalone fallback (only when auth.js is absent) ────────────
   var session=sessionStorage.getItem('vhd_session')||localStorage.getItem('vhd_session');
   if(session){
     try{
       var u=JSON.parse(session);
       if(u&&u.name&&u.email){
-        // Ensure sessionStorage is always populated so refresh works
         sessionStorage.setItem('vhd_session',JSON.stringify(u));
         showApp(u);return;
       }
     }catch(e){}
   }
   document.getElementById('authOverlay').style.display='flex';
-  // Detect default mode: if no users yet on this device, start with Sign Up
   var users=[];
   try{users=JSON.parse(localStorage.getItem('vhd_users')||'[]');}catch(e){}
   if(users.length===0){
@@ -8272,6 +8284,24 @@ function initAuth(){
     var sw=document.getElementById('authSwitch');
     if(sw)sw.innerHTML='<strong>'+users.length+' user'+(users.length>1?'s':'')+' on this device.</strong> No password needed.';
   }
+}
+
+// Reveal the Studio under the Lifecycle Google sign-in, using the Lifecycle
+// user identity as soon as it resolves (auth.js loads the session async).
+function showAppForLifecycle(){
+  function resolve(){
+    var lu=window.LifecycleAuth&&window.LifecycleAuth.user;
+    var name=(lu&&lu.user_metadata&&lu.user_metadata.name)||(lu&&lu.email)||'there';
+    var email=(lu&&lu.email)||'';
+    showApp({name:String(name),email:email});
+  }
+  resolve();
+  var tries=0;
+  var t=setInterval(function(){
+    tries++;
+    if(window.LifecycleAuth&&window.LifecycleAuth.user){resolve();clearInterval(t);}
+    else if(tries>40){clearInterval(t);} // ~8s safety stop
+  },200);
 }
 // ── Auth mode toggle (Sign In / Sign Up) ──────────────────────────────────────
 window._authMode='signin';
@@ -8356,6 +8386,12 @@ function showApp(user){
   window._currentUser=user;
 }
 function logout(){
+  // When Lifecycle OS owns auth, sign out of the shared Google session so it
+  // takes effect across every feature (Dashboard / Calendar / Studio).
+  if(window.LifecycleAuth&&typeof window.LifecycleAuth.signOut==='function'){
+    window.LifecycleAuth.signOut();
+    return;
+  }
   localStorage.removeItem('vhd_session');
   sessionStorage.removeItem('vhd_session');
   window._currentUser=null;

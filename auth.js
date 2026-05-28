@@ -358,9 +358,18 @@
     });
   }
 
-  // ─── Profile modal — show on first sign-in if not yet skipped/completed ─
-  const SKIP_KEY = 'lifecycle-profile-skipped';
+  // ─── Profile modal — shown EXACTLY ONCE, on the user's first login ──────
+  // Requirement: the profile popup appears only the first time a user signs
+  // up + logs in. After that it must never auto-appear again — whether they
+  // filled it or skipped it — and it must not re-appear when they move between
+  // Dashboard / Calendar / Mailer Studio (shared origin = shared flag).
+  function shownKey(user) { return 'lifecycle-profile-shown:' + (user?.id || 'anon'); }
   async function maybeShowProfileModal(client, user) {
+    // Already prompted this user on this device? Never auto-show again.
+    let already = false;
+    try { already = localStorage.getItem(shownKey(user)) === '1'; } catch {}
+    if (already) return;
+
     // Fetch the row created by the auth.users → app_users trigger.
     let row;
     try {
@@ -380,10 +389,12 @@
       return;
     }
 
-    // If already completed OR user dismissed permanently, skip.
-    if (row?.profile_completed) return;
-    if (localStorage.getItem(SKIP_KEY) === 'forever') return;
+    // Profile already completed (e.g. on another device) → mark shown, never prompt.
+    if (row?.profile_completed) { try { localStorage.setItem(shownKey(user), '1'); } catch {} return; }
 
+    // First login for this user → show once, and mark shown immediately so it
+    // never reappears (even if they skip without filling anything).
+    try { localStorage.setItem(shownKey(user), '1'); } catch {}
     showProfileModal(client, user, row);
   }
 
@@ -474,11 +485,11 @@
 
     const close = () => modal.remove();
 
-    modal.querySelector('#lpm-skip-btn').addEventListener('click', async () => {
-      // Skip = remember this session only. The trigger created the row;
-      // we don't flip profile_completed so the prompt may re-appear on a
-      // fresh device. Use localStorage to suppress within this device.
-      localStorage.setItem(SKIP_KEY, String(Date.now()));
+    modal.querySelector('#lpm-skip-btn').addEventListener('click', () => {
+      // The "shown once" flag was already set in maybeShowProfileModal, so the
+      // popup will not auto-appear again. Skipping just closes it; the user can
+      // still fill their profile later if a profile entry point is added.
+      try { localStorage.setItem(shownKey(user), '1'); } catch {}
       close();
     });
 
