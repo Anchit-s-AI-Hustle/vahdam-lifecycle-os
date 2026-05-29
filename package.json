@@ -16,13 +16,9 @@
     "test:install": "playwright install"
   },
   "devDependencies": {
-<<<<<<< HEAD
     "@playwright/test": "^1.48.0"
   },
   "dependencies": {
     "xlsx-js-style": "^1.2.0"
-=======
-    "@playwright/test": "^1.60.0"
->>>>>>> e74f2a09fb0eb1db8099a847ffd343d5efc71887
   }
 }
