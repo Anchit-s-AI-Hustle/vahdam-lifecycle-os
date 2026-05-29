@@ -183,53 +183,64 @@ module.exports = async function handler(req, res) {
   const S = strategy.data;
   const ctaUrl = ctaUrlForEntry(entry, market);
 
-  // ── Stage 2: 4 variants — A & B = image-driven, T1 & T2 = text-only ──
-  // The downstream image pipeline (api/ai/image.js) handles image generation
-  // for variants A + B. For T1 + T2 we hand back pure-HTML email shells.
+  // ── Stage 2: 4 variants in 2 types ───────────────────────────────────────
+  //   Type A — Image-driven
+  //     A1 · Premium — top-shelf, elite quality, magazine cover
+  //     A2 · Graphic — bold visual layout, hero product in context
+  //   Type B — Text-driven
+  //     B1 · Visual — text email with light visual elements
+  //     B2 · Pure   — text-only, no decoration
+  // Each variant carries the same strategy so they read as a coherent campaign.
+  const sharedText = {
+    subject: S.subject_line,
+    hero_headline: S.hero_headline,
+    hero_subline: S.hero_subline,
+    body_blocks: S.body_blocks || [],
+    cta_text: S.cta_text || 'Shop the edit',
+    cta_url: ctaUrl,
+    market,
+  };
   const variants = {
-    A: {
+    A1: {
       kind: 'image',
-      label: 'Image · Hero',
-      hero_image_brief: `${entry.archetype} layout. Subject "${S.subject_line}". Hero ${entry.hero_product || entry.hero_sku}. Mood: ${entry.content_type === 'promo' ? 'high-clarity product photography' : 'cinematic, warm, atmospheric'}.`,
-    },
-    B: {
-      kind: 'image',
-      label: 'Image · Lifestyle',
-      hero_image_brief: `Lifestyle ${entry.archetype} layout. Subject "${S.subject_line}". Hero ${entry.hero_product || entry.hero_sku}. Mood: wide editorial scene, soft natural light, ritual context, no on-image text.`,
-    },
-    T1: {
-      kind: 'text',
-      label: 'Text · Editorial',
-      style: 'editorial',
+      type: 'A',
+      label: 'Type A · Premium',
       preview_text: S.preview_text,
       cta_url: ctaUrl,
-      html: renderTextVariant({
-        style: 'editorial',
-        subject: S.subject_line,
-        hero_headline: S.hero_headline,
-        hero_subline: S.hero_subline,
-        body_blocks: S.body_blocks || [],
-        cta_text: S.cta_text || 'Shop the edit',
-        cta_url: ctaUrl,
-        market,
-      }),
+      hero_image_brief:
+        `Top-shelf premium VAHDAM email cover for "${S.subject_line}". Hero ${entry.hero_product || entry.hero_sku}. ` +
+        `Magazine-quality editorial photography, single-estate provenance, elegant negative space, ` +
+        `cinematic light. Brand palette only (forest #004A2B, gold #AB8743, cream #FBF5EA). ` +
+        `Mood: elite, restrained, gift-worthy. No on-image text.`,
     },
-    T2: {
-      kind: 'text',
-      label: 'Text · Founder note',
-      style: 'founder',
+    A2: {
+      kind: 'image',
+      type: 'A',
+      label: 'Type A · Graphic',
       preview_text: S.preview_text,
       cta_url: ctaUrl,
-      html: renderTextVariant({
-        style: 'founder',
-        subject: S.subject_line,
-        hero_headline: S.hero_headline,
-        hero_subline: S.hero_subline,
-        body_blocks: S.body_blocks || [],
-        cta_text: S.cta_text || 'Shop the edit',
-        cta_url: ctaUrl,
-        market,
-      }),
+      hero_image_brief:
+        `Bold graphic ${entry.archetype} layout for "${S.subject_line}". Hero ${entry.hero_product || entry.hero_sku}. ` +
+        `${entry.content_type === 'promo' ? 'High-clarity product photography with crisp typography blocks.' : 'Visual storytelling with composition-heavy lifestyle scene.'} ` +
+        `Saturated brand palette, strong hierarchy, clear CTA pull. No on-image text.`,
+    },
+    B1: {
+      kind: 'text',
+      type: 'B',
+      label: 'Type B · Text + Visual',
+      style: 'visual',
+      preview_text: S.preview_text,
+      cta_url: ctaUrl,
+      html: renderTextVariant({ ...sharedText, style: 'visual', hero_product: entry.hero_product, hero_sku: entry.hero_sku }),
+    },
+    B2: {
+      kind: 'text',
+      type: 'B',
+      label: 'Type B · Pure Text',
+      style: 'pure',
+      preview_text: S.preview_text,
+      cta_url: ctaUrl,
+      html: renderTextVariant({ ...sharedText, style: 'pure' }),
     },
   };
 
@@ -244,7 +255,7 @@ module.exports = async function handler(req, res) {
 };
 
 // ─── Text-variant renderer (no images, brand-compliant) ─────────────────────
-function renderTextVariant({ style, subject, hero_headline, hero_subline, body_blocks, cta_text, cta_url, market }) {
+function renderTextVariant({ style, subject, hero_headline, hero_subline, body_blocks, cta_text, cta_url, market, hero_product, hero_sku }) {
   // CTA points at the resolved product/collection page; the brand domain still
   // falls back per-market if no specific destination was provided.
   const baseUrl = cta_url || regionBase(market);
@@ -258,6 +269,74 @@ function renderTextVariant({ style, subject, hero_headline, hero_subline, body_b
       <p style="font-family:'Lao MN','Cormorant Garamond',Georgia,serif;font-size:20px;color:${palette.green};margin:0 0 6px;letter-spacing:0.2px;">${esc(b.heading || '')}</p>
       <p style="font-family:'Proxima Nova','Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.65;color:${palette.ink};margin:0;">${esc(b.body || '')}</p>
     </td></tr>`).join('');
+
+  // ── B1 · Text + Visual: same editorial copy with a botanical gold divider
+  //    and a brand palette hero block. Visual elements stay light and on-brand.
+  if (style === 'visual') {
+    const heroLabel = hero_product ? esc(hero_product) : 'Today on the cupping table';
+    return `<!doctype html>
+<html><body style="margin:0;padding:0;background:${palette.cream};">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${palette.cream};">
+  <tr><td align="center" style="padding:36px 16px;">
+    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#fff;border:1px solid #ece4d2;">
+      <tr><td style="padding:24px 32px 0;text-align:center;">
+        <div style="font-family:'Lao MN','Cormorant Garamond',Georgia,serif;font-size:13px;letter-spacing:3px;color:${palette.gold};text-transform:uppercase;">VAHDAM · ${esc(market)}</div>
+      </td></tr>
+      <tr><td style="padding:20px 32px 0;">
+        <!-- Brand-palette hero block (no external image needed) -->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${palette.green};border-radius:6px;">
+          <tr><td style="padding:34px 26px;text-align:center;">
+            <div style="font-family:'Lao MN','Cormorant Garamond',Georgia,serif;font-size:11px;letter-spacing:0.18em;color:${palette.gold};text-transform:uppercase;margin-bottom:8px;">${heroLabel}</div>
+            <div style="font-family:'Lao MN','Cormorant Garamond',Georgia,serif;font-size:26px;line-height:1.2;color:${palette.cream};font-weight:500;">${esc(hero_headline)}</div>
+          </td></tr>
+        </table>
+      </td></tr>
+      <tr><td style="padding:22px 32px 0;">
+        <p style="font-family:'Proxima Nova','Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.65;color:${palette.ink};margin:0;">${esc(hero_subline)}</p>
+      </td></tr>
+      <!-- Botanical-style gold divider -->
+      <tr><td style="padding:20px 32px 0;text-align:center;">
+        <div style="display:inline-block;height:1px;width:38%;background:${palette.gold};vertical-align:middle;"></div>
+        <span style="display:inline-block;vertical-align:middle;color:${palette.gold};font-family:'Lao MN','Cormorant Garamond',Georgia,serif;font-size:14px;padding:0 12px;">✦</span>
+        <div style="display:inline-block;height:1px;width:38%;background:${palette.gold};vertical-align:middle;"></div>
+      </td></tr>
+      ${blocks}
+      <tr><td style="padding:28px 32px 36px;text-align:center;border-top:1px solid #ece4d2;">
+        <a href="${baseUrl}" style="display:inline-block;background:${palette.green};color:${palette.cream};text-decoration:none;padding:14px 30px;font-family:'Proxima Nova',sans-serif;font-size:14px;letter-spacing:1.4px;text-transform:uppercase;">${esc(cta_text)}</a>
+        <p style="font-family:'Proxima Nova',sans-serif;font-size:11px;color:#7a6e5a;margin:18px 0 0;">Single-estate. Hand-picked. Brewed at origin.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body></html>`;
+  }
+
+  // ── B2 · Pure Text: simple, monospace-free, no decorative blocks at all.
+  if (style === 'pure') {
+    const textBlocks = (body_blocks || []).map((b) => `
+      <p style="font-family:'Proxima Nova','Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.7;color:${palette.ink};margin:0 0 14px;">
+        ${b.heading ? `<strong style="color:${palette.green};">${esc(b.heading)}: </strong>` : ''}${esc(b.body || '')}
+      </p>`).join('');
+    return `<!doctype html>
+<html><body style="margin:0;padding:0;background:#fff;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+  <tr><td align="center" style="padding:40px 16px;">
+    <table role="presentation" width="560" cellpadding="0" cellspacing="0">
+      <tr><td style="padding:0 8px;">
+        <p style="font-family:'Proxima Nova','Helvetica Neue',Arial,sans-serif;font-size:11px;letter-spacing:0.16em;color:${palette.gold};text-transform:uppercase;margin:0 0 10px;">VAHDAM · ${esc(market)}</p>
+        <h1 style="font-family:'Lao MN','Cormorant Garamond',Georgia,serif;font-size:28px;line-height:1.25;color:${palette.green};margin:0 0 10px;font-weight:500;">${esc(hero_headline)}</h1>
+        <p style="font-family:'Proxima Nova','Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.65;color:${palette.ink};margin:0 0 22px;">${esc(hero_subline)}</p>
+        ${textBlocks}
+        <p style="font-family:'Proxima Nova',sans-serif;font-size:14px;line-height:1.6;color:${palette.ink};margin:24px 0 6px;">
+          <a href="${baseUrl}" style="color:${palette.green};text-decoration:underline;font-weight:600;">${esc(cta_text)} →</a>
+        </p>
+        <p style="font-family:'Proxima Nova',sans-serif;font-size:11px;color:#7a6e5a;margin:18px 0 0;">— the VAHDAM team</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body></html>`;
+  }
 
   if (style === 'founder') {
     return `<!doctype html>

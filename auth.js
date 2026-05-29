@@ -410,28 +410,30 @@
     });
   }
 
-  // ─── Profile modal — shown EXACTLY ONCE, on the user's first login ──────
+  // ─── Profile modal — shown EXACTLY ONCE, after the user signs up ────────
   // Requirement: the profile popup appears only the first time a user signs
   // up + logs in. After that it must never auto-appear again — whether they
-  // filled it or skipped it — and it must not re-appear when they move between
-  // Dashboard / Calendar / Mailer Studio (shared origin = shared flag).
+  // filled it or skipped it, on this device or any other.
+  //
+  // Source of truth is the server flag app_users.profile_prompted. It is set
+  // true the moment the popup is shown for the first time. Subsequent logins,
+  // even on a fresh device, read profile_prompted=true and skip the modal.
+  // A local-storage flag (per user) is kept as a fast path so we do not even
+  // round-trip to the DB on subsequent pages of the same session.
   function shownKey(user) { return 'lifecycle-profile-shown:' + (user?.id || 'anon'); }
   async function maybeShowProfileModal(client, user) {
-    // Already prompted this user on this device? Never auto-show again.
-    let already = false;
-    try { already = localStorage.getItem(shownKey(user)) === '1'; } catch {}
-    if (already) return;
+    let alreadyLocal = false;
+    try { alreadyLocal = localStorage.getItem(shownKey(user)) === '1'; } catch {}
+    if (alreadyLocal) return;
 
-    // Fetch the row created by the auth.users → app_users trigger.
     let row;
     try {
       const { data, error } = await client
         .from('app_users')
-        .select('profile_completed, name, mobile, region')
+        .select('profile_completed, profile_prompted, name, mobile, region')
         .eq('id', user.id)
         .maybeSingle();
       if (error && error.code !== 'PGRST116') {
-        // Table missing or RLS blocking — fail silently so app still works.
         console.warn('[auth.js] app_users not readable:', error.message);
         return;
       }
@@ -441,12 +443,18 @@
       return;
     }
 
-    // Profile already completed (e.g. on another device) → mark shown, never prompt.
-    if (row?.profile_completed) { try { localStorage.setItem(shownKey(user), '1'); } catch {} return; }
+    // Server says we have already prompted this user, OR profile is complete →
+    // remember locally and never auto-show again.
+    if (row?.profile_prompted || row?.profile_completed) {
+      try { localStorage.setItem(shownKey(user), '1'); } catch {}
+      return;
+    }
 
-    // First login for this user → show once, and mark shown immediately so it
-    // never reappears (even if they skip without filling anything).
+    // Brand-new signup → show the popup ONCE, and mark prompted on both server
+    // and device so it can never reappear on any future login.
     try { localStorage.setItem(shownKey(user), '1'); } catch {}
+    client.from('app_users').update({ profile_prompted: true }).eq('id', user.id)
+      .then(() => {}, () => {});
     showProfileModal(client, user, row);
   }
 

@@ -15,8 +15,8 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="/auth.js?v=20260529b" defer></script>
-<script src="/table-sort.js?v=20260529b" defer></script>
+<script src="/auth.js?v=20260530a" defer></script>
+<script src="/table-sort.js?v=20260530a" defer></script>
 <script>
   tailwind.config = { theme: { extend: {
     colors: {
@@ -374,18 +374,24 @@ function openMailerById(id) {
   if (entry) openMailer(entry);
 }
 
-// Stash the plan row (+ strategy once generated) so the Studio can prefill the
-// relevant step instead of opening an empty session.
-function setStudioHandoff(entry, strategy, ctaUrl) {
-  try {
-    localStorage.setItem('vahdam-studio-handoff', JSON.stringify({
-      source: 'calendar', entry, strategy: strategy || null, cta_url: ctaUrl || null, ts: Date.now(),
-    }));
-  } catch {}
+// Stash the plan row + strategy + the 4 generated variants so the Studio can
+// open AT the same mailer the calendar just produced — step-wise linking,
+// no re-generation, no diverging variations.
+function setStudioHandoff(entry, strategy, ctaUrl, variants) {
+  const payload = {
+    source: 'calendar',
+    entry,
+    strategy: strategy || null,
+    cta_url: ctaUrl || null,
+    variants: variants || null,
+    ts: Date.now(),
+  };
+  try { localStorage.setItem('vahdam-studio-handoff', JSON.stringify(payload)); } catch {}
   const btn = $('openInStudio');
   if (btn) {
-    // Re-stash at click time too (in case multiple mailers were opened).
-    btn.onclick = () => { try { localStorage.setItem('vahdam-studio-handoff', JSON.stringify({ source:'calendar', entry, strategy: strategy||null, cta_url: ctaUrl||null, ts: Date.now() })); } catch {} };
+    // Re-stash at click time too (so the latest mailer wins if the user opened
+    // several rows in a row before clicking through).
+    btn.onclick = () => { try { localStorage.setItem('vahdam-studio-handoff', JSON.stringify(payload)); } catch {} };
   }
 }
 
@@ -397,7 +403,7 @@ async function openMailer(entry) {
   $('mailerModal').classList.add('open');
   // Even before the pipeline returns, a click on "Open in Studio" should prefill
   // at least the brief from this plan row.
-  setStudioHandoff(entry, null, null);
+  setStudioHandoff(entry, null, null, null);
 
   try {
     const res = await fetch('/api/calendar/trigger-mailer', {
@@ -408,9 +414,13 @@ async function openMailer(entry) {
     if (!res.ok) throw new Error(await res.text());
     const data = await res.json();
     const variants = data.variants || {};
-    // Now that we have the generated strategy, upgrade the handoff payload.
-    setStudioHandoff(entry, data.strategy, data.cta_url);
-    const tabs = ['A','B','T1','T2'];
+    // Now that we have the generated strategy, upgrade the handoff payload
+    // with the actual 4 variants so the Studio can show them verbatim.
+    setStudioHandoff(entry, data.strategy, data.cta_url, variants);
+    // Two types × two variants each:
+    //   Type A image: A1 Premium · A2 Graphic
+    //   Type B text:  B1 Text + Visual · B2 Pure Text
+    const tabs = ['A1','A2','B1','B2'];
     $('variantTabs').innerHTML = tabs.map((k, i) => `
       <button class="filter-chip ${i===0 ? 'active' : ''}" data-variant="${k}">${variants[k]?.label || k}</button>
     `).join('');

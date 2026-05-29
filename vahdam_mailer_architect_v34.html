@@ -15,7 +15,7 @@
 <!-- Supabase JS SDK (used for cross-device dashboard storage) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <!-- Lifecycle OS shared auth + cross-step nav -->
-<script src="/auth.js?v=20260529b" defer></script>
+<script src="/auth.js?v=20260530a" defer></script>
 <style>
 /* ── Design tokens ───────────────────────────────────────────────────────── */
 :root{
@@ -9247,7 +9247,9 @@ function applyCalendarHandoff(){
     }
   }catch(_){}
 
-  // 5. Land on Step 1 and announce the prefill.
+  // 5. Land on Step 1 and announce the prefill — plus render the 4 variants
+  //    the calendar already produced so the user sees the exact mailer being
+  //    made (step-wise linking, no re-generation).
   try{
     if(typeof showOnly==='function') showOnly(1);
     var p1 = document.getElementById('p1');
@@ -9255,13 +9257,77 @@ function applyCalendarHandoff(){
       var banner = document.createElement('div');
       banner.id='vhdHandoffBanner';
       banner.style.cssText='margin:14px 22px 0;padding:11px 14px;border-radius:10px;background:linear-gradient(135deg,#f0f7f3,#eef4f0);border:1.5px solid #cfe3d8;font-family:Proxima Nova,Helvetica Neue,Arial,sans-serif;font-size:12.5px;color:#004A2B;display:flex;align-items:center;gap:10px';
-      banner.innerHTML='<span style="font-size:15px">&#128197;</span><div><b>Prefilled from the 30-day plan</b> — '+(e.date||'')+' · '+(e.market||'')+' · '+(e.segment||'')+'. Review the brief below, then generate.</div>';
+      banner.innerHTML='<span style="font-size:15px">&#128197;</span><div><b>Prefilled from the 30-day plan</b> — '+(e.date||'')+' · '+(e.market||'')+' · '+(e.segment||'')+'. Review the variants below, refine the brief, then continue.</div>';
       p1.insertBefore(banner, p1.firstChild);
+    }
+    if(p1 && H.variants && !document.getElementById('vhdHandoffVariants')){
+      p1.insertBefore(renderHandoffVariants(H.variants, H.strategy||{}, H.cta_url||''), document.getElementById('vhdHandoffBanner').nextSibling);
     }
     window.scrollTo({top:0, behavior:'smooth'});
   }catch(_){}
   return true;
 }
+
+// Render the 4 calendar-produced variants as a tabbed panel inside Step 1 so
+// the user sees the exact mailer the calendar built before touching anything.
+function renderHandoffVariants(variants, strategy, ctaUrl){
+  var box = document.createElement('div');
+  box.id = 'vhdHandoffVariants';
+  box.style.cssText = 'margin:14px 22px 0;padding:16px;border:1.5px solid #ece4d2;border-radius:12px;background:#fff;font-family:Proxima Nova,Helvetica Neue,Arial,sans-serif;';
+  var ORDER = ['A1','A2','B1','B2'];
+  var available = ORDER.filter(function(k){ return !!variants[k]; });
+  if(!available.length){ box.style.display='none'; return box; }
+  var head = '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px;">'
+    + '<div style="font-family:Lao MN,Cormorant Garamond,Georgia,serif;font-size:18px;color:#004A2B;font-weight:600;">Mailer drafted from this plan row</div>'
+    + '<div style="font-size:11px;color:#7a6e5a;">2 types · 2 variants each · subject "'+escStudio(strategy.subject_line||'')+'"</div>'
+    + '</div>';
+  var tabs = '<div id="vhdHvTabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">'
+    + available.map(function(k,i){
+        var v = variants[k];
+        return '<button type="button" data-k="'+k+'" class="vhd-hv-tab"'
+          + ' style="padding:7px 12px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid '+(i===0?'#004A2B':'rgba(0,74,43,0.18)')+';background:'+(i===0?'#004A2B':'transparent')+';color:'+(i===0?'#FBF5EA':'#004A2B')+';transition:all .15s;">'
+          + escStudio(v.label||k) + '</button>';
+      }).join('') + '</div>';
+  var panels = available.map(function(k,i){
+    var v = variants[k];
+    var inner;
+    if(v.kind === 'text' && v.html){
+      inner = '<iframe srcdoc="'+escStudio(v.html).replace(/&quot;/g,'&#34;')+'" style="width:100%;height:520px;border:1px solid #ece4d2;border-radius:8px;background:#fff;"></iframe>';
+    } else {
+      inner = '<div style="padding:18px;border:1px dashed #ece4d2;border-radius:10px;background:#faf6ef;">'
+        + '<div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:#AB8743;font-weight:700;margin-bottom:6px;">Image generation brief</div>'
+        + '<div style="font-size:13px;line-height:1.6;color:#171717;">'+escStudio(v.hero_image_brief||'')+'</div>'
+        + '<div style="margin-top:12px;font-size:11px;color:#7a6e5a;">Render this in Step 3 via the standard image pipeline (Gemini → OpenAI → Pollinations).</div>'
+        + '</div>';
+    }
+    var foot = ctaUrl ? '<div style="margin-top:8px;font-size:11px;color:#7a6e5a;">CTA → <a href="'+escStudio(ctaUrl)+'" target="_blank" rel="noopener" style="color:#004A2B;text-decoration:underline;">'+escStudio(ctaUrl)+'</a></div>' : '';
+    return '<div data-panel="'+k+'" style="'+(i===0?'':'display:none;')+'">'+inner+foot+'</div>';
+  }).join('');
+  box.innerHTML = head + tabs + '<div id="vhdHvPanels">'+panels+'</div>';
+  // Wire tabs
+  setTimeout(function(){
+    var btns = box.querySelectorAll('.vhd-hv-tab');
+    btns.forEach(function(b){
+      b.addEventListener('click', function(){
+        var k = b.getAttribute('data-k');
+        btns.forEach(function(x){
+          var on = x===b;
+          x.style.background = on?'#004A2B':'transparent';
+          x.style.color = on?'#FBF5EA':'#004A2B';
+          x.style.borderColor = on?'#004A2B':'rgba(0,74,43,0.18)';
+        });
+        box.querySelectorAll('#vhdHvPanels > [data-panel]').forEach(function(p){
+          p.style.display = p.getAttribute('data-panel')===k?'block':'none';
+        });
+      });
+    });
+  }, 0);
+  return box;
+}
+
+// Small HTML-escape helper for the handoff panel (the studio has its own
+// elsewhere but it isn't always reachable from this scope).
+function escStudio(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
 
 document.addEventListener('DOMContentLoaded',function(){
   initAuth();
