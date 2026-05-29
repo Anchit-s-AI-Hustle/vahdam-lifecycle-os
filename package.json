@@ -19,6 +19,7 @@
     "@playwright/test": "^1.48.0"
   },
   "dependencies": {
+    "@vercel/speed-insights": "^2.0.0",
     "xlsx-js-style": "^1.2.0"
   }
 }
