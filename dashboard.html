@@ -20,6 +20,10 @@
 <script src="/auth.js?v=20260530a" defer></script>
 <script src="/table-sort.js?v=20260530a" defer></script>
 <script src="/chart-enhance.js?v=20260530a" defer></script>
+<script type="module">
+  import { injectSpeedInsights } from '@vercel/speed-insights';
+  injectSpeedInsights();
+</script>
 <script>
   tailwind.config = {
     theme: { extend: {
