@@ -21,6 +21,15 @@
   if (window.__LifecycleAuthBooted) return;
   window.__LifecycleAuthBooted = true;
 
+  // ─── PWA install: register the service worker once per page load ────────
+  // This is what makes the address-bar install icon appear in Chrome / Edge
+  // (and adds "Add to Home Screen" on iOS/Android) — alongside the manifest.
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    });
+  }
+
   const STEPS = [
     { id: 'home',      label: 'Home',         href: '/',               match: ['/', '/index.html'] },
     { id: 'dashboard', label: 'Analysis',     href: '/dashboard.html', match: ['/dashboard.html', '/analytics'] },
