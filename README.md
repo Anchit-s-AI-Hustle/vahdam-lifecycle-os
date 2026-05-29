@@ -29,7 +29,7 @@ Forked from [`marketing_mailers__html_architect`](https://github.com/Anchit-s-AI
 - POSTs to `/api/calendar/generate` which returns a 30-day plan
 - Plan is segment-aware, festival-aware, capacity-guarded
 - Each calendar entry is one-click → buildable into 4 mailer variants
-- Festivals data: `data/festivals.json` (US / UK / Global, ~70 cultural moments)
+- Festivals data: `data/festivals.json` (US / UK / India / Global, ~100 cultural moments — incl. Diwali, Raksha Bandhan, Holi, Republic Day, Independence Day for IN)
 
 ### Stage 03 — Mailer Studio (`/studio`)
 - The original `vahdam_mailer_architect_v34.html`

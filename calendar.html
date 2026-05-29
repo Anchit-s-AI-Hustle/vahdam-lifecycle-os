@@ -11,6 +11,8 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="/auth.js" defer></script>
+<script src="/table-sort.js" defer></script>
 <script>
   tailwind.config = { theme: { extend: {
     colors: {
@@ -30,6 +32,7 @@
   .b-US { background:rgba(59,130,246,0.15); color:#93c5fd; }
   .b-UK { background:rgba(234,88,12,0.15); color:#fdba74; }
   .b-Global { background:rgba(171,135,67,0.18); color:#AB8743; }
+  .b-IN { background:rgba(34,197,94,0.15); color:#86efac; }
   .ct-promo       { background:rgba(239,68,68,0.12); color:#fca5a5; }
   .ct-editorial   { background:rgba(168,85,247,0.12); color:#d8b4fe; }
   .ct-lifecycle   { background:rgba(34,197,94,0.12); color:#86efac; }
@@ -90,6 +93,7 @@
           <button class="filter-chip active" data-market="US">US</button>
           <button class="filter-chip active" data-market="UK">UK</button>
           <button class="filter-chip active" data-market="Global">Global</button>
+          <button class="filter-chip active" data-market="IN">India</button>
         </div>
       </div>
       <div>
@@ -137,9 +141,9 @@
       <input id="planSearch" type="text" placeholder="Filter…" class="text-xs bg-bg-card border border-gold/20 rounded px-3 py-1.5 text-ink w-56">
     </div>
     <div class="overflow-x-auto">
-      <table class="w-full min-w-[1000px]">
+      <table class="w-full min-w-[1000px]" data-sortable>
         <thead><tr>
-          <th>Date</th><th>Mkt</th><th>Segment</th><th>Content</th><th>Archetype</th><th>Hero</th><th>Subject hint</th><th>Festival</th><th></th>
+          <th data-sort="date">Date</th><th>Mkt</th><th>Segment</th><th>Content</th><th>Archetype</th><th>Hero</th><th>Subject hint</th><th>Festival</th><th data-no-sort></th>
         </tr></thead>
         <tbody id="planTable"><tr><td colspan="9" class="text-center text-ink-mute py-8">Click "Generate plan" to build the 30-day calendar.</td></tr></tbody>
       </table>
@@ -172,7 +176,7 @@ const $ = (id) => document.getElementById(id);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
 const STATE = {
-  markets: ['US', 'UK', 'Global'],
+  markets: ['US', 'UK', 'Global', 'IN'],
   days: 30,
   capacity: 4,
   plan: [],
@@ -248,7 +252,7 @@ function seedAnalytics() {
       { sku:'BLD-810', title:'Sleep Blend',             category:'Wellness',  revenue: 18600, units: 700,  promos: 1 },
       { sku:'WHT-600', title:'Silver Tips White',       category:'White tea', revenue: 17200, units: 350,  promos: 0 },
     ],
-    bestHourByMarket: { US: 14, UK: 9, Global: 6 },
+    bestHourByMarket: { US: 14, UK: 9, Global: 6, IN: 4 },
   };
 }
 

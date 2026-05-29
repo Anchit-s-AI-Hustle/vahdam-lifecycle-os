@@ -7,116 +7,61 @@
   "cleanUrls": false,
   "trailingSlash": false,
   "functions": {
-    "api/ai/generate.js": {
-      "memory": 1024,
-      "maxDuration": 60
-    },
-    "api/ai/image.js": {
-      "memory": 1024,
-      "maxDuration": 120
-    },
-    "api/ai/pipeline/health.js": {
-      "memory": 256,
-      "maxDuration": 5
-    },
-    "api/ai/pipeline/strategy.js": {
-      "memory": 512,
-      "maxDuration": 45
-    },
-    "api/ai/pipeline/variant.js": {
-      "memory": 512,
-      "maxDuration": 55
-    },
-    "api/ai/pipeline/images.js": {
-      "memory": 1024,
-      "maxDuration": 120
-    },
-    "api/ai/pipeline/html.js": {
-      "memory": 1024,
-      "maxDuration": 90
-    },
-    "api/ai/pipeline/score.js": {
-      "memory": 512,
-      "maxDuration": 30
-    }
+    "api/ai/generate.js":          { "memory": 1024, "maxDuration": 60 },
+    "api/ai/image.js":             { "memory": 1024, "maxDuration": 120 },
+    "api/ai/pipeline/health.js":   { "memory": 256,  "maxDuration": 5 },
+    "api/ai/pipeline/strategy.js": { "memory": 512,  "maxDuration": 45 },
+    "api/ai/pipeline/variant.js":  { "memory": 512,  "maxDuration": 55 },
+    "api/ai/pipeline/images.js":   { "memory": 1024, "maxDuration": 120 },
+    "api/ai/pipeline/html.js":     { "memory": 1024, "maxDuration": 90 },
+    "api/ai/pipeline/score.js":    { "memory": 512,  "maxDuration": 30 },
+    "api/calendar/generate.js":      { "memory": 512,  "maxDuration": 30 },
+    "api/calendar/trigger-mailer.js":{ "memory": 1024, "maxDuration": 90 },
+    "api/public-config.js":          { "memory": 128,  "maxDuration": 3 }
   },
   "rewrites": [
-    {
-      "source": "/",
-      "destination": "/vahdam_mailer_architect_v34.html"
-    },
-    {
-      "source": "/studio",
-      "destination": "/vahdam_mailer_architect_v34.html"
-    },
-    {
-      "source": "/app",
-      "destination": "/vahdam_mailer_architect_v34.html"
-    }
+    { "source": "/studio",    "destination": "/vahdam_mailer_architect_v34.html" },
+    { "source": "/app",       "destination": "/vahdam_mailer_architect_v34.html" },
+    { "source": "/mailer",    "destination": "/vahdam_mailer_architect_v34.html" },
+    { "source": "/analytics", "destination": "/dashboard.html" },
+    { "source": "/plan",      "destination": "/calendar.html" }
   ],
   "headers": [
     {
-      "source": "/vahdam_mailer_architect_v34.html",
+      "source": "/(.*)",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "SAMEORIGIN"
-        },
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
-        },
-        {
-          "key": "Permissions-Policy",
-          "value": "geolocation=(), microphone=(), camera=(), payment=(), usb=()"
-        },
-        {
-          "key": "Strict-Transport-Security",
-          "value": "max-age=31536000; includeSubDomains"
-        }
+        { "key": "X-Frame-Options",          "value": "SAMEORIGIN" },
+        { "key": "X-Content-Type-Options",   "value": "nosniff" },
+        { "key": "Referrer-Policy",          "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy",       "value": "geolocation=(), microphone=(), camera=(), payment=(), usb=()" },
+        { "key": "Strict-Transport-Security","value": "max-age=31536000; includeSubDomains" }
       ]
     },
     {
       "source": "/(.*)\\.html",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate"
-        }
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/data/festivals.json",
+      "headers": [
+        { "key": "Cache-Control",            "value": "public, max-age=3600, stale-while-revalidate=86400" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" }
       ]
     },
     {
       "source": "/data/catalog/(.*).json",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=3600, stale-while-revalidate=86400"
-        },
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        }
+        { "key": "Cache-Control",            "value": "public, max-age=3600, stale-while-revalidate=86400" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" }
       ]
     },
     {
       "source": "/api/(.*)",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-store"
-        },
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        }
+        { "key": "Cache-Control",          "value": "no-store" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" }
       ]
     }
   ]

@@ -12,6 +12,8 @@
 <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.49.1/dist/apexcharts.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="/auth.js" defer></script>
+<script src="/table-sort.js" defer></script>
 <script>
   tailwind.config = {
     theme: { extend: {
@@ -44,11 +46,58 @@
   .kpi-val { font-variant-numeric:tabular-nums; letter-spacing:-0.02em; }
   .label { font-size:10px; text-transform:uppercase; letter-spacing:0.12em; color:#5d6e64; font-weight:500; }
   .pill { display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:600; padding:4px 10px; border-radius:99px; }
-  .nav-item { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:8px; font-size:13px; color:#9aaaa1; transition:all .15s; cursor:pointer; }
+  .nav-item { display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border-radius:8px; font-size:13px; color:#9aaaa1; transition:all .15s; cursor:pointer; position:relative; }
   .nav-item:hover { background:rgba(171,135,67,0.08); color:#e8ede9; }
   .nav-item.active { background:rgba(171,135,67,0.14); color:#FBF5EA; border-left:2px solid #AB8743; padding-left:10px; }
-  .nav-item svg { width:14px; height:14px; opacity:.6; flex-shrink:0; }
+  .nav-item svg { width:14px; height:14px; opacity:.6; flex-shrink:0; margin-top:1px; }
   .nav-item.active svg { opacity:1; color:#AB8743; }
+  .nav-text { display:flex; flex-direction:column; gap:1px; line-height:1.2; min-width:0; }
+  .nav-title { font-weight:600; font-size:12.5px; }
+  .nav-sub { font-size:10px; color:#5d6e64; font-weight:400; }
+  .nav-item.active .nav-sub { color:#9aaaa1; }
+
+  /* ── Sidebar collapse mode ─────────────────────────────────────────── */
+  aside.sidebar { width:14rem; transition: width 0.22s cubic-bezier(0.65,0,0.35,1); }
+  body.sb-collapsed aside.sidebar { width:60px; }
+  body.sb-collapsed .nav-text,
+  body.sb-collapsed .sb-full-label,
+  body.sb-collapsed .nav-brand-sub,
+  body.sb-collapsed .nav-brand-title,
+  body.sb-collapsed .sb-collapse-label { display:none !important; }
+  body.sb-collapsed aside.sidebar .nav-item { justify-content:center; padding:10px 0; }
+  body.sb-collapsed aside.sidebar .nav-item svg { margin-top:0; }
+  body.sb-collapsed aside.sidebar .nav-brand { padding:18px 0 14px; text-align:center; }
+  body.sb-collapsed aside.sidebar .nav-brand-dot { margin:0 auto; }
+  body.sb-collapsed aside.sidebar nav { padding:8px 6px; }
+  /* Tooltip when collapsed */
+  body.sb-collapsed .nav-item::after {
+    content: attr(data-tip);
+    position: absolute; left: calc(100% + 8px); top: 50%;
+    transform: translateY(-50%) translateX(-4px);
+    background: #1a2820; border: 1px solid rgba(171,135,67,0.3);
+    color: #FBF5EA; padding: 6px 10px; border-radius: 6px;
+    font-size: 11px; white-space: nowrap;
+    opacity: 0; pointer-events: none; transition: opacity 0.12s, transform 0.12s;
+    z-index: 200; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  }
+  body.sb-collapsed .nav-item:hover::after {
+    opacity: 1; transform: translateY(-50%) translateX(0);
+  }
+  /* Collapse toggle button */
+  .sb-collapse-btn {
+    display:flex; align-items:center; gap:8px;
+    margin: 8px 12px 0;
+    padding: 8px 10px; border-radius: 7px;
+    border: 1px solid rgba(171,135,67,0.18);
+    background: transparent; color: #9aaaa1;
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em;
+    font-family: inherit; font-weight: 600; cursor: pointer;
+    transition: all .15s;
+  }
+  .sb-collapse-btn:hover { color:#FBF5EA; border-color: rgba(171,135,67,0.4); }
+  .sb-collapse-btn svg { width: 12px; height: 12px; transition: transform 0.22s; }
+  body.sb-collapsed .sb-collapse-btn { margin: 8px auto 0; padding: 8px 9px; }
+  body.sb-collapsed .sb-collapse-btn svg { transform: rotate(180deg); }
   .filter-chip { padding:5px 11px; border-radius:99px; font-size:11px; font-weight:600; border:1px solid rgba(171,135,67,0.25); color:#9aaaa1; cursor:pointer; transition:all .15s; user-select:none; }
   .filter-chip:hover { border-color:#AB8743; color:#e8ede9; }
   .filter-chip.active { background:#AB8743; color:#0a1410; border-color:#AB8743; }
@@ -88,42 +137,68 @@
 <div class="flex min-h-screen">
 
   <!-- Sidebar -->
-  <aside class="w-56 bg-bg-deep border-r border-gold/20 flex-none flex flex-col">
-    <div class="p-5 border-b border-gold/15">
-      <div class="text-gold font-bold tracking-widest text-[11px]">VAHDAM · DTC</div>
-      <div class="text-cream font-semibold text-base mt-1">Retention OS</div>
-      <div class="text-ink-mute text-[10px] mt-1 font-mono">Intelligence Layer v1</div>
+  <aside class="sidebar bg-bg-deep border-r border-gold/20 flex-none flex flex-col">
+    <div class="nav-brand p-5 border-b border-gold/15">
+      <div class="nav-brand-dot w-2 h-2 rounded-full bg-gold inline-block mb-2"></div>
+      <div class="nav-brand-title text-gold font-bold tracking-widest text-[11px]">VAHDAM · DTC</div>
+      <div class="text-cream font-semibold text-base mt-1 sb-full-label">Retention OS</div>
+      <div class="nav-brand-sub text-ink-mute text-[10px] mt-1 font-mono">Intelligence Layer v1</div>
     </div>
     <nav class="flex-1 p-3 space-y-1 scrollbar-thin overflow-y-auto">
-      <div class="nav-item active" data-view="exec">
+      <div class="nav-item active" data-view="exec" data-tip="Revenue Pulse" title="Top-line revenue, retention vs new, region split">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
-        Executive Overview
+        <div class="nav-text">
+          <span class="nav-title">Revenue Pulse</span>
+          <span class="nav-sub">KPIs · daily trend · region mix</span>
+        </div>
       </div>
-      <div class="nav-item" data-view="campaigns">
+      <div class="nav-item" data-view="campaigns" data-tip="Campaigns" title="Every send rated on engagement, revenue, fatigue, unsubs">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 11l18-8-8 18-2-8z"/></svg>
-        Campaign Analytics
+        <div class="nav-text">
+          <span class="nav-title">Campaigns Deep-Dive</span>
+          <span class="nav-sub">Email · SMS · subject &amp; content perf</span>
+        </div>
       </div>
-      <div class="nav-item" data-view="segments">
+      <div class="nav-item" data-view="segments" data-tip="Segments" title="9 RFM segments + LTV, discount sensitivity, engagement">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l8 4"/></svg>
-        Customer Segments
+        <div class="nav-text">
+          <span class="nav-title">Audience Segments</span>
+          <span class="nav-sub">RFM · LTV · discount sensitivity</span>
+        </div>
       </div>
-      <div class="nav-item" data-view="products">
+      <div class="nav-item" data-view="products" data-tip="Products" title="Promoted vs purchased, cross-sell affinity, repeat ladder">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-        Product Intelligence
+        <div class="nav-text">
+          <span class="nav-title">Product Intelligence</span>
+          <span class="nav-sub">Promoted vs bought · cross-sell map</span>
+        </div>
       </div>
-      <div class="nav-item" data-view="time">
+      <div class="nav-item" data-view="time" data-tip="Send-Time" title="Best send hour by day · purchase lag · weekly cycle">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-        Time Behavior
+        <div class="nav-text">
+          <span class="nav-title">Send-Time &amp; Behavior</span>
+          <span class="nav-sub">Heatmap · purchase windows · seasonality</span>
+        </div>
       </div>
-      <div class="nav-item" data-view="cohorts">
+      <div class="nav-item" data-view="cohorts" data-tip="Cohorts" title="Monthly first-purchase cohorts, retention curve, lifecycle stages">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
-        Cohorts & Retention
+        <div class="nav-text">
+          <span class="nav-title">Cohorts &amp; Retention</span>
+          <span class="nav-sub">Triangle · curves · lifecycle funnel</span>
+        </div>
       </div>
-      <div class="nav-item" data-view="insights">
+      <div class="nav-item" data-view="insights" data-tip="Insights" title="Automated callouts: WHY / IMPACT / ACTION, severity-ranked">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 18h6M10 22h4M12 2C8 2 5 5 5 9c0 3 2 4 3 6h8c1-2 3-3 3-6 0-4-3-7-7-7z"/></svg>
-        Strategic Insights
+        <div class="nav-text">
+          <span class="nav-title">Strategic Insights</span>
+          <span class="nav-sub">Auto-generated · ranked by impact</span>
+        </div>
       </div>
     </nav>
+    <button class="sb-collapse-btn" id="sbCollapseBtn" aria-label="Collapse sidebar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      <span class="sb-collapse-label">Collapse</span>
+    </button>
     <div class="p-3 border-t border-gold/15">
       <button id="btnExport" class="w-full text-[11px] uppercase tracking-wider font-semibold py-2 rounded border border-gold/30 text-ink-dim hover:border-gold hover:text-ink transition">
         ↓ Export view
@@ -146,6 +221,7 @@
           <button class="filter-chip" data-region="US">US</button>
           <button class="filter-chip" data-region="UK">UK</button>
           <button class="filter-chip" data-region="Global">Global</button>
+          <button class="filter-chip" data-region="IN">India</button>
         </div>
         <div class="h-5 w-px bg-gold/20"></div>
         <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold">Window</div>
@@ -192,7 +268,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div class="card p-4">
             <h3 class="text-sm font-semibold mb-3">Top 5 campaigns by attributed revenue</h3>
-            <table class="w-full"><thead><tr><th>Campaign</th><th>Region</th><th class="num">Rev</th><th class="num">CVR</th></tr></thead><tbody id="execTopCampaigns"></tbody></table>
+            <table class="w-full" data-sortable><thead><tr><th>Campaign</th><th>Region</th><th class="num" data-sort="number">Rev</th><th class="num" data-sort="number">CVR</th></tr></thead><tbody id="execTopCampaigns"></tbody></table>
           </div>
           <div class="card p-4">
             <h3 class="text-sm font-semibold mb-3">Lifecycle revenue mix</h3>
@@ -229,11 +305,11 @@
             <input id="campSearch" type="text" placeholder="Filter by name…" class="text-xs bg-bg-deep border border-gold/20 rounded px-3 py-1.5 text-ink placeholder:text-ink-mute focus:outline-none focus:border-gold w-56">
           </div>
           <div class="overflow-x-auto scrollbar-thin">
-            <table class="w-full min-w-[900px]">
+            <table class="w-full min-w-[900px]" data-sortable>
               <thead><tr>
-                <th>Campaign</th><th>Chan</th><th>Region</th><th>Sent</th>
-                <th class="num">Sends</th><th class="num">Open %</th><th class="num">CTR</th>
-                <th class="num">CVR</th><th class="num">Rev</th><th class="num">RPR</th><th class="num">Unsub</th>
+                <th>Campaign</th><th>Chan</th><th>Region</th><th data-sort="date">Sent</th>
+                <th class="num" data-sort="number">Sends</th><th class="num" data-sort="number">Open %</th><th class="num" data-sort="number">CTR</th>
+                <th class="num" data-sort="number">CVR</th><th class="num" data-sort="number">Rev</th><th class="num" data-sort="number">RPR</th><th class="num" data-sort="number">Unsub</th>
               </tr></thead>
               <tbody id="campTable"></tbody>
             </table>
@@ -317,8 +393,8 @@
         <div class="card p-4">
           <h3 class="text-sm font-semibold mb-3">Product ladder · revenue, repeat, retention impact</h3>
           <div class="overflow-x-auto scrollbar-thin">
-            <table class="w-full min-w-[800px]">
-              <thead><tr><th>Product</th><th>Cat</th><th class="num">Promos</th><th class="num">Units</th><th class="num">Revenue</th><th class="num">Repeat %</th><th class="num">Days to 2nd</th><th class="num">Retention lift</th></tr></thead>
+            <table class="w-full min-w-[800px]" data-sortable>
+              <thead><tr><th>Product</th><th>Cat</th><th class="num" data-sort="number">Promos</th><th class="num" data-sort="number">Units</th><th class="num" data-sort="number">Revenue</th><th class="num" data-sort="number">Repeat %</th><th class="num" data-sort="number">Days to 2nd</th><th class="num" data-sort="number">Retention lift</th></tr></thead>
               <tbody id="prodTable"></tbody>
             </table>
           </div>
@@ -479,7 +555,7 @@ function rngFromSeed(seed) {
   return () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h >>> 0) % 100000) / 100000; };
 }
 
-const REGIONS = ['US', 'UK', 'Global'];
+const REGIONS = ['US', 'UK', 'Global', 'IN'];
 const CHANNELS = ['email', 'sms'];
 const CONTENT_TYPES = ['promo','editorial','lifecycle','transactional','winback','launch'];
 const SEGMENT_NAMES = ['Champions','Loyal','Promising','New','Need-Attention','About-to-Sleep','At-Risk','Hibernating','Lost'];
@@ -1123,7 +1199,7 @@ const APEX_BASE = {
   legend: { labels: { colors: '#9aaaa1' }, fontSize: '11px' },
 };
 
-const REGION_COLORS = { US: '#3b82f6', UK: '#f97316', Global: '#AB8743' };
+const REGION_COLORS = { US: '#3b82f6', UK: '#f97316', Global: '#AB8743', IN: '#22c55e' };
 
 // ─── 1. Executive Overview ──────────────────────────────────────────────
 function renderExec() {
@@ -1152,7 +1228,7 @@ function renderExec() {
     series: REGIONS.map((r) => ({ name: r, data: dates.map((d) => +(byDay[d][r] || 0).toFixed(0)) })),
     xaxis: { categories: dates.map(fmtDate), labels: { rotate: -40, style: { fontSize: '10px' } } },
     yaxis: { labels: { formatter: (v) => '$' + (v >= 1000 ? (v/1000).toFixed(1) + 'k' : v) } },
-    colors: [REGION_COLORS.US, REGION_COLORS.UK, REGION_COLORS.Global],
+    colors: REGIONS.map((r) => REGION_COLORS[r]),
     stroke: { curve: 'smooth', width: 1.5 },
     fill: { type: 'gradient', gradient: { opacityFrom: 0.5, opacityTo: 0.05 } },
   });
@@ -1694,6 +1770,26 @@ function rerender() {
 }
 
 $$('.nav-item').forEach((n) => n.addEventListener('click', () => switchView(n.dataset.view)));
+
+// ─── Sidebar collapse persistence ───────────────────────────────────
+(function () {
+  const KEY = 'vahdam-dashboard-sidebar-collapsed';
+  if (localStorage.getItem(KEY) === '1') document.body.classList.add('sb-collapsed');
+  const btn = $('sbCollapseBtn');
+  if (!btn) return;
+  function syncAria() {
+    const collapsed = document.body.classList.contains('sb-collapsed');
+    btn.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+  }
+  syncAria();
+  btn.addEventListener('click', () => {
+    const collapsed = document.body.classList.toggle('sb-collapsed');
+    localStorage.setItem(KEY, collapsed ? '1' : '0');
+    syncAria();
+    // Force any visible chart to redraw at the new width
+    setTimeout(() => { if (typeof rerender === 'function') rerender(); }, 240);
+  });
+})();
 
 $('regionChips').addEventListener('click', (e) => {
   if (!e.target.dataset.region) return;
