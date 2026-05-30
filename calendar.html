@@ -8,6 +8,7 @@
 <link rel="apple-touch-icon" href="/favicon.png">
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#004A2B">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lifecycle OS">
@@ -17,10 +18,8 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="/auth.js?v=20260530a" defer></script>
 <script src="/table-sort.js?v=20260530a" defer></script>
-<script type="module">
-  import { injectSpeedInsights } from '@vercel/speed-insights';
-  injectSpeedInsights();
-</script>
+<!-- Vercel Speed Insights — static-HTML form (bare-specifier import does not resolve in the browser) -->
+<script defer src="/_vercel/speed-insights/script.js"></script>
 <script>
   tailwind.config = { theme: { extend: {
     colors: {
@@ -75,7 +74,7 @@
 </head>
 <body class="min-h-screen">
 
-<header class="border-b border-gold/15 px-6 py-4 sticky top-0 bg-bg/95 backdrop-blur z-30">
+<header class="border-b border-gold/15 px-6 py-4 sticky bg-bg/95 backdrop-blur z-30" style="top:var(--ltb-h,0px)">
   <div class="max-w-7xl mx-auto flex flex-wrap items-center gap-3">
     <div>
       <div class="text-[10px] uppercase tracking-widest text-gold font-bold">VAHDAM</div>
@@ -83,9 +82,8 @@
     </div>
     <div class="flex-1"></div>
     <div class="flex gap-2 items-center">
-      <a href="/" class="text-[11px] uppercase tracking-wider text-ink-mute hover:text-ink">← Home</a>
-      <a href="/dashboard.html" class="text-[11px] uppercase tracking-wider text-ink-mute hover:text-ink">Dashboard</a>
-      <a href="/studio" target="_blank" class="text-[11px] uppercase tracking-wider text-ink-mute hover:text-ink">Mailer Studio ↗</a>
+      <!-- Cross-page navigation is provided by the global top-bar (auth.js). -->
+      <a href="/dashboard.html" class="text-[11px] uppercase tracking-wider text-ink-mute hover:text-ink">View dashboard →</a>
     </div>
   </div>
 </header>

@@ -8,6 +8,7 @@
 <link rel="apple-touch-icon" href="/favicon.png">
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#004A2B">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lifecycle OS">
@@ -16,10 +17,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <!-- Lifecycle OS shared auth + cross-step nav -->
 <script src="/auth.js?v=20260530a" defer></script>
-<script type="module">
-  import { injectSpeedInsights } from '@vercel/speed-insights';
-  injectSpeedInsights();
-</script>
+<!-- Vercel Speed Insights — static-HTML form (bare-specifier import does not resolve in the browser) -->
+<script defer src="/_vercel/speed-insights/script.js"></script>
 <style>
 /* ── Design tokens ───────────────────────────────────────────────────────── */
 :root{

@@ -8,6 +8,7 @@
 <link rel="apple-touch-icon" href="/favicon.png">
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#004A2B">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lifecycle OS">
@@ -20,10 +21,8 @@
 <script src="/auth.js?v=20260530a" defer></script>
 <script src="/table-sort.js?v=20260530a" defer></script>
 <script src="/chart-enhance.js?v=20260530a" defer></script>
-<script type="module">
-  import { injectSpeedInsights } from '@vercel/speed-insights';
-  injectSpeedInsights();
-</script>
+<!-- Vercel Speed Insights — static-HTML form (bare-specifier import does not resolve in the browser) -->
+<script defer src="/_vercel/speed-insights/script.js"></script>
 <script>
   tailwind.config = {
     theme: { extend: {
@@ -86,6 +85,10 @@
 
   /* ── Sidebar collapse mode ─────────────────────────────────────────── */
   aside.sidebar { width:14rem; transition: width 0.22s cubic-bezier(0.65,0,0.35,1); }
+  /* Desktop: keep the LHS nav pinned below the sticky topbar, independently scrollable. */
+  @media (min-width:1025px){
+    aside.sidebar { position:sticky; top:var(--ltb-h,0px); height:calc(100vh - var(--ltb-h,0px)); align-self:flex-start; }
+  }
   body.sb-collapsed aside.sidebar { width:60px; }
   body.sb-collapsed .nav-text,
   body.sb-collapsed .sb-full-label,
@@ -288,7 +291,7 @@
   <!-- Main -->
   <main class="flex-1 min-w-0">
     <!-- Top filter bar -->
-    <header class="sticky top-0 z-30 bg-bg/90 backdrop-blur border-b border-gold/15 px-6 py-3">
+    <header class="sticky z-30 bg-bg/90 backdrop-blur border-b border-gold/15 px-6 py-3" style="top:var(--ltb-h,0px)">
       <div class="flex flex-wrap items-center gap-3">
         <button class="sb-mobile-toggle" id="sbMobileToggle" aria-label="Open menu" title="Menu"><span></span><span></span><span></span></button>
         <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold">Region</div>

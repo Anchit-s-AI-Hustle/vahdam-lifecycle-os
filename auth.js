@@ -59,13 +59,12 @@
     bar.innerHTML = `
       <style>
         #lifecycle-topbar {
-          /* Non-sticky so each page's own sticky filter bar still
-             pins to top: 0 below us. The global nav scrolls away with
-             the page header — scroll back up to switch steps. */
-          position: relative; z-index: 100;
+          /* Sticky throughout: the global nav stays pinned to the top of every
+             page. Each page's own filter bar offsets below us via --ltb-h. */
+          position: sticky; top: 0; z-index: 100;
           display: flex; align-items: center; gap: 14px;
           padding: 10px 18px;
-          background: rgba(7, 14, 11, 0.94);
+          background: rgba(7, 14, 11, 0.97);
           backdrop-filter: blur(14px);
           border-bottom: 1px solid rgba(171,135,67,0.18);
           font-family: 'Inter', system-ui, sans-serif;
@@ -139,6 +138,26 @@
       <div class="ltb-user" id="ltb-user"></div>
     `;
     document.body.insertBefore(bar, document.body.firstChild);
+
+    // Publish the topbar height as --ltb-h so each page's own sticky header can
+    // pin directly below the global nav instead of overlapping it. Measure after
+    // layout settles (rAF + load) and keep it live via ResizeObserver + resize,
+    // since the bar wraps/grows on mobile and after fonts/avatars load.
+    const publishHeight = () => {
+      const b = document.getElementById('lifecycle-topbar');
+      if (!b) return;
+      const h = Math.ceil(b.getBoundingClientRect().height) || 48;
+      document.documentElement.style.setProperty('--ltb-h', h + 'px');
+    };
+    publishHeight();
+    requestAnimationFrame(publishHeight);
+    window.addEventListener('load', publishHeight);
+    setTimeout(publishHeight, 400);
+    if (!window.__ltbResizeHooked) {
+      window.__ltbResizeHooked = true;
+      window.addEventListener('resize', publishHeight);
+      if (window.ResizeObserver) { try { new ResizeObserver(publishHeight).observe(bar); } catch {} }
+    }
 
     const cur = currentStepId();
     const nav = document.getElementById('ltb-nav');
