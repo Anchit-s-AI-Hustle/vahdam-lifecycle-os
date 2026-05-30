@@ -125,3 +125,16 @@ Auto-set: `VERCEL`, `VERCEL_ENV`, `VERCEL_URL`
 - Products selected/auto-picked now appear in a dedicated horizontal strip below the catalog grid
 - Each card shows image, name, price (with compare_at/discount), subtitle, and a red × remove button
 - Strip auto-hides when no products are selected
+
+## API Keys (2026-05-30) — per-project Gemini via gcloud
+Each app has its OWN restricted Gemini key (generativelanguage API) minted from its own GCP project, pushed to Vercel (Production+Development), all verified HTTP 200:
+- vahdam-lifecycle-os ← GCP vahdam-lifecycle-os
+- personal-ai-os ← GCP gen-lang-client-0650981394
+- the-third-eye ← GCP jarvis-anchit (GEMINI_API_KEY + VITE_GEMINI_API_KEY)
+- music-gen-ai ← GCP soundweave-489519
+- hey-yaara ← GCP fluent-anagram-492522-q4
+- ai-tele-suite ← GCP ai-telesuite
+- th-life-engine ← GCP gen-lang-client-0121882805
+- marketing-mailers-html-architect ← GCP gen-lang-client-0878036120
+Other providers (OpenAI/Anthropic/xAI/Groq/Cerebras) left as-is (cannot self-generate).
+Canonical repos now at ~/dev/anchit-hustle (moved off iCloud which was corrupting git).
