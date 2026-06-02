@@ -89,3 +89,29 @@ All inherited from the parent repo (see `CLAUDE.md`):
 
 - **Automatic send**. Calendar rows currently produce HTML variants — they don't fire emails. Adding a send queue (Klaviyo flow trigger / Postmark / SendGrid) is the next phase.
 - **Image variants A & B** when triggered from the calendar UI: the brief is generated but the actual image render runs in the Mailer Studio. Inline image rendering from the calendar is a small extra wire-up.
+
+---
+
+## Merged Automation Modules
+
+### 1. Data Ingestion Engine (`/ingest`)
+Contains scripts to pull, parse, and ingest customer lifecycle and DTC transaction records:
+- `ingest_matrixify.py`: Matrixify raw Shopify exports loader.
+- `ingest_shopify_analytics.py`: Shopify Analytics transactions loader.
+- `ingest_klaviyo.py`: Klaviyo list and email engagement data loader.
+- `ingest_webengage.py`: WebEngage customer CDP data loader.
+- `sync_to_supabase.py`: Synchronizes the processed DuckDB database data back to Supabase.
+- Master execution script: `run_all.py` (runs all four ingestion scripts sequentially).
+
+### 2. Automated Campaign Trigger Engine (`/mailer_system`)
+A Python-based automated campaign generator that runs on a metrics-driven trigger sequence:
+- Evaluates at-risk revenue, 90-day cohort retention, subscription share, and list health against threshold definitions in `targets.json`.
+- Integrates with the Anthropic Claude API to generate formatted, occasion-aware brand emails.
+- Saves campaign results dynamically to `outputs/` (HTML + metadata files) and logs historical run metadata to `campaign_log.json`.
+
+### 3. Interactive Campaign Compiler (`/marketing_automation`)
+An interactive React 19 + Tailwind CSS compiler SPA:
+- Renders a visual workspace allowing you to select campaign themes and creative variants.
+- Connects to an Express custom server (`server.ts`) to request and compile local static templates.
+- Automatically scrapes and downloads static visual assets locally to guarantee offline asset hosting reliability.
+
