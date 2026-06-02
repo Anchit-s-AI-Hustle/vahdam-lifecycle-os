@@ -198,5 +198,18 @@
 
 </div>
 
+<script>
+  // Browser → open each stage in a new tab (keeps Home open). Installed PWA
+  // (standalone) → navigate in the same window so it behaves like a native app.
+  (function(){
+    var standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    var sel = 'a[href="/dashboard.html"], a[href="/calendar.html"], a[href="/studio"]';
+    document.querySelectorAll(sel).forEach(function(a){
+      if (standalone) { a.removeAttribute('target'); a.removeAttribute('rel'); }
+      else { a.setAttribute('target','_blank'); a.setAttribute('rel','noopener'); }
+    });
+  })();
+</script>
+
 </body>
 </html>

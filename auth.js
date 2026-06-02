@@ -161,14 +161,19 @@
 
     const cur = currentStepId();
     const nav = document.getElementById('ltb-nav');
+    // Installed PWA (standalone display-mode) → keep navigation in the same
+    // window so it feels like a native app. In a normal browser → open each
+    // step in a NEW TAB so the user keeps their place across Analysis /
+    // Calendar / Studio.
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+      || window.navigator.standalone === true;
     STEPS.forEach((s) => {
       const a = document.createElement('a');
       const isCurrent = s.id === cur;
       a.href = s.href;
       a.textContent = s.label;
       a.className = isCurrent ? 'active' : '';
-      // Same-app links: same tab when ALREADY on a step page; new tab when on Home
-      if (cur === 'home' && s.id !== 'home') {
+      if (!isCurrent && !isStandalone) {
         a.target = '_blank';
         a.rel = 'noopener';
         a.innerHTML = `${s.label}<span class="ltb-newtab">↗</span>`;
