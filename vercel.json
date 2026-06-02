@@ -20,6 +20,7 @@
     "api/public-config.js":          { "memory": 128,  "maxDuration": 3 }
   },
   "rewrites": [
+    { "source": "/c/:theme/:variant", "destination": "/campaign.html?theme=:theme&variant=:variant" },
     { "source": "/studio",    "destination": "/vahdam_mailer_architect_v34.html" },
     { "source": "/app",       "destination": "/vahdam_mailer_architect_v34.html" },
     { "source": "/mailer",    "destination": "/vahdam_mailer_architect_v34.html" },
