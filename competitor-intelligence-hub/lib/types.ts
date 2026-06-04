@@ -53,6 +53,9 @@ export const SHEET_COLUMNS = [
 export const NONE = "None";
 export const FAILED = "Failed";
 export const PENDING = "Pending";
+/** Screenshot-specific sentinel: shown when rendering/upload fails. The row is
+ *  still written in full — only this one column carries the sentinel. */
+export const NO_SCREENSHOT = "No Screenshot";
 
 /** Result summary returned by the sync route. */
 export interface SyncResult {

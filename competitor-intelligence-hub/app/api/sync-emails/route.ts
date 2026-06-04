@@ -33,7 +33,7 @@ import {
   joinOrNone,
 } from "@/lib/extract";
 import { renderEmailScreenshot } from "@/lib/screenshot";
-import { FAILED, NONE, type SyncResult } from "@/lib/types";
+import { NO_SCREENSHOT, type SyncResult } from "@/lib/types";
 
 // imapflow + googleapis + mailparser require the Node.js runtime (not Edge).
 export const runtime = "nodejs";
@@ -116,7 +116,10 @@ async function runSync(): Promise<SyncResult> {
       }
 
       // --- 4. Screenshot generation ------------------------------------
-      let screenshotUrl = FAILED;
+      // Default to the "No Screenshot" sentinel. Whatever happens to the
+      // screenshot, the row below is still appended in full — a failed render
+      // never blocks the rest of the data from being written to the sheet.
+      let screenshotUrl = NO_SCREENSHOT;
       try {
         const shot = await renderEmailScreenshot(parsed.html || parsed.textAsHtml || "");
         if (shot) {
@@ -130,7 +133,7 @@ async function runSync(): Promise<SyncResult> {
       } catch (err) {
         console.error("[sync] screenshot failed:", err);
         errors.push(`screenshot (${brand}): ${(err as Error).message}`);
-        screenshotUrl = FAILED;
+        screenshotUrl = NO_SCREENSHOT;
       }
 
       // --- 5. Append to Google Sheet -----------------------------------

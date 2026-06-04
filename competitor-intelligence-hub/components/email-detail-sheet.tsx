@@ -74,9 +74,9 @@ export function EmailDetailSheet({
       : [];
   const attachments = splitLinks(email.attachmentUrls);
   const inlineImages = splitLinks(email.inlineImageUrls);
+  // Anything that isn't a real Drive link (sentinels like "No Screenshot",
+  // "Failed", "Pending", or empty) renders the graceful empty state below.
   const screenshotPreview = drivePreviewUrl(email.screenshotUrl);
-  const screenshotFailed =
-    email.screenshotUrl === "Failed" || email.screenshotUrl === "Pending";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -209,11 +209,7 @@ export function EmailDetailSheet({
               ) : (
                 <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-12 text-center text-muted-foreground">
                   <FileWarning className="h-6 w-6" />
-                  <p className="text-sm">
-                    {screenshotFailed
-                      ? "Screenshot unavailable (render failed or pending)."
-                      : "No screenshot on file."}
-                  </p>
+                  <p className="text-sm">No Screenshot</p>
                 </div>
               )}
               {screenshotPreview && (
