@@ -1,0 +1,64 @@
+/**
+ * Canonical shape of one competitor email row.
+ *
+ * This is the single source of truth for the data contract that flows:
+ *   IMAP  →  extraction  →  Google Sheet row  →  dashboard table  →  detail modal
+ *
+ * The Google Sheet column order is defined by SHEET_COLUMNS below — keep the
+ * two in sync. `rowToRecord` / `recordToRow` (in google-client.ts) do the mapping.
+ */
+export interface CompetitorEmail {
+  /** 1-based row number in the sheet (used as a stable React key + for updates). */
+  id: string;
+  /** Cleaned brand/company name derived from the sender display name. */
+  brand: string;
+  /** Raw sender address, e.g. promo@competitor.com */
+  senderEmail: string;
+  /** ISO-8601 timestamp the email was received. */
+  receivedAt: string;
+  /** Email subject line. */
+  subject: string;
+  /** Short preview/snippet text (first ~200 chars of the body). */
+  preview: string;
+  /** Full plain-text body, stripped of HTML. */
+  bodyText: string;
+  /** Comma-separated promo codes found in the email, or "None". */
+  promoCodes: string;
+  /** Google Drive view link for the full-length screenshot, "Pending", or "Failed". */
+  screenshotUrl: string;
+  /** Comma-separated Drive links for inline images, or "None". */
+  inlineImageUrls: string;
+  /** Comma-separated Drive links for file attachments, or "None". */
+  attachmentUrls: string;
+}
+
+/**
+ * Sheet column order. Row 1 of the sheet must contain exactly these headers.
+ * The sync route auto-writes this header row if the sheet is empty.
+ */
+export const SHEET_COLUMNS = [
+  "Brand",
+  "Sender Email",
+  "Received At",
+  "Subject",
+  "Preview",
+  "Body Text",
+  "Promo Codes",
+  "Screenshot URL",
+  "Inline Image URLs",
+  "Attachment URLs",
+] as const;
+
+/** Sentinel values used when a field is empty or a step failed (Part 3 spec). */
+export const NONE = "None";
+export const FAILED = "Failed";
+export const PENDING = "Pending";
+
+/** Result summary returned by the sync route. */
+export interface SyncResult {
+  ok: boolean;
+  processed: number;
+  appended: number;
+  errors: string[];
+  durationMs: number;
+}
