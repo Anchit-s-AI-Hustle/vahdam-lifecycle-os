@@ -145,6 +145,10 @@
 
   <script>
   (function () {
+    // Data is served by the Competitor Intelligence Hub project (single source
+    // of truth, owns the sync engine + Google Sheet). This dashboard is just the
+    // UI, hosted inside Lifecycle OS, reading the hub's API cross-origin (CORS).
+    const HUB = 'https://competitor-intelligence-hub-fawn.vercel.app';
     const state = { all: [], view: [], sortKey: 'receivedAt', sortDir: 'desc', active: null };
     const $ = (id) => document.getElementById(id);
 
@@ -161,7 +165,7 @@
 
     async function load() {
       try {
-        const r = await fetch('/api/competitor/emails');
+        const r = await fetch(HUB + '/api/emails');
         const d = await r.json();
         state.all = d.emails || [];
       } catch (e) { state.all = []; }
@@ -279,7 +283,7 @@
       const frame = $('htmlFrame'), loading = $('htmlLoading'), htmlEmpty = $('htmlEmpty');
       frame.classList.add('hidden'); htmlEmpty.classList.add('hidden'); loading.classList.remove('hidden');
       state.activeHtml = '';
-      fetch('/api/competitor/email-html?id=' + encodeURIComponent(id))
+      fetch(HUB + '/api/emails/' + encodeURIComponent(id))
         .then((r) => r.json())
         .then((d) => {
           loading.classList.add('hidden');
