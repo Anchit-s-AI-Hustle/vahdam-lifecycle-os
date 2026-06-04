@@ -1,0 +1,34 @@
+name: Competitor Hub — email sync
+
+# Near-real-time trigger for the Competitor Intelligence Hub.
+# Vercel Hobby crons run only once per day, so this Action polls the sync
+# endpoint every 5 minutes instead (GitHub's minimum schedule interval).
+#
+# SETUP (one-time): add a repository secret named COMPETITOR_HUB_CRON_SECRET
+#   GitHub → repo → Settings → Secrets and variables → Actions → New secret
+#   value = the same CRON_SECRET configured in the Vercel project.
+#
+# Notes:
+# - GitHub may delay scheduled runs under load; 5 min is best-effort, not exact.
+# - Scheduled workflows are auto-disabled after 60 days with no repo activity.
+# - You can also run it on demand via the "Run workflow" button (workflow_dispatch).
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: competitor-hub-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger sync endpoint
+        run: |
+          curl --fail-with-body -sS -X POST \
+            "https://competitor-intelligence-hub-fawn.vercel.app/api/sync-emails" \
+            -H "Authorization: Bearer ${{ secrets.COMPETITOR_HUB_CRON_SECRET }}" \
+            -H "Content-Type: application/json"

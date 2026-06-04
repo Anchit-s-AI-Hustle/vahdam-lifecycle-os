@@ -2,9 +2,10 @@
 
 /**
  * Slide-over detail view (PART 2 §3). Opens when a table row is clicked and
- * shows full metadata, the cleaned body text, the embedded Drive screenshot,
- * and download buttons for any extracted assets.
+ * shows full metadata, the email rendered as received (raw HTML, lazy-loaded),
+ * the cleaned body text, the embedded screenshot, and asset download buttons.
  */
+import * as React from "react";
 import {
   Sheet,
   SheetContent,
@@ -26,6 +27,7 @@ import {
   Download,
   ExternalLink,
   FileWarning,
+  Loader2,
 } from "lucide-react";
 import type { CompetitorEmail } from "@/lib/types";
 import {
@@ -66,6 +68,32 @@ export function EmailDetailSheet({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  // Lazily fetch the (potentially large) raw HTML only when a row is opened.
+  const [html, setHtml] = React.useState<string | null>(null);
+  const [htmlLoading, setHtmlLoading] = React.useState(false);
+  const emailId = email?.id ?? null;
+
+  React.useEffect(() => {
+    if (!open || !emailId) return;
+    let cancelled = false;
+    setHtml(null);
+    setHtmlLoading(true);
+    fetch(`/api/emails/${emailId}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelled) setHtml(typeof d.html === "string" ? d.html : "");
+      })
+      .catch(() => {
+        if (!cancelled) setHtml("");
+      })
+      .finally(() => {
+        if (!cancelled) setHtmlLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, emailId]);
+
   if (!email) return null;
 
   const codes =
@@ -131,10 +159,40 @@ export function EmailDetailSheet({
 
             <Separator />
 
+            {/* Full email rendered exactly as received (raw HTML, sandboxed) */}
+            <section>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Email (as received)
+              </h3>
+              {htmlLoading ? (
+                <div className="flex h-40 items-center justify-center rounded-lg border text-muted-foreground">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading email…
+                </div>
+              ) : html ? (
+                <div className="overflow-hidden rounded-lg border bg-white">
+                  <iframe
+                    // sandbox with no allow-scripts: renders the email's markup
+                    // and remote images but blocks any embedded JavaScript.
+                    sandbox=""
+                    srcDoc={html}
+                    title="Email as received"
+                    className="h-[560px] w-full bg-white"
+                  />
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-10 text-center text-muted-foreground">
+                  <FileWarning className="h-6 w-6" />
+                  <p className="text-sm">Raw HTML not available for this email.</p>
+                </div>
+              )}
+            </section>
+
+            <Separator />
+
             {/* Cleaned body text */}
             <section>
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Mailer Body
+                Mailer Body (plain text)
               </h3>
               <div className="max-h-72 overflow-y-auto rounded-lg border bg-muted/30 p-4">
                 <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-foreground">

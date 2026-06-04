@@ -37,17 +37,25 @@ export interface CompetitorEmail {
  * The sync route auto-writes this header row if the sheet is empty.
  */
 export const SHEET_COLUMNS = [
-  "Brand",
-  "Sender Email",
-  "Received At",
-  "Subject",
-  "Preview",
-  "Body Text",
-  "Promo Codes",
-  "Screenshot URL",
-  "Inline Image URLs",
-  "Attachment URLs",
+  "Brand", // A
+  "Sender Email", // B
+  "Received At", // C
+  "Subject", // D
+  "Preview", // E
+  "Body Text", // F
+  "Promo Codes", // G
+  "Screenshot URL", // H
+  "Inline Image URLs", // I
+  "Attachment URLs", // J
+  "Raw HTML", // K — full email HTML, lazy-loaded into the detail view
 ] as const;
+
+/**
+ * Max characters of raw HTML stored per row. Google Sheets caps a cell at
+ * 50,000 chars; we stay just under. Emails larger than this are truncated for
+ * the inline view (the full-length screenshot still captures everything).
+ */
+export const RAW_HTML_MAX = 49000;
 
 /** Sentinel values used when a field is empty or a step failed (Part 3 spec). */
 export const NONE = "None";

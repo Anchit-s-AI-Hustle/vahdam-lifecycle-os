@@ -33,7 +33,7 @@ import {
   joinOrNone,
 } from "@/lib/extract";
 import { renderEmailScreenshot } from "@/lib/screenshot";
-import { NO_SCREENSHOT, type SyncResult } from "@/lib/types";
+import { NO_SCREENSHOT, RAW_HTML_MAX, type SyncResult } from "@/lib/types";
 
 // imapflow + googleapis + mailparser require the Node.js runtime (not Edge).
 export const runtime = "nodejs";
@@ -77,9 +77,11 @@ async function runSync(): Promise<SyncResult> {
       const subject = parsed.subject || "(no subject)";
       const receivedAt = (parsed.date || new Date()).toISOString();
 
+      // The full HTML of the email — used for the screenshot AND stored (capped)
+      // so the dashboard can render the message exactly as it was received.
+      const fullHtml = parsed.html || parsed.textAsHtml || "";
       const bodyText =
-        (parsed.text && parsed.text.trim()) ||
-        htmlToText(parsed.html || parsed.textAsHtml || "");
+        (parsed.text && parsed.text.trim()) || htmlToText(fullHtml);
       const preview = buildPreview(bodyText);
       const promoCodes = joinOrNone(
         extractPromoCodes(`${subject}\n${bodyText}`)
@@ -121,7 +123,7 @@ async function runSync(): Promise<SyncResult> {
       // never blocks the rest of the data from being written to the sheet.
       let screenshotUrl = NO_SCREENSHOT;
       try {
-        const shot = await renderEmailScreenshot(parsed.html || parsed.textAsHtml || "");
+        const shot = await renderEmailScreenshot(fullHtml);
         if (shot) {
           try {
             // Prefer Drive storage (durable, owned by you).
@@ -157,6 +159,7 @@ async function runSync(): Promise<SyncResult> {
         screenshotUrl,
         inlineImageUrls: joinOrNone(inlineLinks),
         attachmentUrls: joinOrNone(attachmentLinks),
+        rawHtml: fullHtml.slice(0, RAW_HTML_MAX),
       });
 
       existingKeys.add(dedupeKey);

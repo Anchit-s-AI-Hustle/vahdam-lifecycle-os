@@ -72,7 +72,10 @@ function driveClient(): drive_v3.Drive {
 //  Row <-> Record mapping  (column order defined by SHEET_COLUMNS)
 // ---------------------------------------------------------------------------
 
-function recordToRow(e: Omit<CompetitorEmail, "id">): string[] {
+/** Full payload appended to a row, including the lazy-loaded raw HTML (col K). */
+export type AppendInput = Omit<CompetitorEmail, "id"> & { rawHtml: string };
+
+function recordToRow(e: AppendInput): string[] {
   return [
     e.brand,
     e.senderEmail,
@@ -84,6 +87,7 @@ function recordToRow(e: Omit<CompetitorEmail, "id">): string[] {
     e.screenshotUrl,
     e.inlineImageUrls,
     e.attachmentUrls,
+    e.rawHtml, // K
   ];
 }
 
@@ -155,7 +159,7 @@ export async function ensureHeaderRow(): Promise<void> {
   await ensureSheetTab();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: sheetId(),
-    range: `${tab}!A1:J1`,
+    range: `${tab}!A1:K1`,
   });
   const firstCell = res.data.values?.[0]?.[0];
   if (!firstCell) {
@@ -168,18 +172,35 @@ export async function ensureHeaderRow(): Promise<void> {
   }
 }
 
-/** Append one fully-formed email record as a new row. */
-export async function appendEmailRow(
-  e: Omit<CompetitorEmail, "id">
-): Promise<void> {
+/** Append one fully-formed email record (incl. raw HTML in col K) as a new row. */
+export async function appendEmailRow(e: AppendInput): Promise<void> {
   const sheets = sheetsClient();
   await sheets.spreadsheets.values.append({
     spreadsheetId: sheetId(),
-    range: `${sheetTab()}!A:J`,
+    range: `${sheetTab()}!A:K`,
     valueInputOption: "RAW",
     insertDataOption: "INSERT_ROWS",
     requestBody: { values: [recordToRow(e)] },
   });
+}
+
+/**
+ * Lazily read just the raw HTML (column K) for one row. Kept out of
+ * getAllEmails so the table payload stays small — the detail view fetches
+ * this on demand when a row is opened.
+ */
+export async function getEmailHtml(rowNumber: number): Promise<string> {
+  if (!Number.isInteger(rowNumber) || rowNumber < 2) return "";
+  const sheets = sheetsClient();
+  try {
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId(),
+      range: `${sheetTab()}!K${rowNumber}`,
+    });
+    return (res.data.values?.[0]?.[0] ?? "").toString();
+  } catch {
+    return "";
+  }
 }
 
 /** Read all data rows (excluding the header) for the dashboard. */
