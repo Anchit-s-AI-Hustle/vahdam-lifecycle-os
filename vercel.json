@@ -17,7 +17,9 @@
     "api/ai/pipeline/score.js":    { "memory": 512,  "maxDuration": 30 },
     "api/calendar/generate.js":      { "memory": 512,  "maxDuration": 30 },
     "api/calendar/trigger-mailer.js":{ "memory": 1024, "maxDuration": 90 },
-    "api/public-config.js":          { "memory": 128,  "maxDuration": 3 }
+    "api/public-config.js":          { "memory": 128,  "maxDuration": 3 },
+    "api/competitor/emails.js":      { "memory": 256,  "maxDuration": 15 },
+    "api/competitor/email-html.js":  { "memory": 256,  "maxDuration": 15 }
   },
   "rewrites": [
     { "source": "/c/:theme/:variant", "destination": "/campaign.html?theme=:theme&variant=:variant" },
@@ -25,7 +27,8 @@
     { "source": "/app",       "destination": "/vahdam_mailer_architect_v34.html" },
     { "source": "/mailer",    "destination": "/vahdam_mailer_architect_v34.html" },
     { "source": "/analytics", "destination": "/dashboard.html" },
-    { "source": "/plan",      "destination": "/calendar.html" }
+    { "source": "/plan",      "destination": "/calendar.html" },
+    { "source": "/competitor-benchmarking", "destination": "/competitor-benchmarking.html" }
   ],
   "headers": [
     {

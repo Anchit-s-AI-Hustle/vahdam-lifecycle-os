@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Competitor Benchmarking · VAHDAM Lifecycle OS</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>📊</text></svg>" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: { forest: '#0b3d2e', gold: '#AB8743', cream: '#FBF5EA' } } },
+    };
+  </script>
+  <style>
+    html, body { background: #f1f5f4; }
+    .scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+    .scroll-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+    [x-cloak] { display: none !important; }
+  </style>
+</head>
+<body class="h-full text-slate-800 antialiased">
+  <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+
+    <!-- Header -->
+    <header class="mb-6">
+      <div class="flex items-center gap-2 text-sm font-medium text-emerald-800">
+        <span class="inline-block h-2 w-2 rounded-full bg-emerald-500"></span>
+        Competitor Intelligence
+      </div>
+      <div class="mt-1 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 class="text-3xl font-bold tracking-tight text-forest">Competitor Benchmarking</h1>
+          <p class="mt-1 text-sm text-slate-500">Automated capture of competitor email campaigns — synced to Google Sheets and rendered here.</p>
+        </div>
+        <a href="/" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">← Lifecycle OS</a>
+      </div>
+    </header>
+
+    <!-- Stat cards -->
+    <section id="stats" class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4"></section>
+
+    <!-- Toolbar -->
+    <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="relative w-full sm:max-w-sm">
+        <svg class="pointer-events-none absolute left-3 top-2.5 h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="search" type="text" placeholder="Search brand, subject, or body…"
+          class="w-full rounded-lg border border-slate-300 bg-white py-2 pl-10 pr-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" />
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <select id="brandFilter" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500">
+          <option value="">All brands</option>
+        </select>
+        <label class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+          <input id="promoOnly" type="checkbox" class="accent-emerald-600" /> Promo only
+        </label>
+        <label class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+          <input id="attachOnly" type="checkbox" class="accent-emerald-600" /> Has files
+        </label>
+        <button id="refresh" title="Refresh" class="rounded-lg border border-slate-300 bg-white p-2 text-slate-600 hover:bg-slate-50">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div class="overflow-x-auto scroll-thin">
+        <table class="w-full text-left text-sm">
+          <thead class="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+            <tr>
+              <th class="cursor-pointer select-none px-4 py-3 font-medium hover:text-slate-800" data-sort="brand">Brand <span class="sort-ind"></span></th>
+              <th class="px-4 py-3 font-medium">Subject</th>
+              <th class="cursor-pointer select-none px-4 py-3 font-medium hover:text-slate-800" data-sort="receivedAt">Date <span class="sort-ind">▼</span></th>
+              <th class="px-4 py-3 font-medium">Promo</th>
+              <th class="px-4 py-3 font-medium">Files</th>
+              <th class="px-4 py-3 text-right font-medium">Details</th>
+            </tr>
+          </thead>
+          <tbody id="rows" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+      <div id="empty" class="hidden p-12 text-center text-slate-400">No emails match your filters yet.</div>
+    </div>
+    <p id="count" class="mt-3 text-xs text-slate-400"></p>
+  </div>
+
+  <!-- Slide-over detail panel -->
+  <div id="overlay" class="fixed inset-0 z-40 hidden bg-black/50 backdrop-blur-sm"></div>
+  <aside id="panel" class="fixed right-0 top-0 z-50 flex h-full w-full max-w-xl translate-x-full flex-col bg-white shadow-2xl transition-transform duration-300">
+    <div class="flex items-start justify-between gap-3 border-b border-slate-200 p-5">
+      <div class="min-w-0">
+        <span id="d-brand" class="inline-block rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800"></span>
+        <h2 id="d-subject" class="mt-1 text-lg font-semibold leading-tight text-slate-900"></h2>
+      </div>
+      <button id="closePanel" class="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="flex-1 space-y-6 overflow-y-auto scroll-thin p-5">
+      <!-- Metadata -->
+      <dl id="d-meta" class="space-y-2.5 text-sm"></dl>
+
+      <!-- Full email (as received) -->
+      <div>
+        <div class="mb-2 flex items-center justify-between">
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Email (as received)</h3>
+          <div class="flex gap-2">
+            <button id="viewHtml" class="rounded-md border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50">Open in new tab</button>
+            <button id="dlHtml" class="rounded-md border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50">Download .html</button>
+          </div>
+        </div>
+        <div id="htmlWrap" class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+          <div id="htmlLoading" class="flex h-40 items-center justify-center text-sm text-slate-400">Loading email…</div>
+          <iframe id="htmlFrame" sandbox="" class="hidden h-[520px] w-full bg-white"></iframe>
+          <div id="htmlEmpty" class="hidden p-8 text-center text-sm text-slate-400">Raw HTML not available for this email.</div>
+        </div>
+      </div>
+
+      <!-- Screenshot -->
+      <div>
+        <div class="mb-2 flex items-center justify-between">
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Full screenshot</h3>
+          <div id="shotActions" class="hidden gap-2">
+            <button id="viewShot" class="rounded-md border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50">Open</button>
+            <button id="dlShot" class="rounded-md border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50">Download</button>
+          </div>
+        </div>
+        <div id="shotWrap" class="max-h-[520px] overflow-y-auto scroll-thin rounded-lg border border-slate-200 bg-white">
+          <img id="shotImg" alt="Email screenshot" class="hidden w-full" />
+          <div id="shotEmpty" class="flex flex-col items-center gap-2 p-10 text-center text-sm text-slate-400">No Screenshot</div>
+        </div>
+      </div>
+
+      <!-- Plain-text body -->
+      <div>
+        <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Mailer body (plain text)</h3>
+        <pre id="d-body" class="max-h-60 overflow-y-auto scroll-thin whitespace-pre-wrap break-words rounded-lg border border-slate-200 bg-slate-50 p-4 font-sans text-sm leading-relaxed text-slate-700"></pre>
+      </div>
+
+      <!-- Attachments / inline -->
+      <div id="d-assets"></div>
+    </div>
+  </aside>
+
+  <script>
+  (function () {
+    const state = { all: [], view: [], sortKey: 'receivedAt', sortDir: 'desc', active: null };
+    const $ = (id) => document.getElementById(id);
+
+    const fmtDate = (iso) => {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return iso || '—';
+      return d.toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    };
+    const esc = (s) => (s || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const splitLinks = (v) => (!v || ['None', 'Failed', 'Pending'].includes(v)) ? [] : v.split(',').map((s) => s.trim()).filter(Boolean);
+    const codesOf = (v) => (!v || v === 'None') ? [] : v.split(',').map((s) => s.trim()).filter(Boolean);
+    const isHttp = (u) => /^https?:\/\//i.test(u || '');
+    const slug = (s) => (s || 'email').replace(/[^\w]+/g, '_').slice(0, 40);
+
+    async function load() {
+      try {
+        const r = await fetch('/api/competitor/emails');
+        const d = await r.json();
+        state.all = d.emails || [];
+      } catch (e) { state.all = []; }
+      buildBrandFilter();
+      renderStats();
+      apply();
+    }
+
+    function buildBrandFilter() {
+      const sel = $('brandFilter');
+      const brands = [...new Set(state.all.map((e) => e.brand))].sort();
+      sel.innerHTML = '<option value="">All brands</option>' + brands.map((b) => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
+    }
+
+    function renderStats() {
+      const all = state.all;
+      const brands = new Set(all.map((e) => e.brand)).size;
+      const promo = all.filter((e) => e.promoCodes && e.promoCodes !== 'None').length;
+      const week = all.filter((e) => { const t = new Date(e.receivedAt).getTime(); return !isNaN(t) && Date.now() - t < 6048e5; }).length;
+      const cards = [
+        ['Total emails', all.length], ['Brands tracked', brands], ['With promo codes', promo], ['Last 7 days', week],
+      ];
+      $('stats').innerHTML = cards.map(([label, val]) => `
+        <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div class="text-2xl font-bold text-forest">${val}</div>
+          <div class="mt-1 text-sm text-slate-500">${label}</div>
+        </div>`).join('');
+    }
+
+    function apply() {
+      const q = $('search').value.toLowerCase().trim().split(/\s+/).filter(Boolean);
+      const brand = $('brandFilter').value;
+      const promoOnly = $('promoOnly').checked;
+      const attachOnly = $('attachOnly').checked;
+
+      let rows = state.all.filter((e) => {
+        if (brand && e.brand !== brand) return false;
+        if (promoOnly && (!e.promoCodes || e.promoCodes === 'None')) return false;
+        if (attachOnly && splitLinks(e.attachmentUrls).length === 0 && splitLinks(e.inlineImageUrls).length === 0) return false;
+        if (q.length) {
+          const hay = (e.brand + ' ' + e.subject + ' ' + e.bodyText + ' ' + e.preview).toLowerCase();
+          if (!q.every((t) => hay.includes(t))) return false;
+        }
+        return true;
+      });
+
+      const dir = state.sortDir === 'asc' ? 1 : -1;
+      rows.sort((a, b) => {
+        if (state.sortKey === 'brand') return dir * a.brand.localeCompare(b.brand);
+        return dir * (new Date(a.receivedAt).getTime() - new Date(b.receivedAt).getTime());
+      });
+
+      state.view = rows;
+      renderRows();
+    }
+
+    function renderRows() {
+      const tb = $('rows');
+      $('empty').classList.toggle('hidden', state.view.length > 0);
+      tb.innerHTML = state.view.map((e) => {
+        const codes = codesOf(e.promoCodes);
+        const files = splitLinks(e.attachmentUrls).length + splitLinks(e.inlineImageUrls).length;
+        const promoCell = codes.length
+          ? codes.slice(0, 2).map((c) => `<span class="inline-block rounded-full bg-emerald-100 px-2 py-0.5 font-mono text-xs text-emerald-800">${esc(c)}</span>`).join(' ') + (codes.length > 2 ? ` <span class="text-xs text-slate-400">+${codes.length - 2}</span>` : '')
+          : '<span class="text-slate-300">—</span>';
+        const fileCell = files ? `<span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs">📎 ${files}</span>` : '<span class="text-slate-300">—</span>';
+        return `<tr class="cursor-pointer hover:bg-slate-50" data-id="${e.id}">
+          <td class="px-4 py-3 font-medium text-slate-900">${esc(e.brand)}</td>
+          <td class="max-w-[320px] truncate px-4 py-3 text-slate-600" title="${esc(e.subject)}">${esc(e.subject)}</td>
+          <td class="whitespace-nowrap px-4 py-3 text-slate-500">${esc(fmtDate(e.receivedAt))}</td>
+          <td class="px-4 py-3">${promoCell}</td>
+          <td class="px-4 py-3">${fileCell}</td>
+          <td class="px-4 py-3 text-right"><span class="text-emerald-700 hover:underline">View →</span></td>
+        </tr>`;
+      }).join('');
+      $('count').textContent = `${state.view.length} of ${state.all.length} emails`;
+      tb.querySelectorAll('tr').forEach((tr) => tr.addEventListener('click', () => openDetail(tr.dataset.id)));
+    }
+
+    function openDetail(id) {
+      const e = state.all.find((x) => x.id === id);
+      if (!e) return;
+      state.active = e;
+
+      $('d-brand').textContent = e.brand;
+      $('d-subject').textContent = e.subject;
+
+      const codes = codesOf(e.promoCodes);
+      $('d-meta').innerHTML = [
+        ['Sender', esc(e.senderEmail) || '—'],
+        ['Received', esc(fmtDate(e.receivedAt))],
+        ['Promo codes', codes.length ? codes.map((c) => `<span class="mr-1 inline-block rounded-full bg-emerald-100 px-2 py-0.5 font-mono text-xs text-emerald-800">${esc(c)}</span>`).join('') : '<span class="text-slate-400">None</span>'],
+      ].map(([k, v]) => `<div class="flex gap-3"><dt class="w-24 shrink-0 text-xs font-medium uppercase tracking-wide text-slate-400">${k}</dt><dd class="min-w-0 break-words text-slate-700">${v}</dd></div>`).join('');
+
+      $('d-body').textContent = e.bodyText || '—';
+
+      // Assets
+      const att = splitLinks(e.attachmentUrls), inl = splitLinks(e.inlineImageUrls);
+      const linkBtns = (arr) => arr.map((u, i) => `<a href="${esc(u)}" target="_blank" rel="noopener" class="inline-block rounded-md border border-slate-300 px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50">File ${i + 1} ↗</a>`).join(' ');
+      $('d-assets').innerHTML = (att.length || inl.length) ? `
+        ${att.length ? `<h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">📎 Attachments</h3><div class="mb-3 flex flex-wrap gap-2">${linkBtns(att)}</div>` : ''}
+        ${inl.length ? `<h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">🖼 Inline images</h3><div class="flex flex-wrap gap-2">${linkBtns(inl)}</div>` : ''}` : '';
+
+      // Screenshot
+      const shotImg = $('shotImg'), shotEmpty = $('shotEmpty'), shotActions = $('shotActions');
+      if (isHttp(e.screenshotUrl)) {
+        shotImg.src = e.screenshotUrl; shotImg.classList.remove('hidden');
+        shotEmpty.classList.add('hidden'); shotActions.classList.remove('hidden'); shotActions.classList.add('flex');
+      } else {
+        shotImg.classList.add('hidden'); shotImg.removeAttribute('src');
+        shotEmpty.classList.remove('hidden'); shotActions.classList.add('hidden'); shotActions.classList.remove('flex');
+      }
+
+      // Raw HTML (lazy)
+      const frame = $('htmlFrame'), loading = $('htmlLoading'), htmlEmpty = $('htmlEmpty');
+      frame.classList.add('hidden'); htmlEmpty.classList.add('hidden'); loading.classList.remove('hidden');
+      state.activeHtml = '';
+      fetch('/api/competitor/email-html?id=' + encodeURIComponent(id))
+        .then((r) => r.json())
+        .then((d) => {
+          loading.classList.add('hidden');
+          if (d && typeof d.html === 'string' && d.html.length) {
+            state.activeHtml = d.html;
+            frame.srcdoc = d.html; frame.classList.remove('hidden');
+          } else { htmlEmpty.classList.remove('hidden'); }
+        })
+        .catch(() => { loading.classList.add('hidden'); htmlEmpty.classList.remove('hidden'); });
+
+      $('overlay').classList.remove('hidden');
+      requestAnimationFrame(() => $('panel').classList.remove('translate-x-full'));
+    }
+
+    function closeDetail() {
+      $('panel').classList.add('translate-x-full');
+      $('overlay').classList.add('hidden');
+    }
+
+    function downloadBlob(content, type, filename) {
+      const blob = content instanceof Blob ? content : new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    // Events
+    $('search').addEventListener('input', apply);
+    $('brandFilter').addEventListener('change', apply);
+    $('promoOnly').addEventListener('change', apply);
+    $('attachOnly').addEventListener('change', apply);
+    $('refresh').addEventListener('click', load);
+    $('closePanel').addEventListener('click', closeDetail);
+    $('overlay').addEventListener('click', closeDetail);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDetail(); });
+
+    document.querySelectorAll('th[data-sort]').forEach((th) => th.addEventListener('click', () => {
+      const k = th.dataset.sort;
+      if (state.sortKey === k) state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+      else { state.sortKey = k; state.sortDir = k === 'receivedAt' ? 'desc' : 'asc'; }
+      document.querySelectorAll('.sort-ind').forEach((s) => (s.textContent = ''));
+      th.querySelector('.sort-ind').textContent = state.sortDir === 'asc' ? '▲' : '▼';
+      apply();
+    }));
+
+    $('dlHtml').addEventListener('click', () => {
+      const e = state.active; if (!e) return;
+      if (!state.activeHtml) { alert('Raw HTML not available for this email.'); return; }
+      downloadBlob(state.activeHtml, 'text/html', `${slug(e.brand)}_${slug(e.subject)}.html`);
+    });
+    $('viewHtml').addEventListener('click', () => {
+      if (!state.activeHtml) { alert('Raw HTML not available for this email.'); return; }
+      const w = window.open('', '_blank'); if (w) { w.document.open(); w.document.write(state.activeHtml); w.document.close(); }
+    });
+    $('viewShot').addEventListener('click', () => { const e = state.active; if (e && isHttp(e.screenshotUrl)) window.open(e.screenshotUrl, '_blank'); });
+    $('dlShot').addEventListener('click', async () => {
+      const e = state.active; if (!e || !isHttp(e.screenshotUrl)) return;
+      try { const r = await fetch(e.screenshotUrl); const b = await r.blob(); downloadBlob(b, b.type || 'image/png', `${slug(e.brand)}_screenshot.png`); }
+      catch (err) { window.open(e.screenshotUrl, '_blank'); }
+    });
+
+    load();
+  })();
+  </script>
+</body>
+</html>
