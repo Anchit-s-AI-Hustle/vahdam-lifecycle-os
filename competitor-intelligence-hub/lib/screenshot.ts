@@ -36,10 +36,10 @@ async function renderWithHcti(html: string): Promise<string> {
       Authorization: `Basic ${auth}`,
     },
     body: JSON.stringify({
+      // No viewport_width/height: HCTI captures the full natural size of the
+      // content (our wrapHtml constrains it to 640px wide), so the screenshot
+      // grows to the full email length. Specifying width without height 400s.
       html: wrapHtml(html),
-      // Render at email width; height auto-grows to full content length.
-      viewport_width: 640,
-      device_scale_factor: 1,
       ms_delay: 500,
     }),
   });
@@ -93,10 +93,15 @@ async function safeText(res: Response): Promise<string> {
 export interface ScreenshotResult {
   buffer: Buffer;
   mimeType: string;
+  /** The provider-hosted image URL — used as a fallback when Drive storage
+   *  is unavailable (e.g. service accounts have no Drive quota). */
+  hostedUrl: string;
 }
 
 /**
- * Render `html` to an image and return its bytes, or null on failure.
+ * Render `html` to an image and return its bytes plus the hosted URL, or null
+ * on failure. The buffer lets us store the image in Drive when possible; the
+ * hostedUrl is a durable public link we fall back to otherwise.
  */
 export async function renderEmailScreenshot(
   html: string
@@ -117,7 +122,7 @@ export async function renderEmailScreenshot(
 
     const arrayBuf = await img.arrayBuffer();
     const mimeType = img.headers.get("content-type") || "image/png";
-    return { buffer: Buffer.from(arrayBuf), mimeType };
+    return { buffer: Buffer.from(arrayBuf), mimeType, hostedUrl: imageUrl };
   } catch (err) {
     console.error("[screenshot] render failed:", err);
     return null;

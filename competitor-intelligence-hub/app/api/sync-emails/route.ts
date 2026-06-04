@@ -123,12 +123,21 @@ async function runSync(): Promise<SyncResult> {
       try {
         const shot = await renderEmailScreenshot(parsed.html || parsed.textAsHtml || "");
         if (shot) {
-          screenshotUrl = await uploadToDrive({
-            buffer: shot.buffer,
-            filename: `${brand.replace(/[^\w]+/g, "_")}_${Date.now()}.png`,
-            mimeType: shot.mimeType,
-            folderId: folders.sub[SUBFOLDERS.screenshots],
-          });
+          try {
+            // Prefer Drive storage (durable, owned by you).
+            screenshotUrl = await uploadToDrive({
+              buffer: shot.buffer,
+              filename: `${brand.replace(/[^\w]+/g, "_")}_${Date.now()}.png`,
+              mimeType: shot.mimeType,
+              folderId: folders.sub[SUBFOLDERS.screenshots],
+            });
+          } catch (driveErr) {
+            // Drive unavailable (e.g. service accounts have no storage quota on
+            // personal Google accounts) — fall back to the provider-hosted URL
+            // so the screenshot is still viewable. Never block the row.
+            console.warn("[sync] screenshot Drive upload failed, using hosted URL:", driveErr);
+            screenshotUrl = shot.hostedUrl;
+          }
         }
       } catch (err) {
         console.error("[sync] screenshot failed:", err);

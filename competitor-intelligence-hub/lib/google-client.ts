@@ -119,12 +119,40 @@ function sheetTab(): string {
 }
 
 /**
+ * Ensure the target tab exists, creating it if missing. This makes the app
+ * work against a brand-new blank spreadsheet regardless of how the first tab
+ * is named (Google defaults it to "Sheet1", but GOOGLE_SHEET_TAB is "Emails").
+ * Idempotent.
+ */
+export async function ensureSheetTab(): Promise<void> {
+  const sheets = sheetsClient();
+  const tab = sheetTab();
+  const meta = await sheets.spreadsheets.get({
+    spreadsheetId: sheetId(),
+    fields: "sheets.properties.title",
+  });
+  const exists = (meta.data.sheets || []).some(
+    (s) => s.properties?.title === tab
+  );
+  if (!exists) {
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: sheetId(),
+      requestBody: {
+        requests: [{ addSheet: { properties: { title: tab } } }],
+      },
+    });
+  }
+}
+
+/**
  * Ensure row 1 holds our header. Idempotent — only writes when the first
- * cell is empty, so we never clobber existing data.
+ * cell is empty, so we never clobber existing data. Also guarantees the tab
+ * exists first.
  */
 export async function ensureHeaderRow(): Promise<void> {
   const sheets = sheetsClient();
   const tab = sheetTab();
+  await ensureSheetTab();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: sheetId(),
     range: `${tab}!A1:J1`,
@@ -157,10 +185,19 @@ export async function appendEmailRow(
 /** Read all data rows (excluding the header) for the dashboard. */
 export async function getAllEmails(): Promise<CompetitorEmail[]> {
   const sheets = sheetsClient();
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: sheetId(),
-    range: `${sheetTab()}!A2:J`,
-  });
+  let res;
+  try {
+    res = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId(),
+      range: `${sheetTab()}!A2:J`,
+    });
+  } catch (err) {
+    // Before the first sync, the tab may not exist yet — that's an empty
+    // dashboard, not an error. Re-throw anything else (auth, API disabled…).
+    const msg = (err as Error).message || "";
+    if (/Unable to parse range/i.test(msg)) return [];
+    throw err;
+  }
   const rows = res.data.values ?? [];
   // rowNumber starts at 2 because row 1 is the header.
   return rows

@@ -74,9 +74,14 @@ export function EmailDetailSheet({
       : [];
   const attachments = splitLinks(email.attachmentUrls);
   const inlineImages = splitLinks(email.inlineImageUrls);
-  // Anything that isn't a real Drive link (sentinels like "No Screenshot",
-  // "Failed", "Pending", or empty) renders the graceful empty state below.
+  // Screenshot can be a Drive link (embed via preview iframe) OR a provider-
+  // hosted image URL (embed directly as <img>). Sentinels like "No Screenshot"
+  // match neither and fall through to the graceful empty state below.
   const screenshotPreview = drivePreviewUrl(email.screenshotUrl);
+  const screenshotImg =
+    !screenshotPreview && /^https?:\/\//i.test(email.screenshotUrl)
+      ? email.screenshotUrl
+      : null;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -206,13 +211,23 @@ export function EmailDetailSheet({
                     loading="lazy"
                   />
                 </div>
+              ) : screenshotImg ? (
+                <div className="max-h-[520px] overflow-y-auto rounded-lg border bg-white">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={screenshotImg}
+                    alt="Full email screenshot"
+                    className="w-full"
+                    loading="lazy"
+                  />
+                </div>
               ) : (
                 <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-12 text-center text-muted-foreground">
                   <FileWarning className="h-6 w-6" />
                   <p className="text-sm">No Screenshot</p>
                 </div>
               )}
-              {screenshotPreview && (
+              {(screenshotPreview || screenshotImg) && (
                 <Button
                   asChild
                   variant="link"
@@ -224,7 +239,8 @@ export function EmailDetailSheet({
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    Open in Google Drive <ExternalLink className="h-3.5 w-3.5" />
+                    {screenshotPreview ? "Open in Google Drive" : "Open full image"}{" "}
+                    <ExternalLink className="h-3.5 w-3.5" />
                   </a>
                 </Button>
               )}
