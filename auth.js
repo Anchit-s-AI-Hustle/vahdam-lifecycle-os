@@ -98,7 +98,7 @@
     // Build the nav markup: flat items + expandable groups.
     const linkRow = (item) => {
       const isCur = item.id === cur;
-      return `<a class="lnav-link${isCur ? ' active' : ''}" href="${item.href}"${newTab(isCur)} data-id="${item.id}">
+      return `<a class="lnav-link${isCur ? ' active' : ''}" href="${item.href}"${newTab(isCur)} data-id="${item.id}" title="${item.label}">
         ${svg(item.icon)}<span class="lnav-txt">${item.label}</span></a>`;
     };
     // Double-layer nav: Tier-1 = top-level features (flat items + group headers),
@@ -109,7 +109,7 @@
       if (!n.children) return linkRow(n);
       const groupActive = n.children.some((c) => c.id === cur);
       return `<div class="lnav-group open${groupActive ? ' active-group' : ''}">
-        <button class="lnav-ghead" type="button">${svg(n.icon)}<span class="lnav-txt">${n.group}</span><svg class="lnav-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+        <button class="lnav-ghead" type="button" title="${n.group}">${svg(n.icon)}<span class="lnav-txt">${n.group}</span><svg class="lnav-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
         <div class="lnav-gbody">${n.children.map(linkRow).join('')}</div>
       </div>`;
     }).join('');
@@ -174,6 +174,30 @@
         #lifecycle-nav .lnav-brand .lnav-bt { display: flex; flex-direction: column; line-height: 1.15; }
         #lifecycle-nav .lnav-brand .lnav-bt b { font-family: 'Lora', serif; font-size: 14px; color: #FBF5EA; font-weight: 600; }
         #lifecycle-nav .lnav-brand .lnav-bt small { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #AB8743; }
+        #lifecycle-nav .lnav-head { display: flex; align-items: center; gap: 6px; }
+        #lifecycle-nav .lnav-head .lnav-brand { flex: 1; padding-right: 0; }
+        #lifecycle-nav .lnav-collapse {
+          flex-shrink: 0; width: 26px; height: 26px; margin-bottom: 16px;
+          background: transparent; border: 1px solid rgba(171,135,67,0.22); border-radius: 7px;
+          color: #9aaaa1; cursor: pointer; font-size: 14px; line-height: 1;
+          display: flex; align-items: center; justify-content: center; transition: all .12s;
+        }
+        #lifecycle-nav .lnav-collapse:hover { border-color: #AB8743; color: #FBF5EA; }
+
+        /* ── Collapsed (icon-only) rail — desktop only ── */
+        @media (min-width: 961px) {
+          html.lnav-collapsed #lifecycle-nav .lnav-side { padding-left: 8px; padding-right: 8px; }
+          html.lnav-collapsed #lifecycle-nav .lnav-bt,
+          html.lnav-collapsed #lifecycle-nav .lnav-txt,
+          html.lnav-collapsed #lifecycle-nav .lnav-caret,
+          html.lnav-collapsed #lifecycle-nav .lnav-uname { display: none; }
+          html.lnav-collapsed #lifecycle-nav .lnav-head { flex-direction: column-reverse; gap: 10px; }
+          html.lnav-collapsed #lifecycle-nav .lnav-brand { justify-content: center; padding: 0; }
+          html.lnav-collapsed #lifecycle-nav .lnav-link,
+          html.lnav-collapsed #lifecycle-nav .lnav-ghead { justify-content: center; padding: 9px 0; }
+          html.lnav-collapsed #lifecycle-nav .lnav-gbody { padding-left: 0; margin-left: 0; border-left: none; }
+          html.lnav-collapsed #lifecycle-nav .lnav-user { justify-content: center; }
+        }
 
         #lifecycle-nav .lnav-scroll { flex: 1; overflow-y: auto; scrollbar-width: thin; margin: 0 -4px; padding: 0 4px; }
         #lifecycle-nav .lnav-scroll::-webkit-scrollbar { width: 6px; }
@@ -236,10 +260,13 @@
       </div>
       <div class="lnav-backdrop" id="lnav-backdrop"></div>
       <aside class="lnav-side">
-        <a class="lnav-brand" href="/">
-          <span class="lnav-dot"></span>
-          <span class="lnav-bt"><b>Lifecycle OS</b><small>VAHDAM</small></span>
-        </a>
+        <div class="lnav-head">
+          <a class="lnav-brand" href="/">
+            <span class="lnav-dot"></span>
+            <span class="lnav-bt"><b>Lifecycle OS</b><small>VAHDAM</small></span>
+          </a>
+          <button class="lnav-collapse" id="lnav-collapse" type="button" title="Collapse sidebar" aria-label="Collapse sidebar">«</button>
+        </div>
         <div class="lnav-scroll">${navHtml}</div>
         ${userHtml}
       </aside>
@@ -290,6 +317,27 @@
     };
     const signoutBtn = wrap.querySelector('#lnav-signout');
     if (signoutBtn) signoutBtn.onclick = () => window.LifecycleAuth.signOut();
+
+    // ── Collapse / expand the rail (icon-only), persisted across pages ──
+    const COLLAPSE_KEY = 'lifecycle-nav-collapsed';
+    const collapseBtn = wrap.querySelector('#lnav-collapse');
+    const applyCollapsed = (c) => {
+      document.documentElement.classList.toggle('lnav-collapsed', c);
+      document.documentElement.style.setProperty('--lsb-w', c ? '64px' : '248px');
+      if (collapseBtn) {
+        collapseBtn.innerHTML = c ? '»' : '«';
+        collapseBtn.title = c ? 'Expand sidebar' : 'Collapse sidebar';
+      }
+      publishHeight();
+    };
+    let collapsed = false;
+    try { collapsed = localStorage.getItem(COLLAPSE_KEY) === '1'; } catch {}
+    applyCollapsed(collapsed);
+    if (collapseBtn) collapseBtn.addEventListener('click', () => {
+      collapsed = !collapsed;
+      try { localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0'); } catch {}
+      applyCollapsed(collapsed);
+    });
   }
 
   // ─── Login wall ─────────────────────────────────────────────────────
