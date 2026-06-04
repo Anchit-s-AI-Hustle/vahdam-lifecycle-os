@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>VAHDAM · Data Analysis + Marketing Calendar + Mailer Creator</title>
+<title>VAHDAM · Lifecycle OS</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="apple-touch-icon" href="/favicon.png">
 <link rel="manifest" href="/manifest.webmanifest">
@@ -13,202 +13,249 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lifecycle OS">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
-<script src="/auth.js?v=20260530b" defer></script>
-<!-- Vercel Speed Insights — static-HTML form (bare-specifier import does not resolve in the browser) -->
+<script src="/auth.js?v=20260604" defer></script>
 <script defer src="/_vercel/speed-insights/script.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'Inter', system-ui, sans-serif;
     background: #0a1410; color: #e8ede9;
-    min-height: 100vh; padding: 32px 24px;
+    min-height: 100vh; padding: 36px 32px;
   }
-  .wrap { max-width: 1100px; margin: 0 auto; }
-  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 48px; }
-  .brand { display: flex; align-items: center; gap: 14px; }
-  .brand-dot { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #AB8743, #004A2B); }
-  .brand-title { font-family: 'Lora', serif; font-weight: 600; font-size: 18px; }
-  .brand-sub { font-size: 11px; color: #9aaaa1; font-style: italic; }
-  .header-meta { font-size: 11px; color: #5d6e64; font-family: 'JetBrains Mono', monospace; text-align: right; }
-  .hero { margin-bottom: 56px; }
-  .eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.22em; color: #AB8743; margin-bottom: 18px; font-weight: 600; }
-  h1 { font-family: 'Lora', serif; font-size: 44px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 16px; }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+  .hero { margin-bottom: 40px; }
+  .eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.22em; color: #AB8743; margin-bottom: 16px; font-weight: 600; }
+  h1 { font-family: 'Lora', serif; font-size: 42px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 16px; }
   h1 em { font-style: italic; color: #AB8743; }
-  p.lede { color: #9aaaa1; font-size: 16px; line-height: 1.65; max-width: 780px; }
+  p.lede { color: #9aaaa1; font-size: 15.5px; line-height: 1.65; max-width: 760px; }
   p.lede b { color: #FBF5EA; font-weight: 600; }
 
-  .pipeline { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-bottom: 36px; }
-  @media (max-width: 860px) { .pipeline { grid-template-columns: 1fr; } h1 { font-size: 32px; } }
-  .stage {
-    display: block; padding: 28px 26px; border-radius: 16px;
+  .section-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em; color: #5d6e64;
+    font-weight: 600; margin: 8px 0 16px;
+  }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  @media (max-width: 980px) { .grid { grid-template-columns: repeat(2, 1fr); } h1 { font-size: 32px; } }
+  @media (max-width: 620px) { .grid { grid-template-columns: 1fr; } body { padding: 24px 18px; } }
+
+  .card {
+    display: flex; flex-direction: column;
+    padding: 22px 22px 18px; border-radius: 16px;
     background: #0f1d18; border: 1px solid rgba(171,135,67,0.18);
-    text-decoration: none; color: inherit;
-    transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+    transition: transform .22s, border-color .22s, box-shadow .22s;
     position: relative; overflow: hidden;
   }
-  .stage::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-    background: linear-gradient(90deg, transparent, #AB8743, transparent);
-    transform: translateX(-100%); transition: transform 0.5s;
-  }
-  .stage:hover { transform: translateY(-3px); border-color: #AB8743; box-shadow: 0 14px 36px rgba(0,0,0,0.5); }
-  .stage:hover::before { transform: translateX(0); }
-  .stage-num {
-    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #AB8743;
-    background: rgba(171,135,67,0.12); padding: 4px 9px; border-radius: 99px;
-    display: inline-block; margin-bottom: 16px; letter-spacing: 0.05em;
-  }
-  .stage h2 {
-    font-family: 'Lora', serif; font-size: 22px; font-weight: 600; margin-bottom: 8px;
-    letter-spacing: -0.01em;
-  }
-  .stage h2 em { font-style: italic; color: #AB8743; }
-  .stage p { font-size: 13.5px; color: #9aaaa1; line-height: 1.55; margin-bottom: 18px; }
-  .stage-meta {
-    font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em;
-    color: #5d6e64; font-weight: 600; margin-bottom: 4px;
-  }
-  .stage-bullets { font-size: 12px; color: #9aaaa1; line-height: 1.7; padding-left: 0; list-style: none; margin-bottom: 18px; }
-  .stage-bullets li { padding-left: 14px; position: relative; }
-  .stage-bullets li::before { content: '·'; position: absolute; left: 0; color: #AB8743; font-weight: 700; }
-  .stage-cta { font-size: 12px; color: #AB8743; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; letter-spacing: 0.04em; }
-  .stage-cta::after { content: '→'; transition: transform 0.2s; }
-  .stage:hover .stage-cta::after { transform: translateX(4px); }
-
-  .arrow {
+  .card:hover { transform: translateY(-3px); border-color: rgba(171,135,67,0.5); box-shadow: 0 16px 40px rgba(0,0,0,0.45); }
+  .card-ic {
+    width: 42px; height: 42px; border-radius: 11px; margin-bottom: 14px;
     display: flex; align-items: center; justify-content: center;
-    color: #5d6e64; font-size: 22px; padding: 4px;
+    background: rgba(171,135,67,0.12); color: #AB8743;
   }
-  @media (max-width: 860px) { .arrow { transform: rotate(90deg); } }
+  .card-ic svg { width: 22px; height: 22px; }
+  .card-tag {
+    position: absolute; top: 18px; right: 18px;
+    font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700;
+    color: #AB8743; background: rgba(171,135,67,0.12); padding: 3px 8px; border-radius: 99px;
+  }
+  .card-tag.soon { color: #9aaaa1; background: rgba(154,170,161,0.1); }
+  .card h2 { font-family: 'Lora', serif; font-size: 20px; font-weight: 600; margin-bottom: 6px; letter-spacing: -0.01em; }
+  .card p { font-size: 13px; color: #9aaaa1; line-height: 1.55; margin-bottom: 14px; flex: 1; }
+  .card-subs { font-size: 11px; color: #5d6e64; line-height: 1.7; list-style: none; margin-bottom: 16px; }
+  .card-subs li::before { content: '·'; color: #AB8743; font-weight: 700; margin-right: 7px; }
+  .card-ctas { display: flex; gap: 8px; }
+  .btn {
+    flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 9px 12px; border-radius: 9px; font-size: 12.5px; font-weight: 600;
+    font-family: inherit; cursor: pointer; text-decoration: none; transition: all .14s;
+    border: 1px solid transparent; letter-spacing: 0.02em;
+  }
+  .btn-ghost { background: transparent; border-color: rgba(171,135,67,0.3); color: #cdd8d2; }
+  .btn-ghost:hover { border-color: #AB8743; color: #FBF5EA; background: rgba(171,135,67,0.06); }
+  .btn-solid { background: #AB8743; color: #0a1410; }
+  .btn-solid:hover { opacity: 0.92; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
   .strip {
-    margin: 0 -24px; padding: 32px 24px; background: rgba(171,135,67,0.04);
-    border-top: 1px solid rgba(171,135,67,0.15);
-    border-bottom: 1px solid rgba(171,135,67,0.15);
+    margin: 40px 0 8px; padding: 24px 26px; border-radius: 16px;
+    background: rgba(171,135,67,0.04); border: 1px solid rgba(171,135,67,0.15);
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;
   }
-  .strip-inner { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
-  @media (max-width: 720px) { .strip-inner { grid-template-columns: repeat(2, 1fr); } }
-  .stat { }
-  .stat-val { font-family: 'Lora', serif; font-size: 28px; font-weight: 600; }
+  @media (max-width: 720px) { .strip { grid-template-columns: repeat(2, 1fr); } }
+  .stat-val { font-family: 'Lora', serif; font-size: 26px; font-weight: 600; }
   .stat-val em { font-style: italic; color: #AB8743; }
-  .stat-label { font-size: 11px; color: #9aaaa1; text-transform: uppercase; letter-spacing: 0.12em; margin-top: 4px; }
+  .stat-label { font-size: 10.5px; color: #9aaaa1; text-transform: uppercase; letter-spacing: 0.12em; margin-top: 4px; }
 
-  .foot {
-    margin-top: 48px; padding-top: 24px; border-top: 1px solid rgba(171,135,67,0.15);
-    font-size: 11px; color: #5d6e64; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
-  }
-  .foot a { color: #9aaaa1; text-decoration: none; margin-left: 14px; }
-  .foot a:hover { color: #AB8743; }
+  .foot { margin-top: 36px; padding-top: 22px; border-top: 1px solid rgba(171,135,67,0.15);
+    font-size: 11px; color: #5d6e64; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
   .foot code { font-family: 'JetBrains Mono', monospace; color: #AB8743; }
+
+  /* ─── Preview modal ─────────────────────────────────────────────── */
+  #preview-modal { position: fixed; inset: 0; z-index: 9500; display: none; }
+  #preview-modal.open { display: block; }
+  #preview-modal .pm-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.72); backdrop-filter: blur(6px); }
+  #preview-modal .pm-card {
+    position: absolute; inset: 4vh 4vw; background: #0b1813;
+    border: 1px solid rgba(171,135,67,0.3); border-radius: 16px; overflow: hidden;
+    display: flex; flex-direction: column; box-shadow: 0 40px 100px rgba(0,0,0,0.7);
+  }
+  #preview-modal .pm-head {
+    display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+    border-bottom: 1px solid rgba(171,135,67,0.18); background: #0a1410;
+  }
+  #preview-modal .pm-title { font-family: 'Lora', serif; font-size: 16px; color: #FBF5EA; font-weight: 600; }
+  #preview-modal .pm-badge { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #AB8743;
+    border: 1px solid rgba(171,135,67,0.3); padding: 3px 8px; border-radius: 99px; }
+  #preview-modal .pm-spacer { flex: 1; }
+  #preview-modal .pm-act { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px;
+    font-size: 12.5px; font-weight: 600; text-decoration: none; cursor: pointer; border: none; font-family: inherit; }
+  #preview-modal .pm-detail { background: #AB8743; color: #0a1410; }
+  #preview-modal .pm-detail:hover { opacity: 0.92; }
+  #preview-modal .pm-close { background: transparent; border: 1px solid rgba(171,135,67,0.3); color: #cdd8d2;
+    width: 34px; height: 34px; border-radius: 8px; font-size: 18px; line-height: 1; }
+  #preview-modal .pm-close:hover { border-color: #AB8743; color: #FBF5EA; }
+  #preview-modal .pm-body { flex: 1; position: relative; background: #0a1410; }
+  #preview-modal .pm-frame { width: 100%; height: 100%; border: 0; background: #0a1410; }
+  #preview-modal .pm-load { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: #5d6e64; font-size: 13px; }
 </style>
 </head>
 <body>
 
 <div class="wrap">
 
-  <!-- Brand + cross-step nav are provided by the global top-bar (auth.js); no in-page duplicate. -->
-
   <section class="hero">
-    <div class="eyebrow">For the retention growth team</div>
-    <h1>Stop guessing what to <em>send next</em>.</h1>
+    <div class="eyebrow">VAHDAM · Lifecycle OS</div>
+    <h1>One workspace for the <em>full retention engine</em>.</h1>
     <p class="lede">
-      A single workflow that reads your <b>campaign + customer + order data</b>, builds an executive-grade
-      <b>retention dashboard</b>, generates a <b>30-day mailer calendar</b> tuned to segments &amp; festivals,
-      and then <b>writes every mailer</b> through the existing brand-locked Mailer Studio — image and text variants.
+      Read your <b>campaign + customer + order data</b>, watch what <b>competitors send</b>,
+      plan and write every <b>email</b>, and run <b>paid campaigns &amp; landing pages</b> — all from one place.
+      Open any feature in a quick <b>Preview</b>, or jump straight to the full tool with <b>View in Detail</b>.
     </p>
   </section>
 
-  <div class="pipeline">
-    <a class="stage" href="/dashboard.html" target="_blank" rel="noopener">
-      <div class="stage-num">STAGE 01</div>
-      <h2>Data <em>Analysis</em></h2>
-      <p>Upload CSV / XLSX, or use the live seed. RFM segmentation, cohort retention, channel mix, cross-sell affinity, time-behavior — all computed client-side, no DB needed.</p>
-      <div class="stage-meta">Outputs</div>
-      <ul class="stage-bullets">
-        <li>Executive KPI deck</li>
-        <li>9 RFM customer segments</li>
-        <li>Product cross-sell affinity</li>
-        <li>10 auto-generated strategic insights</li>
-      </ul>
-      <span class="stage-cta">Open the dashboard</span>
-    </a>
-
-    <a class="stage" href="/calendar.html" target="_blank" rel="noopener">
-      <div class="stage-num">STAGE 02</div>
-      <h2>Marketing <em>Calendar</em></h2>
-      <p>Reads the analysis state, slots a 30-day plan: which mailer goes to which segment in which market on which day. Festivals + bank holidays auto-injected. Send-time tuned per market.</p>
-      <div class="stage-meta">Plan engine</div>
-      <ul class="stage-bullets">
-        <li>Weekly capacity guardrails by segment</li>
-        <li>Festival weights drive archetype hints</li>
-        <li>11 layout archetypes × 6 content types</li>
-        <li>One-click → mailer build for any day</li>
-      </ul>
-      <span class="stage-cta">Build the calendar</span>
-    </a>
-
-    <a class="stage" href="/studio" target="_blank" rel="noopener">
-      <div class="stage-num">STAGE 03</div>
-      <h2>Mailer <em>Studio</em></h2>
-      <p>The existing 6-LLM cascade pipeline. Now produces <b>two types, two variants each</b>: Type A image — Premium &amp; Graphic; Type B text — Text+Visual &amp; Pure Text. Responsive 600px emails that auto-scale to every device.</p>
-      <div class="stage-meta">Cascade</div>
-      <ul class="stage-bullets">
-        <li>OpenAI → Anthropic → Gemini → xAI → Groq → Cerebras</li>
-        <li>Strict brand voice + palette lock</li>
-        <li>11 layout archetypes, region-aware URLs</li>
-        <li>Score + audit + export-ready HTML</li>
-      </ul>
-      <span class="stage-cta">Open the Studio</span>
-    </a>
-  </div>
+  <div class="section-label">Features</div>
+  <div class="grid" id="feature-grid"></div>
 
   <section class="strip">
-    <div class="strip-inner">
-      <div class="stat">
-        <div class="stat-val">3<em> stages</em></div>
-        <div class="stat-label">Single workflow</div>
-      </div>
-      <div class="stat">
-        <div class="stat-val">9 <em>segments</em></div>
-        <div class="stat-label">RFM with overlays</div>
-      </div>
-      <div class="stat">
-        <div class="stat-val">4 <em>variants</em></div>
-        <div class="stat-label">Per planned send</div>
-      </div>
-      <div class="stat">
-        <div class="stat-val">4 <em>markets</em></div>
-        <div class="stat-label">US · UK · India · Global</div>
-      </div>
-    </div>
+    <div><div class="stat-val">5 <em>features</em></div><div class="stat-label">One unified app</div></div>
+    <div><div class="stat-val">9 <em>segments</em></div><div class="stat-label">RFM + overlays</div></div>
+    <div><div class="stat-val">4 <em>variants</em></div><div class="stat-label">Per planned send</div></div>
+    <div><div class="stat-val">4 <em>markets</em></div><div class="stat-label">US · UK · India · Global</div></div>
   </section>
 
   <footer class="foot">
-    <div>
-      © VAHDAM India · Lifecycle OS · <code>v1.0</code><br>
-      <span style="color:#4a5750">Forked from <code>marketing_mailers__html_architect</code> · Lifecycle layer + calendar generator on top.</span>
-    </div>
-    <div>
-      <a href="/api/health">/api/health</a>
-      <a href="/dashboard.html">Dashboard</a>
-      <a href="/calendar.html">Calendar</a>
-      <a href="/studio">Mailer Studio</a>
-    </div>
+    <div>© VAHDAM India · Lifecycle OS · <code>v2.0</code> · unified workspace</div>
+    <div>Preview any feature, or open it in detail from the left nav.</div>
   </footer>
+</div>
 
+<!-- Preview modal -->
+<div id="preview-modal" aria-hidden="true">
+  <div class="pm-backdrop" data-close></div>
+  <div class="pm-card" role="dialog" aria-modal="true">
+    <div class="pm-head">
+      <span class="pm-badge">Preview</span>
+      <span class="pm-title" id="pm-title"></span>
+      <span class="pm-spacer"></span>
+      <a class="pm-act pm-detail" id="pm-detail" href="#">View in Detail →</a>
+      <button class="pm-act pm-close" data-close aria-label="Close preview">×</button>
+    </div>
+    <div class="pm-body">
+      <div class="pm-load" id="pm-load">Loading preview…</div>
+      <iframe class="pm-frame" id="pm-frame" title="Feature preview"></iframe>
+    </div>
+  </div>
 </div>
 
 <script>
-  // Browser → open each stage in a new tab (keeps Home open). Installed PWA
-  // (standalone) → navigate in the same window so it behaves like a native app.
-  (function(){
-    var standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-    var sel = 'a[href="/dashboard.html"], a[href="/calendar.html"], a[href="/studio"]';
-    document.querySelectorAll(sel).forEach(function(a){
-      if (standalone) { a.removeAttribute('target'); a.removeAttribute('rel'); }
-      else { a.setAttribute('target','_blank'); a.setAttribute('rel','noopener'); }
-    });
-  })();
+(function () {
+  // SVG icon set (matches the sidebar language).
+  const IC = {
+    analysis:   '<path d="M4 19V5"/><path d="M4 19h16"/><rect x="7" y="11" width="3" height="5"/><rect x="12" y="7" width="3" height="9"/><rect x="17" y="13" width="3" height="3"/>',
+    competitor: '<path d="m21 21-4.3-4.3"/><circle cx="11" cy="11" r="7"/><path d="M11 8v6M8 11h6"/>',
+    calendar:   '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>',
+    mailer:     '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+    ads:        '<path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1Z"/><path d="M15 8a4 4 0 0 1 0 8"/>',
+    landing:    '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/>',
+  };
+  const svg = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${IC[k]||''}</svg>`;
+
+  const FEATURES = [
+    { icon: 'analysis',   title: 'Data Analysis',           href: '/dashboard.html',
+      desc: 'RFM segmentation, cohort retention, channel mix and cross-sell — on the seeded data, your own uploads, or a linked database.',
+      subs: ['Upload CSV / XLSX on top of seed data', 'Link a database — scoped analysis', '9 RFM segments · 10 auto-insights'] },
+    { icon: 'competitor', title: 'Competitor Benchmarking', href: '/competitor-benchmarking.html',
+      desc: 'Every competitor email captured automatically — subject, promo codes, full HTML and a screenshot stored for each and every mail.',
+      subs: ['Screenshots + raw HTML per email', 'Promo-code & cadence tracking', 'Filter by brand, promo, files'] },
+    { icon: 'calendar',   title: 'Marketing Calendar',      href: '/calendar.html', group: 'Marketing Mailers',
+      desc: 'A 30-day plan: which mailer goes to which segment, in which market, on which day. Festivals and send-times auto-tuned.',
+      subs: ['Segment capacity guardrails', 'Festival-weighted archetypes', 'One-click → build the mailer'] },
+    { icon: 'mailer',     title: 'Mailer Studio',           href: '/studio', group: 'Marketing Mailers',
+      desc: 'The 6-LLM cascade pipeline. Two types, two variants each — brand-locked palette, voice and layout, export-ready HTML.',
+      subs: ['Editorial Hero + Narrative variants', '11 layout archetypes, region URLs', 'Score + audit + export HTML'] },
+    { icon: 'ads',        title: 'Ad Campaigns',            href: '/ad-campaigns.html', group: 'Ad Campaigns',
+      desc: 'Plan and brief paid campaigns across Google and Meta from one calendar, with creative and copy aligned to the brand system.',
+      subs: ['Calendar across all channels', 'Google · Meta · more', 'Brief + creative generation'] },
+    { icon: 'landing',    title: 'Landing Pages',           href: '/ad-campaigns.html#landing', group: 'Ad Campaigns',
+      desc: 'Build campaign landing pages in the same brand system, linked to the ad campaigns that drive traffic to them.',
+      subs: ['Brand-locked page builder', 'Tied to ad campaigns', 'Export-ready HTML'] },
+  ];
+
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+  const grid = document.getElementById('feature-grid');
+  grid.innerHTML = FEATURES.map((f, i) => `
+    <div class="card">
+      ${f.group ? `<span class="card-tag">${f.group}</span>` : ''}
+      <div class="card-ic">${svg(f.icon)}</div>
+      <h2>${f.title}</h2>
+      <p>${f.desc}</p>
+      <ul class="card-subs">${f.subs.map((s) => `<li>${s}</li>`).join('')}</ul>
+      <div class="card-ctas">
+        <button class="btn btn-ghost" data-preview="${i}">◱ Preview</button>
+        <a class="btn btn-solid" href="${f.href}"${isStandalone ? '' : ' target="_blank" rel="noopener"'}>View in Detail →</a>
+      </div>
+    </div>`).join('');
+
+  // ─── Preview modal ─────────────────────────────────────────────────
+  const modal = document.getElementById('preview-modal');
+  const frame = document.getElementById('pm-frame');
+  const load = document.getElementById('pm-load');
+  const titleEl = document.getElementById('pm-title');
+  const detailLink = document.getElementById('pm-detail');
+  let lastActive = null;
+
+  function openPreview(f) {
+    titleEl.textContent = f.title;
+    detailLink.href = f.href;
+    if (!isStandalone) { detailLink.target = '_blank'; detailLink.rel = 'noopener'; }
+    load.style.display = 'flex';
+    frame.style.visibility = 'hidden';
+    frame.src = f.href;
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+  function closePreview() {
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    frame.src = 'about:blank';
+    if (lastActive) lastActive.focus();
+  }
+  frame.addEventListener('load', () => {
+    if (frame.src && frame.src !== 'about:blank' && !frame.src.endsWith('about:blank')) {
+      load.style.display = 'none';
+      frame.style.visibility = 'visible';
+    }
+  });
+  grid.querySelectorAll('[data-preview]').forEach((btn) => {
+    btn.addEventListener('click', () => { lastActive = btn; openPreview(FEATURES[+btn.dataset.preview]); });
+  });
+  modal.querySelectorAll('[data-close]').forEach((el) => el.addEventListener('click', closePreview));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('open')) closePreview(); });
+})();
 </script>
 
 </body>

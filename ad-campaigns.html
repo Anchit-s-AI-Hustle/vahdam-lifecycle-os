@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VAHDAM · Ad Campaigns</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/favicon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#004A2B">
+<meta name="apple-mobile-web-app-title" content="Lifecycle OS">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="/auth.js?v=20260604" defer></script>
+<script defer src="/_vercel/speed-insights/script.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: #0a1410; color: #e8ede9; min-height: 100vh; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 32px 60px; }
+  @media (max-width: 620px) { .wrap { padding: 20px 16px 50px; } }
+
+  .page-head { margin-bottom: 18px; }
+  .eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color: #AB8743; font-weight: 600; margin-bottom: 10px; }
+  h1 { font-family: 'Lora', serif; font-size: 30px; font-weight: 600; letter-spacing: -0.01em; }
+  h1 em { font-style: italic; color: #AB8743; }
+  .sub { color: #9aaaa1; font-size: 13.5px; margin-top: 6px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; margin: 22px 0 20px; border-bottom: 1px solid rgba(171,135,67,0.18); flex-wrap: wrap; }
+  .tab { padding: 10px 16px; font-size: 13px; font-weight: 600; color: #9aaaa1; cursor: pointer;
+    background: transparent; border: none; border-bottom: 2px solid transparent; font-family: inherit; transition: all .14s; }
+  .tab:hover { color: #e8ede9; }
+  .tab.active { color: #FBF5EA; border-bottom-color: #AB8743; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Cards & layout */
+  .card { background: #0f1d18; border: 1px solid rgba(171,135,67,0.18); border-radius: 14px; padding: 20px; }
+  .grid2 { display: grid; grid-template-columns: 360px 1fr; gap: 18px; }
+  @media (max-width: 880px) { .grid2 { grid-template-columns: 1fr; } }
+  .label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #5d6e64; font-weight: 600; margin: 12px 0 5px; }
+  input, select, textarea {
+    width: 100%; background: #0a1410; border: 1px solid rgba(171,135,67,0.2); border-radius: 8px;
+    color: #e8ede9; padding: 9px 11px; font-size: 13px; font-family: inherit;
+  }
+  textarea { resize: vertical; min-height: 64px; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #AB8743; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 14px; border-radius: 8px;
+    font-size: 12.5px; font-weight: 600; font-family: inherit; cursor: pointer; border: 1px solid transparent; transition: all .14s; }
+  .btn-solid { background: #AB8743; color: #0a1410; }
+  .btn-solid:hover { opacity: 0.92; }
+  .btn-ghost { background: transparent; border-color: rgba(171,135,67,0.3); color: #cdd8d2; }
+  .btn-ghost:hover { border-color: #AB8743; color: #FBF5EA; }
+  .btn-row { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+
+  .list-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .list-head h3 { font-family: 'Lora', serif; font-size: 17px; font-weight: 600; }
+  .empty { color: #5d6e64; font-size: 13px; padding: 28px; text-align: center; border: 1px dashed rgba(171,135,67,0.2); border-radius: 12px; }
+  .item { background: #0f1d18; border: 1px solid rgba(171,135,67,0.16); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
+  .item:hover { border-color: rgba(171,135,67,0.4); }
+  .item-top { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .item-top b { font-size: 14px; color: #FBF5EA; }
+  .item-meta { font-size: 11.5px; color: #9aaaa1; display: flex; gap: 14px; flex-wrap: wrap; }
+  .item-meta span b { color: #cdd8d2; }
+  .item-copy { margin-top: 10px; font-size: 12.5px; color: #cdd8d2; line-height: 1.5; }
+  .item-copy .h { color: #FBF5EA; font-weight: 600; }
+  .x { margin-left: auto; background: transparent; border: none; color: #5d6e64; cursor: pointer; font-size: 16px; }
+  .x:hover { color: #ef4444; }
+  .chan { font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 8px; border-radius: 99px; }
+  .chan-google { background: rgba(59,130,246,0.15); color: #93c5fd; }
+  .chan-meta   { background: rgba(34,197,94,0.15); color: #86efac; }
+  .chan-other  { background: rgba(171,135,67,0.16); color: #AB8743; }
+  .pill { font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 99px; background: rgba(171,135,67,0.14); color: #AB8743; }
+
+  /* Calendar */
+  .cal-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 7px; }
+  .dow { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #5d6e64; text-align: center; padding-bottom: 4px; }
+  .day { background: #0f1d18; border: 1px solid rgba(171,135,67,0.16); border-radius: 9px; padding: 7px; min-height: 84px; cursor: pointer; transition: border-color .14s; }
+  .day:hover { border-color: rgba(171,135,67,0.4); }
+  .day.empty { background: transparent; border-color: transparent; cursor: default; }
+  .day-num { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9aaaa1; }
+  .day .cm { font-size: 10px; margin-top: 4px; padding: 2px 5px; border-radius: 5px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #142822; border: 1px solid rgba(171,135,67,0.4);
+    color: #FBF5EA; padding: 10px 18px; border-radius: 10px; font-size: 13px; z-index: 9999; opacity: 0; transition: opacity .2s; }
+  .toast.show { opacity: 1; }
+
+  /* Modal */
+  .modal { position: fixed; inset: 0; z-index: 9500; display: none; align-items: center; justify-content: center; padding: 20px; }
+  .modal.open { display: flex; }
+  .modal .bk { position: absolute; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); }
+  .modal .mc { position: relative; width: 100%; max-width: 460px; background: #0f1d18; border: 1px solid rgba(171,135,67,0.3);
+    border-radius: 14px; padding: 22px; max-height: 88vh; overflow-y: auto; }
+  .modal h3 { font-family: 'Lora', serif; font-size: 18px; margin-bottom: 4px; }
+  .note { font-size: 11px; color: #5d6e64; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="page-head">
+    <div class="eyebrow">Ad Campaigns</div>
+    <h1>Paid acquisition, <em>one calendar</em>.</h1>
+    <div class="sub">Plan and brief Google &amp; Meta campaigns, and the landing pages they point to — in the brand system.</div>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab" data-tab="calendar">Calendar</button>
+    <button class="tab" data-tab="google">Google Ads</button>
+    <button class="tab" data-tab="meta">Meta Ads</button>
+    <button class="tab" data-tab="landing">Landing Pages</button>
+  </div>
+
+  <!-- CALENDAR -->
+  <section class="panel" id="panel-calendar">
+    <div class="card">
+      <div class="cal-head">
+        <button class="btn btn-ghost" id="cal-prev">←</button>
+        <h3 id="cal-title" style="font-family:'Lora',serif;font-size:18px;font-weight:600;flex:1;text-align:center"></h3>
+        <button class="btn btn-ghost" id="cal-next">→</button>
+      </div>
+      <div class="cal-grid" id="cal-dow"></div>
+      <div class="cal-grid" id="cal-grid" style="margin-top:7px"></div>
+      <p class="note" style="margin-top:12px">Click any day to schedule a campaign. Scheduled campaigns also appear in their channel tab.</p>
+    </div>
+  </section>
+
+  <!-- GOOGLE -->
+  <section class="panel" id="panel-google">
+    <div class="grid2">
+      <div class="card">
+        <div class="list-head"><h3>New Google campaign</h3></div>
+        <label class="label">Campaign name</label>
+        <input id="g-name" placeholder="e.g. Darjeeling First Flush — Search">
+        <div class="row">
+          <div><label class="label">Type</label><select id="g-type"><option>Search</option><option>Performance Max</option><option>Display</option><option>Shopping</option><option>YouTube</option></select></div>
+          <div><label class="label">Daily budget</label><input id="g-budget" type="number" placeholder="50"></div>
+        </div>
+        <div class="row">
+          <div><label class="label">Market</label><select id="g-market"><option>US</option><option>UK</option><option>IN</option><option>Global</option><option>EU</option><option>AU</option><option>ME</option></select></div>
+          <div><label class="label">Final URL</label><input id="g-url" placeholder="/landing"></div>
+        </div>
+        <label class="label">Keywords (comma-separated)</label>
+        <input id="g-keywords" placeholder="darjeeling tea, single estate tea, premium black tea">
+        <label class="label">Headlines (one per line, ≤30 chars)</label>
+        <textarea id="g-headlines" placeholder="Single-Estate Darjeeling&#10;Garden-Fresh in 72 Hours&#10;Shop the First Flush"></textarea>
+        <label class="label">Descriptions (one per line, ≤90 chars)</label>
+        <textarea id="g-desc" placeholder="Hand-picked, single-estate teas shipped within 72 hours of harvest."></textarea>
+        <div class="btn-row">
+          <button class="btn btn-ghost" id="g-ai">✨ Generate copy with AI</button>
+          <button class="btn btn-solid" id="g-save">Save campaign</button>
+        </div>
+        <p class="note" id="g-ai-note"></p>
+      </div>
+      <div>
+        <div class="list-head"><h3>Google campaigns</h3><span class="pill" id="g-count">0</span></div>
+        <div id="g-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- META -->
+  <section class="panel" id="panel-meta">
+    <div class="grid2">
+      <div class="card">
+        <div class="list-head"><h3>New Meta campaign</h3></div>
+        <label class="label">Campaign name</label>
+        <input id="m-name" placeholder="e.g. Gifting Season — Advantage+">
+        <div class="row">
+          <div><label class="label">Objective</label><select id="m-obj"><option>Sales / Conversions</option><option>Traffic</option><option>Awareness</option><option>Engagement</option><option>Leads</option></select></div>
+          <div><label class="label">Daily budget</label><input id="m-budget" type="number" placeholder="40"></div>
+        </div>
+        <div class="row">
+          <div><label class="label">Market</label><select id="m-market"><option>US</option><option>UK</option><option>IN</option><option>Global</option><option>EU</option><option>AU</option><option>ME</option></select></div>
+          <div><label class="label">Placements</label><select id="m-place"><option>Advantage+ (all)</option><option>Feed</option><option>Stories/Reels</option><option>Manual</option></select></div>
+        </div>
+        <label class="label">Audience</label>
+        <input id="m-aud" placeholder="Lookalike 1% purchasers · 28-55 · tea & wellness interests">
+        <label class="label">Primary text</label>
+        <textarea id="m-primary" placeholder="There's a moment every morning when the right cup slows the whole world down…"></textarea>
+        <label class="label">Headline (≤40 chars)</label>
+        <input id="m-headline" placeholder="Garden-fresh, single-estate tea">
+        <div class="btn-row">
+          <button class="btn btn-ghost" id="m-ai">✨ Generate copy with AI</button>
+          <button class="btn btn-solid" id="m-save">Save campaign</button>
+        </div>
+        <p class="note" id="m-ai-note"></p>
+      </div>
+      <div>
+        <div class="list-head"><h3>Meta campaigns</h3><span class="pill" id="m-count">0</span></div>
+        <div id="m-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LANDING -->
+  <section class="panel" id="panel-landing">
+    <div class="grid2">
+      <div class="card">
+        <div class="list-head"><h3>New landing page</h3></div>
+        <label class="label">Page name</label>
+        <input id="l-name" placeholder="e.g. First Flush Launch LP">
+        <label class="label">Linked campaign</label>
+        <select id="l-link"><option value="">— none —</option></select>
+        <label class="label">Hero headline</label>
+        <input id="l-headline" placeholder="The First Flush Has Landed">
+        <label class="label">Sub-headline</label>
+        <textarea id="l-sub" placeholder="Hand-picked this week in Darjeeling. Steeped in your kitchen by next."></textarea>
+        <div class="row">
+          <div><label class="label">CTA text</label><input id="l-cta" placeholder="Shop the First Flush"></div>
+          <div><label class="label">CTA URL</label><input id="l-url" placeholder="https://www.vahdamteas.com/..."></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-solid" id="l-save">Save landing page</button>
+        </div>
+      </div>
+      <div>
+        <div class="list-head"><h3>Landing pages</h3><span class="pill" id="l-count">0</span></div>
+        <div id="l-list"></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Day modal (calendar) -->
+<div class="modal" id="day-modal">
+  <div class="bk" data-close></div>
+  <div class="mc">
+    <h3 id="dm-date"></h3>
+    <p class="note">Schedule a campaign for this day.</p>
+    <label class="label">Channel</label>
+    <select id="dm-channel"><option value="google">Google Ads</option><option value="meta">Meta Ads</option><option value="other">Other</option></select>
+    <label class="label">Name</label>
+    <input id="dm-name" placeholder="Campaign name">
+    <div class="row">
+      <div><label class="label">Budget</label><input id="dm-budget" type="number" placeholder="50"></div>
+      <div><label class="label">Market</label><select id="dm-market"><option>US</option><option>UK</option><option>IN</option><option>Global</option><option>EU</option><option>AU</option><option>ME</option></select></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" data-close>Cancel</button>
+      <button class="btn btn-solid" id="dm-save">Schedule</button>
+    </div>
+    <div id="dm-existing" style="margin-top:14px"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => (s || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const lines = (v) => (v || '').split('\n').map((s) => s.trim()).filter(Boolean);
+  const toast = (m) => { const t = $('#toast'); t.textContent = m; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000); };
+
+  // ── Storage ─────────────────────────────────────────────────────────
+  const KEY = 'vahdam-ads-v1';
+  const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
+  const save = () => localStorage.setItem(KEY, JSON.stringify(store));
+  const store = Object.assign({ google: [], meta: [], landing: [], calendar: {} }, load());
+
+  // ── Tabs (hash-routed to match sidebar deep-links) ───────────────────
+  const TABS = ['calendar', 'google', 'meta', 'landing'];
+  function showTab(t) {
+    if (!TABS.includes(t)) t = 'calendar';
+    document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === t));
+    document.querySelectorAll('.panel').forEach((p) => p.classList.toggle('active', p.id === 'panel-' + t));
+    if (location.hash.slice(1) !== t) history.replaceState(null, '', '#' + t);
+  }
+  document.querySelectorAll('.tab').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+  window.addEventListener('hashchange', () => showTab(location.hash.slice(1)));
+
+  // ── Calendar ─────────────────────────────────────────────────────────
+  let calDate = new Date(); calDate.setDate(1);
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const dkey = (y, m, d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  function renderCal() {
+    const y = calDate.getFullYear(), m = calDate.getMonth();
+    $('#cal-title').textContent = `${MONTHS[m]} ${y}`;
+    $('#cal-dow').innerHTML = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => `<div class="dow">${d}</div>`).join('');
+    const first = new Date(y, m, 1).getDay(), days = new Date(y, m + 1, 0).getDate();
+    let html = '';
+    for (let i = 0; i < first; i++) html += '<div class="day empty"></div>';
+    for (let d = 1; d <= days; d++) {
+      const k = dkey(y, m, d), items = store.calendar[k] || [];
+      const chips = items.slice(0, 3).map((c) => `<div class="cm chan-${c.channel}">${esc(c.name || c.channel)}</div>`).join('');
+      html += `<div class="day" data-d="${k}"><div class="day-num">${d}</div>${chips}${items.length > 3 ? `<div class="note">+${items.length - 3}</div>` : ''}</div>`;
+    }
+    $('#cal-grid').innerHTML = html;
+    $('#cal-grid').querySelectorAll('.day:not(.empty)').forEach((el) => el.addEventListener('click', () => openDay(el.dataset.d)));
+  }
+  $('#cal-prev').onclick = () => { calDate.setMonth(calDate.getMonth() - 1); renderCal(); };
+  $('#cal-next').onclick = () => { calDate.setMonth(calDate.getMonth() + 1); renderCal(); };
+
+  const dayModal = $('#day-modal'); let activeDay = null;
+  function openDay(k) {
+    activeDay = k;
+    $('#dm-date').textContent = new Date(k).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    $('#dm-name').value = ''; $('#dm-budget').value = '';
+    const existing = store.calendar[k] || [];
+    $('#dm-existing').innerHTML = existing.length
+      ? '<label class="label">Scheduled</label>' + existing.map((c, i) => `<div class="item" style="margin-bottom:6px"><div class="item-top"><span class="chan chan-${c.channel}">${c.channel}</span><b>${esc(c.name)}</b><button class="x" data-rm="${i}">×</button></div><div class="item-meta"><span>$${esc(String(c.budget || '—'))}/day</span><span>${esc(c.market || '')}</span></div></div>`).join('')
+      : '';
+    $('#dm-existing').querySelectorAll('[data-rm]').forEach((b) => b.addEventListener('click', () => {
+      store.calendar[k].splice(+b.dataset.rm, 1); if (!store.calendar[k].length) delete store.calendar[k]; save(); openDay(k); renderCal();
+    }));
+    dayModal.classList.add('open');
+  }
+  $('#dm-save').onclick = () => {
+    if (!activeDay) return;
+    const name = $('#dm-name').value.trim(); if (!name) { toast('Enter a campaign name'); return; }
+    (store.calendar[activeDay] = store.calendar[activeDay] || []).push({
+      id: uid(), channel: $('#dm-channel').value, name, budget: $('#dm-budget').value, market: $('#dm-market').value,
+    });
+    save(); renderCal(); openDay(activeDay); toast('Scheduled');
+  };
+  dayModal.querySelectorAll('[data-close]').forEach((el) => el.addEventListener('click', () => dayModal.classList.remove('open')));
+
+  // ── AI copy (reuses /api/ai/generate create_brief) ───────────────────
+  async function aiBrief(noteEl, market, type, prompt) {
+    noteEl.textContent = 'Generating…';
+    try {
+      const geminiKey = (() => { try { return localStorage.getItem('vahdam-gemini-key') || ''; } catch { return ''; } })();
+      const r = await fetch('/api/ai/generate', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, geminiKey ? { 'x-user-gemini-key': geminiKey } : {}),
+        body: JSON.stringify({ mode: 'create_brief', market, type, prompt }),
+      });
+      const d = await r.json();
+      noteEl.textContent = '';
+      return d.text || d.brief || d.content || '';
+    } catch (e) { noteEl.textContent = 'AI unavailable — fill copy manually.'; return ''; }
+  }
+  // Pull a few "Headline:" style lines out of a prose brief for convenience.
+  function extractLines(text, label) {
+    const re = new RegExp(label + '[^\\n:]*:?\\s*(.+)', 'i');
+    return text.split('\n').map((l) => { const m = l.match(re); return m ? m[1].trim() : null; }).filter(Boolean);
+  }
+
+  $('#g-ai').onclick = async () => {
+    const name = $('#g-name').value.trim() || 'Google Search campaign';
+    const text = await aiBrief($('#g-ai-note'), $('#g-market').value, 'Sale', name + ' — write Google Ads headlines and descriptions for VAHDAM tea.');
+    if (!text) return;
+    const heads = extractLines(text, 'HERO HEADLINE').concat(extractLines(text, 'SUBJECT'));
+    if (heads.length) $('#g-headlines').value = heads.slice(0, 5).join('\n');
+    const subs = extractLines(text, 'SUB-COPY').concat(extractLines(text, 'OFFER SUB'));
+    if (subs.length) $('#g-desc').value = subs.slice(0, 4).join('\n');
+    toast('Copy drafted from AI brief');
+  };
+  $('#m-ai').onclick = async () => {
+    const name = $('#m-name').value.trim() || 'Meta campaign';
+    const text = await aiBrief($('#m-ai-note'), $('#m-market').value, 'Launch', name + ' — write a Meta primary text and headline for VAHDAM tea.');
+    if (!text) return;
+    const subs = extractLines(text, 'SUB-COPY'); if (subs.length) $('#m-primary').value = subs[0];
+    const heads = extractLines(text, 'HERO HEADLINE'); if (heads.length) $('#m-headline').value = heads[0].slice(0, 40);
+    toast('Copy drafted from AI brief');
+  };
+
+  // ── Google list ──────────────────────────────────────────────────────
+  function renderGoogle() {
+    $('#g-count').textContent = store.google.length;
+    $('#g-list').innerHTML = store.google.length ? store.google.map((c) => `
+      <div class="item">
+        <div class="item-top"><span class="chan chan-google">Google</span><b>${esc(c.name)}</b><button class="x" data-rm="${c.id}">×</button></div>
+        <div class="item-meta"><span><b>${esc(c.type)}</b></span><span>$${esc(String(c.budget || '—'))}/day</span><span>${esc(c.market)}</span><span>→ ${esc(c.url || '')}</span></div>
+        ${(c.headlines || []).length ? `<div class="item-copy"><span class="h">Headlines:</span> ${c.headlines.map(esc).join(' · ')}</div>` : ''}
+        ${(c.descriptions || []).length ? `<div class="item-copy">${c.descriptions.map(esc).join('<br>')}</div>` : ''}
+      </div>`).join('') : '<div class="empty">No Google campaigns yet.</div>';
+    $('#g-list').querySelectorAll('[data-rm]').forEach((b) => b.addEventListener('click', () => { store.google = store.google.filter((x) => x.id !== b.dataset.rm); save(); renderGoogle(); }));
+  }
+  $('#g-save').onclick = () => {
+    const name = $('#g-name').value.trim(); if (!name) { toast('Enter a campaign name'); return; }
+    store.google.unshift({ id: uid(), name, type: $('#g-type').value, budget: $('#g-budget').value, market: $('#g-market').value,
+      url: $('#g-url').value.trim(), keywords: lines($('#g-keywords').value.split(',').join('\n')), headlines: lines($('#g-headlines').value), descriptions: lines($('#g-desc').value) });
+    save(); renderGoogle(); ['g-name', 'g-budget', 'g-url', 'g-keywords', 'g-headlines', 'g-desc'].forEach((id) => $('#' + id).value = ''); toast('Campaign saved');
+  };
+
+  // ── Meta list ──────────────────────────────────────────────────────
+  function renderMeta() {
+    $('#m-count').textContent = store.meta.length;
+    $('#m-list').innerHTML = store.meta.length ? store.meta.map((c) => `
+      <div class="item">
+        <div class="item-top"><span class="chan chan-meta">Meta</span><b>${esc(c.name)}</b><button class="x" data-rm="${c.id}">×</button></div>
+        <div class="item-meta"><span><b>${esc(c.obj)}</b></span><span>$${esc(String(c.budget || '—'))}/day</span><span>${esc(c.market)}</span><span>${esc(c.place || '')}</span></div>
+        ${c.aud ? `<div class="item-copy"><span class="h">Audience:</span> ${esc(c.aud)}</div>` : ''}
+        ${c.primary ? `<div class="item-copy">${esc(c.primary)}</div>` : ''}
+        ${c.headline ? `<div class="item-copy"><span class="h">${esc(c.headline)}</span></div>` : ''}
+      </div>`).join('') : '<div class="empty">No Meta campaigns yet.</div>';
+    $('#m-list').querySelectorAll('[data-rm]').forEach((b) => b.addEventListener('click', () => { store.meta = store.meta.filter((x) => x.id !== b.dataset.rm); save(); renderMeta(); }));
+  }
+  $('#m-save').onclick = () => {
+    const name = $('#m-name').value.trim(); if (!name) { toast('Enter a campaign name'); return; }
+    store.meta.unshift({ id: uid(), name, obj: $('#m-obj').value, budget: $('#m-budget').value, market: $('#m-market').value,
+      place: $('#m-place').value, aud: $('#m-aud').value.trim(), primary: $('#m-primary').value.trim(), headline: $('#m-headline').value.trim() });
+    save(); renderMeta(); ['m-name', 'm-budget', 'm-aud', 'm-primary', 'm-headline'].forEach((id) => $('#' + id).value = ''); toast('Campaign saved');
+  };
+
+  // ── Landing pages ──────────────────────────────────────────────────
+  function renderLanding() {
+    $('#l-count').textContent = store.landing.length;
+    // refresh linked-campaign options
+    const opts = ['<option value="">— none —</option>']
+      .concat(store.google.map((c) => `<option value="g:${c.id}">Google · ${esc(c.name)}</option>`))
+      .concat(store.meta.map((c) => `<option value="m:${c.id}">Meta · ${esc(c.name)}</option>`));
+    $('#l-link').innerHTML = opts.join('');
+    $('#l-list').innerHTML = store.landing.length ? store.landing.map((p) => `
+      <div class="item">
+        <div class="item-top"><span class="chan chan-other">Landing</span><b>${esc(p.name)}</b><button class="x" data-rm="${p.id}">×</button></div>
+        <div class="item-copy"><span class="h">${esc(p.headline || '')}</span><br>${esc(p.sub || '')}</div>
+        <div class="item-meta" style="margin-top:8px"><span>CTA: <b>${esc(p.cta || '—')}</b></span>${p.link ? `<span>${esc(p.linkLabel || '')}</span>` : ''}</div>
+        <div class="btn-row"><button class="btn btn-ghost" data-prev="${p.id}">Preview HTML</button></div>
+      </div>`).join('') : '<div class="empty">No landing pages yet.</div>';
+    $('#l-list').querySelectorAll('[data-rm]').forEach((b) => b.addEventListener('click', () => { store.landing = store.landing.filter((x) => x.id !== b.dataset.rm); save(); renderLanding(); }));
+    $('#l-list').querySelectorAll('[data-prev]').forEach((b) => b.addEventListener('click', () => previewLanding(store.landing.find((x) => x.id === b.dataset.prev))));
+  }
+  $('#l-save').onclick = () => {
+    const name = $('#l-name').value.trim(); if (!name) { toast('Enter a page name'); return; }
+    const linkVal = $('#l-link').value, linkLabel = $('#l-link').selectedOptions[0]?.textContent || '';
+    store.landing.unshift({ id: uid(), name, link: linkVal, linkLabel, headline: $('#l-headline').value.trim(),
+      sub: $('#l-sub').value.trim(), cta: $('#l-cta').value.trim(), url: $('#l-url').value.trim() });
+    save(); renderLanding(); ['l-name', 'l-headline', 'l-sub', 'l-cta', 'l-url'].forEach((id) => $('#' + id).value = ''); toast('Landing page saved');
+  };
+  function previewLanding(p) {
+    if (!p) return;
+    const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@600&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>body{margin:0;font-family:Inter,sans-serif;background:#FBF5EA;color:#171717}.h{background:#004A2B;color:#FBF5EA;padding:80px 24px;text-align:center}
+.h h1{font-family:Lora,serif;font-size:44px;margin:0 0 14px;max-width:760px;margin-inline:auto}.h p{font-size:18px;opacity:.9;max-width:560px;margin:0 auto 28px}
+.cta{display:inline-block;background:#AB8743;color:#171717;text-decoration:none;font-weight:600;padding:15px 34px;border-radius:8px}</style></head>
+<body><div class="h"><h1>${esc(p.headline || p.name)}</h1><p>${esc(p.sub || '')}</p><a class="cta" href="${esc(p.url || '#')}">${esc(p.cta || 'Shop Now')}</a></div></body></html>`;
+    const w = window.open('', '_blank'); if (w) { w.document.open(); w.document.write(html); w.document.close(); }
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────
+  renderCal(); renderGoogle(); renderMeta(); renderLanding();
+  showTab(location.hash.slice(1) || (location.pathname.includes('landing') ? 'landing' : 'calendar'));
+})();
+</script>
+</body>
+</html>

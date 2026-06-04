@@ -18,7 +18,7 @@
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <!-- xlsx-js-style: drop-in SheetJS fork that also writes cell fills/fonts (keeps colour in Excel exports) -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
-<script src="/auth.js?v=20260530b" defer></script>
+<script src="/auth.js?v=20260604" defer></script>
 <script src="/table-sort.js?v=20260530b" defer></script>
 <script src="/chart-enhance.js?v=20260530b" defer></script>
 <!-- Vercel Speed Insights — static-HTML form (bare-specifier import does not resolve in the browser) -->
@@ -607,9 +607,76 @@
       </label>
     </div>
 
+    <label class="flex items-start gap-2 cursor-pointer mb-4 p-3 rounded border border-gold/20">
+      <input type="checkbox" id="uploadAppend" class="mt-0.5 accent-gold">
+      <div>
+        <div class="text-sm font-medium">Add to current data (don't replace)</div>
+        <div class="text-[11px] text-ink-mute">Append the uploaded rows on top of the data already loaded, instead of overwriting that dataset.</div>
+      </div>
+    </label>
+
     <div class="flex gap-2 justify-end">
       <button id="uploadCancel" class="text-[12px] px-4 py-2 rounded border border-gold/30 text-ink-dim hover:border-gold hover:text-ink">Cancel</button>
       <button id="uploadApply" class="text-[12px] px-4 py-2 rounded bg-gold text-bg font-semibold hover:opacity-90">Apply & recompute</button>
+    </div>
+  </div>
+</div>
+
+<!-- Link database modal -->
+<div id="linkDbModal" class="modal-backdrop">
+  <div class="card p-6 max-w-xl w-full">
+    <div class="flex items-start justify-between mb-4">
+      <div>
+        <h2 class="text-lg font-semibold">Link a database</h2>
+        <p class="text-xs text-ink-dim mt-1">Connect a source and the dashboard recomputes <b>scoped to that database only</b> — the synthetic seed is set aside until you reset.</p>
+      </div>
+      <button id="linkDbClose" class="text-ink-mute hover:text-ink text-2xl leading-none">×</button>
+    </div>
+
+    <div class="flex gap-2 mb-4" id="linkDbTypeChips">
+      <button class="filter-chip active" data-dbtype="json">JSON / REST endpoint</button>
+      <button class="filter-chip" data-dbtype="supabase">Supabase</button>
+    </div>
+
+    <!-- JSON endpoint -->
+    <div id="linkDbJson" class="space-y-3">
+      <div>
+        <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold mb-1">Endpoint URL</div>
+        <input id="dbJsonUrl" type="url" placeholder="https://your-api.example.com/analytics" class="w-full bg-bg-deep border border-gold/30 rounded px-3 py-2 text-sm text-ink focus:border-gold outline-none">
+        <div class="text-[11px] text-ink-mute mt-1.5">Must return JSON shaped <code class="text-gold">{ campaigns:[], customers:[], orders:[], products:[] }</code> (any subset). CORS must allow this origin.</div>
+      </div>
+      <div>
+        <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold mb-1">Auth header (optional)</div>
+        <input id="dbJsonAuth" type="text" placeholder="Bearer xxxxx" class="w-full bg-bg-deep border border-gold/30 rounded px-3 py-2 text-sm text-ink focus:border-gold outline-none">
+      </div>
+    </div>
+
+    <!-- Supabase -->
+    <div id="linkDbSupabase" class="space-y-3 hidden">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold mb-1">Project URL</div>
+          <input id="dbSbUrl" type="url" placeholder="https://xxxx.supabase.co" class="w-full bg-bg-deep border border-gold/30 rounded px-3 py-2 text-sm text-ink focus:border-gold outline-none">
+        </div>
+        <div>
+          <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold mb-1">Anon / service key</div>
+          <input id="dbSbKey" type="password" placeholder="eyJhbGci…" class="w-full bg-bg-deep border border-gold/30 rounded px-3 py-2 text-sm text-ink focus:border-gold outline-none">
+        </div>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <div><div class="text-[10px] uppercase tracking-wider text-gold font-semibold mb-1">campaigns table</div><input id="dbSbCampaigns" placeholder="campaigns" class="w-full bg-bg-deep border border-gold/30 rounded px-2.5 py-1.5 text-sm text-ink focus:border-gold outline-none"></div>
+        <div><div class="text-[10px] uppercase tracking-wider text-gold font-semibold mb-1">customers table</div><input id="dbSbCustomers" placeholder="customers" class="w-full bg-bg-deep border border-gold/30 rounded px-2.5 py-1.5 text-sm text-ink focus:border-gold outline-none"></div>
+        <div><div class="text-[10px] uppercase tracking-wider text-gold font-semibold mb-1">orders table</div><input id="dbSbOrders" placeholder="orders" class="w-full bg-bg-deep border border-gold/30 rounded px-2.5 py-1.5 text-sm text-ink focus:border-gold outline-none"></div>
+        <div><div class="text-[10px] uppercase tracking-wider text-gold font-semibold mb-1">products table</div><input id="dbSbProducts" placeholder="products" class="w-full bg-bg-deep border border-gold/30 rounded px-2.5 py-1.5 text-sm text-ink focus:border-gold outline-none"></div>
+      </div>
+      <div class="text-[11px] text-ink-mute">Reads each table via the Supabase REST API (<code class="text-gold">/rest/v1/{table}?select=*</code>). Leave a table blank to skip it.</div>
+    </div>
+
+    <div class="text-[11px] mb-3 mt-3 leading-snug" id="linkDbStatus"></div>
+
+    <div class="flex gap-2 justify-end">
+      <button id="linkDbCancel" class="text-[12px] px-4 py-2 rounded border border-gold/30 text-ink-dim hover:border-gold hover:text-ink">Cancel</button>
+      <button id="linkDbConnect" class="text-[12px] px-4 py-2 rounded bg-gold text-bg font-semibold hover:opacity-90">⛓ Connect & recompute</button>
     </div>
   </div>
 </div>
@@ -2126,15 +2193,19 @@ $$('#uploadSlots input[type=file]').forEach((input) => {
 });
 
 $('uploadApply').addEventListener('click', () => {
+  const append = $('uploadAppend').checked;
   let applied = 0;
   ['campaigns','customers','orders','products'].forEach((slot) => {
     if (!STAGE[slot]) return;
-    DATA[slot] = STAGE[slot].map((r) => normalizeRow(slot, r));
+    const rows = STAGE[slot].map((r) => normalizeRow(slot, r));
+    // Append → add on top of whatever is currently loaded (seed or prior upload);
+    // otherwise replace that dataset entirely.
+    DATA[slot] = append ? (Array.isArray(DATA[slot]) ? DATA[slot] : []).concat(rows) : rows;
     applied++;
   });
   if (applied > 0) {
     localStorage.setItem('vahdam-retention-data', JSON.stringify(DATA));
-    $('dataSourceLabel').textContent = `uploaded (${applied} dataset${applied>1?'s':''})`;
+    $('dataSourceLabel').textContent = `${append ? 'seed + uploaded' : 'uploaded'} (${applied} dataset${applied>1?'s':''})`;
     $('uploadModal').classList.remove('open');
     destroyCharts(); rerender();
   } else {
@@ -2199,13 +2270,87 @@ function normalizeRow(slot, r) {
 }
 
 $('btnResetSeed').addEventListener('click', () => {
-  if (!confirm('Reset to synthetic seed data? This clears any uploaded data.')) return;
+  if (!confirm('Reset to synthetic seed data? This clears any uploaded or linked data.')) return;
   localStorage.removeItem('vahdam-retention-data');
   DATA = genSeed();
   STAGE && Object.keys(STAGE).forEach((k) => delete STAGE[k]);
   $('dataSourceLabel').textContent = 'seed (synthetic)';
   $$('#uploadSlots .file-status').forEach((el) => { el.textContent = 'Not loaded'; el.classList.remove('text-green-bright','text-red'); });
   destroyCharts(); rerender();
+});
+
+/* ╔═══════════════════════════════════════════════════════════════════════
+ * ║ LINK DATABASE — connect a JSON/REST endpoint or a Supabase project.
+ * ║ When linked, DATA is REPLACED with the linked source (scoped to that DB
+ * ║ only — the seed is set aside until Reset).
+ * ╚═══════════════════════════════════════════════════════════════════════ */
+$('btnLinkDb').addEventListener('click', () => $('linkDbModal').classList.add('open'));
+$('linkDbClose').addEventListener('click', () => $('linkDbModal').classList.remove('open'));
+$('linkDbCancel').addEventListener('click', () => $('linkDbModal').classList.remove('open'));
+
+let DB_TYPE = 'json';
+$$('#linkDbTypeChips .filter-chip').forEach((chip) => chip.addEventListener('click', () => {
+  DB_TYPE = chip.dataset.dbtype;
+  $$('#linkDbTypeChips .filter-chip').forEach((c) => c.classList.toggle('active', c === chip));
+  $('linkDbJson').classList.toggle('hidden', DB_TYPE !== 'json');
+  $('linkDbSupabase').classList.toggle('hidden', DB_TYPE !== 'supabase');
+}));
+
+const dbStatus = (msg, kind) => {
+  const el = $('linkDbStatus');
+  el.textContent = msg;
+  el.className = 'text-[11px] mb-3 mt-3 leading-snug ' + (kind === 'err' ? 'text-red' : kind === 'ok' ? 'text-green-bright' : 'text-ink-mute');
+};
+
+async function fetchSupabaseTable(url, key, table) {
+  if (!table) return null;
+  const base = url.replace(/\/+$/, '');
+  const r = await fetch(`${base}/rest/v1/${encodeURIComponent(table)}?select=*`, {
+    headers: { apikey: key, Authorization: 'Bearer ' + key },
+  });
+  if (!r.ok) throw new Error(`${table}: HTTP ${r.status}`);
+  return r.json();
+}
+
+$('linkDbConnect').addEventListener('click', async () => {
+  dbStatus('Connecting…');
+  try {
+    const SLOTS = ['campaigns', 'customers', 'orders', 'products'];
+    let raw = {};
+
+    if (DB_TYPE === 'json') {
+      const url = $('dbJsonUrl').value.trim();
+      if (!url) return dbStatus('Enter an endpoint URL.', 'err');
+      const auth = $('dbJsonAuth').value.trim();
+      const r = await fetch(url, { headers: auth ? { Authorization: auth } : {} });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      raw = await r.json();
+    } else {
+      const url = $('dbSbUrl').value.trim(), key = $('dbSbKey').value.trim();
+      if (!url || !key) return dbStatus('Enter the Supabase URL and key.', 'err');
+      const tables = { campaigns: $('dbSbCampaigns').value.trim(), customers: $('dbSbCustomers').value.trim(), orders: $('dbSbOrders').value.trim(), products: $('dbSbProducts').value.trim() };
+      for (const slot of SLOTS) raw[slot] = tables[slot] ? await fetchSupabaseTable(url, key, tables[slot]) : null;
+    }
+
+    // Normalize whatever subset of datasets the source returned. Scoped: start
+    // from an empty dataset (not the seed) so analysis reflects only this DB.
+    const next = { campaigns: [], customers: [], orders: [], products: [] };
+    let loaded = 0;
+    SLOTS.forEach((slot) => {
+      const rows = raw && raw[slot];
+      if (Array.isArray(rows) && rows.length) { next[slot] = rows.map((r) => normalizeRow(slot, r)); loaded++; }
+    });
+    if (!loaded) return dbStatus('Source returned no rows for campaigns/customers/orders/products.', 'err');
+
+    DATA = next;
+    localStorage.setItem('vahdam-retention-data', JSON.stringify(DATA));
+    const label = DB_TYPE === 'supabase' ? 'Supabase' : 'linked DB';
+    $('dataSourceLabel').textContent = `${label} — scoped (${loaded} dataset${loaded > 1 ? 's' : ''})`;
+    dbStatus(`✓ Connected — ${loaded} dataset${loaded > 1 ? 's' : ''} loaded. Recomputing…`, 'ok');
+    setTimeout(() => { $('linkDbModal').classList.remove('open'); destroyCharts(); rerender(); }, 500);
+  } catch (err) {
+    dbStatus('✗ ' + (err.message || 'connection failed') + ' — check the URL, key, table names and CORS.', 'err');
+  }
 });
 
 /* ╔═══════════════════════════════════════════════════════════════════════
