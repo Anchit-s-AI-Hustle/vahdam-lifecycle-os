@@ -17,6 +17,7 @@
     "api/ai/pipeline/score.js":    { "memory": 512,  "maxDuration": 30 },
     "api/calendar/generate.js":      { "memory": 512,  "maxDuration": 30 },
     "api/calendar/trigger-mailer.js":{ "memory": 1024, "maxDuration": 90 },
+    "api/competitor/index.ts":       { "memory": 1024, "maxDuration": 60 },
     "api/public-config.js":          { "memory": 128,  "maxDuration": 3 }
   },
   "rewrites": [
@@ -29,7 +30,8 @@
     { "source": "/competitor-benchmarking", "destination": "/competitor-benchmarking.html" },
     { "source": "/competitor", "destination": "/competitor-benchmarking.html" },
     { "source": "/ads",        "destination": "/ad-campaigns.html" },
-    { "source": "/landing",    "destination": "/ad-campaigns.html" }
+    { "source": "/landing",    "destination": "/ad-campaigns.html" },
+    { "source": "/api/health", "destination": "/api/public-config?health=1" }
   ],
   "headers": [
     {
