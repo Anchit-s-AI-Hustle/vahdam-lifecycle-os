@@ -85,10 +85,15 @@
     return 'home';
   }
   // Pages that must never gate behind the login wall.
+  //
+  // Internal tool: we do NOT force a Google sign-in to use any feature. The
+  // optional "Sign in" chip stays in the nav (so profiles/Supabase still work
+  // when signed in), but no page is blocked by the login wall. This avoids
+  // lockouts from external OAuth redirect-URL/domain mismatches. To re-enable
+  // forced auth on specific pages later, return `!!(item && item.open)` based
+  // on a per-item flag instead of `true`.
   function isOpenPage() {
-    const cur = currentStepId();
-    const s = leafItems().find((x) => x.id === cur);
-    return !!(s && s.open);
+    return true;
   }
 
   // ─── Left-hand sidebar (global cross-feature navigation) ────────────

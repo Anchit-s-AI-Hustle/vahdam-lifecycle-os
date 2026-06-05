@@ -74,6 +74,32 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    // ── Phase 2: competitor brand database + discovery ──
+    if (action === 'brands') {
+      const brands = await core.getBrands();
+      res.status(200).json({ ok: true, brands, total: brands.length });
+      return;
+    }
+
+    if (action === 'seed') {
+      const r = await core.seedBrands(new Date().toISOString());
+      res.status(200).json({ ok: true, ...r });
+      return;
+    }
+
+    if (action === 'discover') {
+      // Accept optional categories[]/geographies[]/limit via query (?categories=Tea,Coffee&limit=30).
+      const csv = (k) => { const v = url.searchParams.get(k); return v ? v.split(',').map((s) => s.trim()).filter(Boolean) : []; };
+      const found = await core.discoverBrands({
+        categories: csv('categories'),
+        geographies: csv('geographies'),
+        limit: url.searchParams.get('limit'),
+      });
+      const stored = await core.appendBrands(found.brands, new Date().toISOString());
+      res.status(200).json({ ok: true, proposed: found.brands.length, provider: found.provider, ...stored });
+      return;
+    }
+
     res.status(400).json({ ok: false, error: `Unknown action: ${action}` });
   } catch (err) {
     console.error(`[api/competitor] action=${action} failed:`, err);

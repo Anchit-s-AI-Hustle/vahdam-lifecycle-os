@@ -292,7 +292,171 @@ async function runSync(limit) {
   return { ok: true, processed: parsedList.length, appended, errors, durationMs: Date.now() - started };
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  PHASE 2 — Competitor BRAND database + discovery engine
+//  Stored in a second tab ("Competitors") of the same spreadsheet.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const callLLM = require('./llm');
+
+function brandsTab() { return process.env.GOOGLE_BRANDS_TAB || 'Competitors'; }
+
+// Column order for the Competitors tab (A–R).
+const BRAND_COLUMNS = [
+  'Brand Name', 'Website URL', 'Domain', 'Category', 'Country', 'Positioning',
+  'Newsletter Signup URL', 'Popup Signup', 'SMS Signup', 'Blog URL',
+  'Bestseller URL', 'New Arrivals URL', 'Subscription Status', 'Date Subscribed',
+  'Confirmation Required', 'Confirmation Completed', 'Source', 'Added At',
+];
+
+// Priority seed brands (Prompt 1). Inserted on demand so the DB is never empty.
+const SEED_BRANDS = [
+  { brandName: 'VAHDAM', websiteUrl: 'https://www.vahdamteas.com', category: 'Tea', country: 'Global', positioning: 'Premium' },
+  { brandName: 'Pique', websiteUrl: 'https://www.piquelife.com', category: 'Tea', country: 'United States', positioning: 'Premium' },
+  { brandName: 'Four Sigmatic', websiteUrl: 'https://foursigmatic.com', category: 'Functional Coffee', country: 'United States', positioning: 'Premium' },
+  { brandName: 'AG1', websiteUrl: 'https://drinkag1.com', category: 'Supplements', country: 'United States', positioning: 'Premium' },
+  { brandName: 'Everyday Dose', websiteUrl: 'https://everydaydose.com', category: 'Functional Coffee', country: 'United States', positioning: 'Premium' },
+  { brandName: 'MUD\\WTR', websiteUrl: 'https://mudwtr.com', category: 'Functional Coffee', country: 'United States', positioning: 'Premium' },
+  { brandName: 'Beam', websiteUrl: 'https://beamorganics.com', category: 'Wellness Beverages', country: 'United States', positioning: 'Premium' },
+  { brandName: 'RYZE', websiteUrl: 'https://ryzesuperfoods.com', category: 'Functional Coffee', country: 'United States', positioning: 'Premium' },
+];
+
+function normalizeDomain(url) {
+  if (!url) return '';
+  let u = String(url).trim().toLowerCase();
+  u = u.replace(/^https?:\/\//, '').replace(/^www\./, '');
+  return u.split('/')[0].split('?')[0].trim();
+}
+
+async function ensureBrandsTab() {
+  const sheets = sheetsClient();
+  const tab = brandsTab();
+  const meta = await sheets.spreadsheets.get({ spreadsheetId: sheetId(), fields: 'sheets.properties.title' });
+  const exists = (meta.data.sheets || []).some((s) => s.properties && s.properties.title === tab);
+  if (!exists) {
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: sheetId(),
+      requestBody: { requests: [{ addSheet: { properties: { title: tab } } }] },
+    });
+  }
+  const head = await sheets.spreadsheets.values.get({ spreadsheetId: sheetId(), range: `${tab}!A1:R1` });
+  if (!(head.data.values && head.data.values[0] && head.data.values[0][0])) {
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: sheetId(), range: `${tab}!A1`, valueInputOption: 'RAW',
+      requestBody: { values: [BRAND_COLUMNS] },
+    });
+  }
+}
+
+function brandRowToRecord(row, n) {
+  const g = (i) => (row[i] == null ? '' : String(row[i]));
+  return {
+    id: String(n),
+    brandName: g(0), websiteUrl: g(1), domain: g(2), category: g(3), country: g(4),
+    positioning: g(5), newsletterSignupUrl: g(6), popupSignup: g(7), smsSignup: g(8),
+    blogUrl: g(9), bestsellerUrl: g(10), newArrivalsUrl: g(11),
+    subscriptionStatus: g(12) || 'Not subscribed', dateSubscribed: g(13),
+    confirmationRequired: g(14), confirmationCompleted: g(15), source: g(16), addedAt: g(17),
+  };
+}
+function brandToRow(b, nowIso) {
+  return [
+    b.brandName || '', b.websiteUrl || '', normalizeDomain(b.websiteUrl), b.category || '',
+    b.country || '', b.positioning || '', b.newsletterSignupUrl || '',
+    b.popupSignup === true ? 'Yes' : (b.popupSignup === false ? 'No' : ''),
+    b.smsSignup === true ? 'Yes' : (b.smsSignup === false ? 'No' : ''),
+    b.blogUrl || '', b.bestsellerUrl || '', b.newArrivalsUrl || '',
+    b.subscriptionStatus || 'Not subscribed', b.dateSubscribed || '',
+    b.confirmationRequired || '', b.confirmationCompleted || '',
+    b.source || 'discovery', nowIso || '',
+  ];
+}
+
+async function getBrands() {
+  await ensureBrandsTab();
+  const sheets = sheetsClient();
+  const res = await sheets.spreadsheets.values.get({ spreadsheetId: sheetId(), range: `${brandsTab()}!A2:R` });
+  const rows = res.data.values || [];
+  return rows.map((r, i) => brandRowToRecord(r, i + 2)).filter((b) => b.brandName || b.domain);
+}
+
+/** Append brands, de-duplicated by domain against what's already stored. */
+async function appendBrands(list, nowIso) {
+  if (!list || !list.length) return { added: 0, skipped: 0, total: (await getBrands()).length };
+  const existing = await getBrands();
+  const seen = new Set(existing.map((b) => b.domain).filter(Boolean));
+  const fresh = [];
+  for (const b of list) {
+    const d = normalizeDomain(b.websiteUrl);
+    if (!d || seen.has(d)) continue;
+    seen.add(d);
+    fresh.push(brandToRow(b, nowIso));
+  }
+  if (fresh.length) {
+    await sheetsClient().spreadsheets.values.append({
+      spreadsheetId: sheetId(), range: `${brandsTab()}!A:R`,
+      valueInputOption: 'RAW', insertDataOption: 'INSERT_ROWS',
+      requestBody: { values: fresh },
+    });
+  }
+  return { added: fresh.length, skipped: list.length - fresh.length, total: existing.length + fresh.length };
+}
+
+/** Insert the priority seed brands (idempotent via domain dedupe). */
+async function seedBrands(nowIso) {
+  return appendBrands(SEED_BRANDS.map((b) => ({ ...b, source: 'seed' })), nowIso);
+}
+
+const DISCOVERY_CATEGORIES = ['Tea', 'Coffee', 'Functional Coffee', 'Botanicals', 'Adaptogens', 'Wellness Beverages', 'Supplements', 'Superfoods'];
+const DISCOVERY_GEOS = ['United States', 'United Kingdom', 'Canada', 'Australia', 'Europe', 'Global DTC Brands'];
+
+/**
+ * Ask the LLM waterfall for a batch of real competitor brands, excluding
+ * domains already in the DB. Returns parsed brand objects (not yet stored).
+ */
+async function discoverBrands(opts) {
+  opts = opts || {};
+  const categories = (opts.categories && opts.categories.length ? opts.categories : DISCOVERY_CATEGORIES);
+  const geographies = (opts.geographies && opts.geographies.length ? opts.geographies : DISCOVERY_GEOS);
+  const limit = Math.min(Math.max(Number(opts.limit) || 30, 5), 50);
+
+  const existing = await getBrands();
+  const excludeDomains = existing.map((b) => b.domain).filter(Boolean);
+
+  const system = 'You are a competitor-intelligence research engine specializing in premium DTC wellness brands (tea, coffee, functional beverages, adaptogens, supplements, superfoods). You only output strict JSON. Use REAL, currently-operating brands with their REAL primary website domains. Never invent brands or fake domains.';
+  const user = [
+    `Find up to ${limit} high-quality competitor brands similar to VAHDAM and to: Pique, Four Sigmatic, AG1, Everyday Dose, MUD\\WTR, Beam, RYZE.`,
+    `Categories to cover: ${categories.join(', ')}.`,
+    `Geographies: ${geographies.join(', ')}.`,
+    excludeDomains.length ? `EXCLUDE these domains already in our database (do not return them): ${excludeDomains.slice(0, 200).join(', ')}.` : '',
+    'Return STRICT JSON of the shape: {"brands":[{"brandName":"","websiteUrl":"https://...","category":"","country":"","positioning":"Premium|Mass|Luxury","newsletterSignupUrl":"","popupSignup":true,"smsSignup":false,"blogUrl":"","bestsellerUrl":"","newArrivalsUrl":""}]}',
+    'Prefer well-known, real DTC brands. websiteUrl must be the real homepage. If unsure of a sub-URL, leave it as an empty string rather than guessing.',
+  ].filter(Boolean).join('\n');
+
+  const res = await callLLM({
+    systemPrompt: system,
+    userMessage: user,
+    responseFormat: { type: 'json_object' },
+    maxTokens: 3500,
+    temperature: 0.5,
+    timeoutMs: 45000,
+    stage: 'competitor_discovery',
+  });
+
+  let parsed;
+  try {
+    const txt = (res.text || '').trim().replace(/^```json\s*|\s*```$/g, '');
+    parsed = JSON.parse(txt);
+  } catch (e) {
+    throw new Error('Discovery LLM returned unparseable JSON: ' + (e.message || ''));
+  }
+  const brands = Array.isArray(parsed) ? parsed : (parsed.brands || []);
+  return { brands, provider: res.provider, model: res.model };
+}
+
 module.exports = {
   getAllEmails, getEmailHtml, runSync, ensureHeaderRow,
+  getBrands, appendBrands, seedBrands, discoverBrands,
+  DISCOVERY_CATEGORIES, DISCOVERY_GEOS,
   NONE, NO_SCREENSHOT,
 };

@@ -176,14 +176,15 @@
   <div id="cb-head">
     <div class="eyebrow"><span class="dot"></span> Competitor Intelligence</div>
     <h1>Competitor <em>Benchmarking</em></h1>
-    <div class="sub" id="cb-sub">Every competitor email captured automatically — subject, promo codes, the full HTML and a screenshot stored for each and every mail.</div>
+    <div class="sub" id="cb-sub">Every competitor email captured automatically — subject, promo codes, and the full HTML stored for each and every mail. Build the brand universe under Brands.</div>
     <div class="cb-actions">
       <div class="subnav" id="subnav">
         <button class="snav" data-sec="mailers">✉ Mailers</button>
         <button class="snav" data-sec="ads">📣 Ads</button>
+        <button class="snav" data-sec="brands">🏷 Brands</button>
       </div>
       <div class="cb-cta-group">
-        <button class="cb-cta cb-cta-ghost" onclick="document.getElementById('fcm').classList.add('open')">Find more competitors</button>
+        <button class="cb-cta cb-cta-ghost" onclick="showSection('brands')">Find more competitors</button>
         <button class="cb-cta cb-cta-solid" onclick="document.getElementById('jm').classList.add('open')">Become a part of their journey</button>
       </div>
     </div>
@@ -275,6 +276,33 @@
     <div id="adBrands" class="ad-grid"></div>
     <p class="count" style="margin-top:14px">Sources: Meta Ad Library, Google Ads Transparency Center, TikTok Creative Center — all free to view.</p>
   </div>
+</div>
+
+<!-- ════ BRANDS VIEW (Phase 2 — competitor brand database + discovery) ════ -->
+<div id="brands-view" style="display:none">
+  <div class="ads-note">
+    The competitor <b>brand universe</b> — the database that powers monitoring &amp; benchmarking. Use <b>Discover</b> to expand it with the AI research engine (real DTC wellness brands across tea, coffee, functional beverages, adaptogens, supplements &amp; superfoods), de-duplicated by domain. Target: ~200–300 brands.
+  </div>
+  <div class="toolbar" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+    <button id="bd-discover" class="cb-cta cb-cta-solid">✨ Discover competitors</button>
+    <button id="bd-seed" class="cb-cta cb-cta-ghost">Seed priority brands</button>
+    <span id="bd-status" style="font-size:12px;color:#9aaaa1"></span>
+    <span class="sp" style="flex:1"></span>
+    <span id="bd-count" class="count"></span>
+  </div>
+  <div style="overflow-x:auto;border:1px solid rgba(171,135,67,0.18);border-radius:12px">
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr style="text-align:left;color:#5d6e64;text-transform:uppercase;font-size:10px;letter-spacing:.08em">
+          <th style="padding:10px 12px">Brand</th><th style="padding:10px 12px">Category</th>
+          <th style="padding:10px 12px">Country</th><th style="padding:10px 12px">Positioning</th>
+          <th style="padding:10px 12px">Newsletter</th><th style="padding:10px 12px">Subscription</th>
+        </tr>
+      </thead>
+      <tbody id="bd-rows"></tbody>
+    </table>
+  </div>
+  <div id="bd-empty" class="empty" style="display:none">No brands yet — click <b>Discover competitors</b> or <b>Seed priority brands</b> to start.</div>
 </div>
 
 <!-- Find More Competitors Modal -->
@@ -505,7 +533,7 @@
   }
 
   // ── Section switcher (Mailers | Ads) ────────────────────────────────
-  const SECTIONS = ['mailers', 'ads'];
+  const SECTIONS = ['mailers', 'ads', 'brands'];
   const currentSection = () => { const h = (location.hash || '').replace('#', ''); return SECTIONS.includes(h) ? h : 'mailers'; };
   function showSection(name) {
     if (!SECTIONS.includes(name)) name = 'mailers';
@@ -513,12 +541,15 @@
     if (document.body.classList.contains('detail-mode')) return; // a specific mailer is open
     $('list-view').style.display = name === 'mailers' ? '' : 'none';
     $('ads-view').style.display = name === 'ads' ? 'block' : 'none';
+    $('brands-view').style.display = name === 'brands' ? 'block' : 'none';
     if (name === 'ads') renderAds();
+    if (name === 'brands') renderBrands();
     const want = '#' + name;
     if (location.hash !== want && !new URLSearchParams(location.search).get('id')) history.replaceState(null, '', location.pathname + want);
   }
   document.querySelectorAll('.snav').forEach((b) => b.addEventListener('click', () => showSection(b.dataset.sec)));
   window.addEventListener('hashchange', () => showSection(currentSection()));
+  window.showSection = showSection; // expose for inline onclick (e.g. "Find more competitors")
 
   // ── Ads: free public ad libraries (Meta / Google / TikTok) ──────────
   const ADS_KEY = 'vahdam-comp-ads-brands';
@@ -582,6 +613,46 @@
   $('adRegion').addEventListener('change', renderAds);
   $('adBrandAdd').addEventListener('click', () => { const v = $('adBrandInput').value.trim(); if (!v) return; const l = adBrands(); if (!l.includes(v)) l.unshift(v); saveBrands(l); $('adBrandInput').value = ''; renderAds(); });
   $('adBrandInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('adBrandAdd').click(); });
+
+  // ── Brands database + discovery (Phase 2) ───────────────────────────
+  const BRAND_TARGET = 250;
+  let brandsLoaded = false;
+  async function renderBrands(force) {
+    if (brandsLoaded && !force) return;
+    $('bd-rows').innerHTML = '<tr><td colspan="6" style="padding:16px;color:#9aaaa1">Loading…</td></tr>';
+    let brands = [];
+    try { const r = await fetch(API + '?action=brands'); const d = await r.json(); brands = d.brands || []; } catch {}
+    brandsLoaded = true;
+    $('bd-count').textContent = `${brands.length} brands · target ~${BRAND_TARGET}`;
+    $('bd-empty').style.display = brands.length ? 'none' : 'block';
+    const pill = (s) => { const ok = /subscribed/i.test(s) && !/not/i.test(s); return `<span style="font-size:11px;padding:2px 8px;border-radius:99px;background:${ok ? 'rgba(34,197,94,.15)' : 'rgba(171,135,67,.12)'};color:${ok ? '#86efac' : '#cdb98a'}">${esc(s || 'Not subscribed')}</span>`; };
+    $('bd-rows').innerHTML = brands.map((b) => `
+      <tr style="border-top:1px solid rgba(171,135,67,0.1)">
+        <td style="padding:9px 12px"><a href="${esc(b.websiteUrl)}" target="_blank" rel="noopener" style="color:#FBF5EA;font-weight:600;text-decoration:none">${esc(b.brandName)}</a><div style="font-size:11px;color:#5d6e64">${esc(b.domain)}</div></td>
+        <td style="padding:9px 12px;color:#cdd8d2">${esc(b.category)}</td>
+        <td style="padding:9px 12px;color:#9aaaa1">${esc(b.country)}</td>
+        <td style="padding:9px 12px;color:#9aaaa1">${esc(b.positioning)}</td>
+        <td style="padding:9px 12px">${b.newsletterSignupUrl ? `<a href="${esc(b.newsletterSignupUrl)}" target="_blank" rel="noopener" style="color:#AB8743">Signup ↗</a>` : '<span style="color:#5d6e64">—</span>'}</td>
+        <td style="padding:9px 12px">${pill(b.subscriptionStatus)}</td>
+      </tr>`).join('');
+  }
+  async function runBrandAction(btn, action, busyText) {
+    const orig = btn.textContent; btn.disabled = true; btn.textContent = busyText;
+    $('bd-status').textContent = '';
+    try {
+      const r = await fetch(API + '?action=' + action, { method: 'POST' });
+      const d = await r.json();
+      if (!d.ok) throw new Error(d.error || 'failed');
+      $('bd-status').textContent = action === 'discover'
+        ? `+${d.added} new (${d.skipped} dupes) · ${d.total} total${d.provider ? ' · via ' + d.provider : ''}`
+        : `+${d.added} added · ${d.total} total`;
+      await renderBrands(true);
+    } catch (e) {
+      $('bd-status').textContent = 'Error: ' + (e.message || e);
+    } finally { btn.disabled = false; btn.textContent = orig; }
+  }
+  $('bd-discover').addEventListener('click', function () { runBrandAction(this, 'discover', '✨ Discovering… (~20s)'); });
+  $('bd-seed').addEventListener('click', function () { runBrandAction(this, 'seed', 'Seeding…'); });
 
   // ── Live polling (near-real-time) ───────────────────────────────────
   // Re-fetch on an interval so new mail the backend ingests shows up without a
