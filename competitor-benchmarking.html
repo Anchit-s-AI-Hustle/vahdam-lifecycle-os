@@ -481,9 +481,13 @@
     const htmlBlock = html
       ? `<div class="frame-wrap"><iframe sandbox="" style="height:${big ? 720 : 420}px" srcdoc="${esc(html)}"></iframe></div>`
       : `<div class="ph">Raw HTML not stored for this email (captured before HTML storage was enabled).</div>`;
-    const shotBlock = isHttp(e.screenshotUrl)
-      ? `<div class="d-section"><div class="sh"><h4>Full-mailer screenshot</h4><div class="ops"><a class="a-btn a-prev" href="${esc(e.screenshotUrl)}" target="_blank" rel="noopener">Open ↗</a><a class="a-btn a-prev" href="${esc(e.screenshotUrl)}" download>Download</a></div></div><div class="shot-wrap" style="max-height:${big ? 'none' : '420px'};overflow:auto"><img src="${esc(e.screenshotUrl)}" alt="full mailer screenshot"></div></div>`
-      : (e.screenshotUrl === 'Pending' ? `<div class="d-section"><div class="sh"><h4>Full-mailer screenshot</h4></div><div class="ph">Screenshot pending — will appear after the next sync once Vercel Blob is connected.</div></div>` : '');
+    // Prefer a stored screenshot URL; otherwise derive a free full-page render
+    // (Microlink) of the stored HTML page — works for old rows too.
+    const shotUrl = isHttp(e.screenshotUrl) ? e.screenshotUrl
+      : (html ? `https://api.microlink.io/?url=${encodeURIComponent(location.origin + '/api/competitor?action=raw&id=' + e.id)}&screenshot=true&fullPage=true&meta=false&embed=screenshot.url` : '');
+    const shotBlock = shotUrl
+      ? `<div class="d-section"><div class="sh"><h4>Full-mailer screenshot</h4><div class="ops"><a class="a-btn a-prev" href="${esc(shotUrl)}" target="_blank" rel="noopener">Open ↗</a><a class="a-btn a-prev" href="${esc(shotUrl)}" download>Download</a></div></div><div class="shot-wrap" style="max-height:${big ? 'none' : '420px'};overflow:auto"><img src="${esc(shotUrl)}" loading="lazy" alt="full mailer screenshot"></div></div>`
+      : '';
     const meta = [['Sender', esc(e.senderEmail) || '—'], ['Received', esc(fmtDate(e.receivedAt))],
       ['Promo', codes.length ? codes.map((c) => `<span class="code">${esc(c)}</span>`).join('') : '<span class="muted">None</span>']]
       .map(([k, v]) => `<div><span class="k">${k}</span>${v}</div>`).join('');

@@ -53,6 +53,15 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    // Serve one mail as a standalone HTML page (for the free screenshot API to render).
+    if (action === 'raw') {
+      const page = await core.getRawHtml({ key: url.searchParams.get('key'), id: url.searchParams.get('id') });
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.status(page ? 200 : 404).send(page || '<!doctype html><title>Not found</title><p>Email not found.</p>');
+      return;
+    }
+
     if (action === 'poll') {
       const now = Date.now();
       const since = now - lastPoll;

@@ -202,54 +202,52 @@ function extractPromoCodes(text) {
 }
 const joinOrNone = (arr) => (arr && arr.length ? arr.join(', ') : NONE);
 
-// ── Visual rendering — FREE full-page screenshot (headless Chromium → Blob) ──
-// puppeteer-core + @sparticuz/chromium render the email HTML to a full-length
-// PNG; @vercel/blob stores it (free) and returns a durable public URL we put in
-// the sheet. No paid service. Requires BLOB_READ_WRITE_TOKEN (auto-set when a
-// Vercel Blob store is connected to the project); without it, screenshots are
-// skipped gracefully (stored as "Pending") — the raw HTML is always stored.
-const PENDING = 'Pending';
-const MAX_SHOTS_PER_RUN = 8; // bound chromium time within the 60s function
+// ── Visual rendering — FREE full-page screenshot, no heavy deps ──────────────
+// Headless Chromium can't be bundled into this serverless function without
+// breaking its cold-start (it exceeds the size/init budget). Instead we render
+// for free WITHOUT bundling a browser:
+//   1. The full raw HTML of every mail is stored in the sheet (col K) and is
+//      served as a standalone page at /api/competitor?action=raw&key=<b64>.
+//   2. We store (col H) a screenshot URL = a free image API (Microlink) pointed
+//      at that page, which renders a full-page PNG on demand — no API key, no
+//      watermark. The dashboard <img>/download just uses that URL.
+// The HTML is the archived source of truth; the screenshot is reproducible.
 
 function wrapHtml(rawHtml) {
   if (/<html[\s>]/i.test(rawHtml)) return rawHtml;
   return `<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:#fff;font-family:Arial,Helvetica,sans-serif;}.__wrap{width:640px;margin:0 auto;}</style></head><body><div class="__wrap">${rawHtml}</div></body></html>`;
 }
 
-let _browser = null;
-async function getBrowser() {
-  if (_browser) return _browser;
-  const chromium = require('@sparticuz/chromium');
-  const puppeteer = require('puppeteer-core');
-  _browser = await puppeteer.launch({
-    args: chromium.args,
-    defaultViewport: { width: 1000, height: 1400 },
-    executablePath: await chromium.executablePath(),
-    headless: chromium.headless,
-  });
-  return _browser;
+// Base URL of this deployment (for the public raw-HTML endpoint).
+function appBaseUrl() {
+  return (process.env.SCREENSHOT_BASE_URL || 'https://vahdam-lifecycle-os.vercel.app').replace(/\/$/, '');
 }
-async function closeBrowser() {
-  if (_browser) { try { await _browser.close(); } catch (e) {} _browser = null; }
+// Stable key for an email → used to look up its HTML at the raw endpoint.
+function emailKey(address, subject, receivedAt) {
+  return Buffer.from(`${address}|${subject}|${receivedAt}`).toString('base64');
+}
+// Free full-page screenshot URL (Microlink) of the raw-HTML page for this mail.
+function screenshotUrlForKey(key) {
+  const rawUrl = `${appBaseUrl()}/api/competitor?action=raw&key=${encodeURIComponent(key)}`;
+  return `https://api.microlink.io/?url=${encodeURIComponent(rawUrl)}&screenshot=true&fullPage=true&meta=false&embed=screenshot.url`;
 }
 
-async function renderScreenshotBuffer(html) {
-  const browser = await getBrowser();
-  const page = await browser.newPage();
-  try {
-    await page.setContent(wrapHtml(html), { waitUntil: 'networkidle0', timeout: 20000 });
-    return await page.screenshot({ fullPage: true, type: 'png' });
-  } finally { await page.close().catch(() => {}); }
-}
-
-async function uploadScreenshot(buf, name) {
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!token) return null;
-  const { put } = require('@vercel/blob');
-  const r = await put(`competitor-screenshots/${name}.png`, buf, {
-    access: 'public', contentType: 'image/png', token, addRandomSuffix: true,
-  });
-  return r.url;
+/** Return a standalone HTML page for one mail (by row id or base64 key). */
+async function getRawHtml(opts) {
+  opts = opts || {};
+  let html = '';
+  if (opts.id) {
+    html = await getEmailHtml(Number(opts.id));
+  } else if (opts.key) {
+    let decoded = '';
+    try { decoded = Buffer.from(String(opts.key), 'base64').toString('utf8'); } catch (e) { decoded = ''; }
+    if (decoded) {
+      const emails = await getAllEmails();
+      const m = emails.find((e) => `${e.senderEmail}|${e.subject}|${e.receivedAt}` === decoded);
+      if (m) html = await getEmailHtml(Number(m.id));
+    }
+  }
+  return html ? wrapHtml(html) : '';
 }
 
 // ── IMAP ingestion ────────────────────────────────────────────────────────────
@@ -296,8 +294,6 @@ async function runSync(limit) {
   await ensureHeaderRow();
   const existing = await getExistingKeys();
   const parsedList = await fetchUnreadEmails(limit || 25);
-  const canShoot = !!process.env.BLOB_READ_WRITE_TOKEN;
-  let shotsRendered = 0;
 
   for (const parsed of parsedList) {
     try {
@@ -314,17 +310,9 @@ async function runSync(limit) {
       const key = `${address}|${subject}|${receivedAt}`;
       if (existing.has(key)) continue;
 
-      // FREE full-page screenshot via headless Chromium → Vercel Blob. Capped
-      // per run to stay within the 60s budget; degrades to "Pending" if Blob
-      // isn't configured yet or a render fails. Raw HTML (col K) is always saved.
-      let screenshotUrl = canShoot ? PENDING : NONE;
-      if (canShoot && shotsRendered < MAX_SHOTS_PER_RUN && fullHtml) {
-        try {
-          const buf = await renderScreenshotBuffer(fullHtml);
-          const url = await uploadScreenshot(buf, `${(normalizeDomain(address) || brand).replace(/[^\w.-]+/g, '_')}_${receivedAt.slice(0, 10)}`);
-          if (url) { screenshotUrl = url; shotsRendered++; }
-        } catch (e) { errors.push(`screenshot(${brand}): ${e.message}`); }
-      }
+      // FREE full-page screenshot URL (Microlink renders the stored HTML page
+      // on demand). No browser bundled here. Raw HTML (col K) is the archive.
+      const screenshotUrl = fullHtml ? screenshotUrlForKey(emailKey(address, subject, receivedAt)) : NONE;
 
       const inlineCount = (parsed.attachments || []).filter((a) => a.contentDisposition === 'inline' || a.cid || a.related).length;
       const attachCount = (parsed.attachments || []).length - inlineCount;
@@ -342,8 +330,7 @@ async function runSync(limit) {
       errors.push((err && err.message) || 'unknown');
     }
   }
-  await closeBrowser();
-  return { ok: true, processed: parsedList.length, appended, shotsRendered, errors, durationMs: Date.now() - started };
+  return { ok: true, processed: parsedList.length, appended, errors, durationMs: Date.now() - started };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -509,7 +496,7 @@ async function discoverBrands(opts) {
 }
 
 module.exports = {
-  getAllEmails, getEmailHtml, runSync, ensureHeaderRow,
+  getAllEmails, getEmailHtml, getRawHtml, runSync, ensureHeaderRow,
   getBrands, appendBrands, seedBrands, discoverBrands,
   DISCOVERY_CATEGORIES, DISCOVERY_GEOS,
   NONE, NO_SCREENSHOT,
