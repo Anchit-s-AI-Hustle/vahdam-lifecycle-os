@@ -17,7 +17,7 @@
     "api/ai/pipeline/score.js":    { "memory": 512,  "maxDuration": 30 },
     "api/calendar/generate.js":      { "memory": 512,  "maxDuration": 30 },
     "api/calendar/trigger-mailer.js":{ "memory": 1024, "maxDuration": 90 },
-    "api/competitor/index.ts":       { "memory": 1024, "maxDuration": 60 },
+    "api/competitor.js":             { "memory": 1024, "maxDuration": 60 },
     "api/public-config.js":          { "memory": 128,  "maxDuration": 3 }
   },
   "rewrites": [

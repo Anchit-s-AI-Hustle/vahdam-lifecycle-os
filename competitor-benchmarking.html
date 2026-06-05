@@ -364,10 +364,9 @@
 
 <script>
 (function () {
-  // Data is served by the Competitor Intelligence Hub (owns the sync engine +
-  // storage of every email's screenshot + raw HTML + attachments). This page is
-  // the UI, reading the hub's API cross-origin (CORS).
-  const HUB = 'https://competitor-intelligence-hub-fawn.vercel.app';
+  // Fully self-contained: data + ingestion run from THIS repo's single
+  // /api/competitor function (no dependency on any other deployment).
+  const API = '/api/competitor';
   const state = { all: [], view: [], sortKey: 'receivedAt', sortDir: 'desc' };
   const $ = (id) => document.getElementById(id);
   const esc = (s) => (s || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -380,7 +379,7 @@
 
   async function fetchHtml(id) {
     if (htmlCache[id] !== undefined) return htmlCache[id];
-    try { const r = await fetch(HUB + '/api/emails/' + encodeURIComponent(id)); const d = await r.json(); htmlCache[id] = (d && typeof d.html === 'string') ? d.html : ''; }
+    try { const r = await fetch(API + '?action=html&id=' + encodeURIComponent(id)); const d = await r.json(); htmlCache[id] = (d && typeof d.html === 'string') ? d.html : ''; }
     catch { htmlCache[id] = ''; }
     return htmlCache[id];
   }
@@ -390,7 +389,7 @@
   // subsequent /api/emails read still works even if poll didn't refresh data.
   async function triggerSync() {
     try {
-      const r = await fetch(HUB + '/api/poll', { cache: 'no-store' });
+      const r = await fetch(API + '?action=poll', { cache: 'no-store' });
       return r.ok ? await r.json().catch(() => null) : null;
     } catch { return null; }
   }
@@ -398,7 +397,7 @@
   async function load() {
     // Pull new mail BEFORE we read the sheet, so first paint already has it.
     await triggerSync();
-    try { const r = await fetch(HUB + '/api/emails'); const d = await r.json(); state.all = d.emails || []; }
+    try { const r = await fetch(API + '?action=list'); const d = await r.json(); state.all = d.emails || []; }
     catch { state.all = []; }
     buildBrandFilter(); renderStats(); apply();
     // If deep-linked to a specific email, render detail view.
@@ -625,7 +624,7 @@
     setLive(true); // Show reconnecting state immediately
     await triggerSync();
     let emails;
-    try { const r = await fetch(HUB + '/api/emails'); const d = await r.json(); emails = d.emails || []; }
+    try { const r = await fetch(API + '?action=list'); const d = await r.json(); emails = d.emails || []; }
     catch { setLive(true); return; }
     const prevBrand = $('brandFilter').value;
     state.all = emails;
