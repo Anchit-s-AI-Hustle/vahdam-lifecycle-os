@@ -14,11 +14,7 @@
  * The actual mail processing reuses the existing IMAP sync. The webhook is
  * just a real-time wake-up signal — no logic duplication.
  */
-import {
-  NextRequest,
-  NextResponse,
-  unstable_after as after,
-} from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { decodePubSubMessage, verifyPubSubJwt } from "@/lib/gmail-oauth";
 
 export const runtime = "nodejs";
@@ -52,25 +48,19 @@ export async function POST(req: NextRequest) {
     }`
   );
 
-  // 3. Trigger the existing sync after the response is sent. Auth via the
-  //    same CRON_SECRET that protects /api/sync-emails so the secret never
-  //    leaves the server.
-  after(async () => {
-    try {
-      const origin = new URL(req.url).origin;
-      const secret = process.env.CRON_SECRET;
-      const resp = await fetch(`${origin}/api/sync-emails`, {
-        method: "POST",
-        headers: secret ? { Authorization: `Bearer ${secret}` } : {},
-      });
-      console.log("[gmail-push] sync triggered, status:", resp.status);
-    } catch (err) {
-      console.error(
-        "[gmail-push] sync trigger failed:",
-        (err as Error).message
-      );
-    }
-  });
+  // 3. Nudge the existing sync. Next 14.2 has no `after()`, so this is a
+  //    fire-and-forget call — we don't await it, keeping the Pub/Sub ack fast.
+  //    Auth via the same CRON_SECRET that protects /api/sync-emails so the
+  //    secret never leaves the server. If this best-effort call is cut short,
+  //    /api/poll and the dashboard's polling provide redundant sync paths.
+  const origin = new URL(req.url).origin;
+  const secret = process.env.CRON_SECRET;
+  void fetch(`${origin}/api/sync-emails`, {
+    method: "POST",
+    headers: secret ? { Authorization: `Bearer ${secret}` } : {},
+  })
+    .then((resp) => console.log("[gmail-push] sync triggered, status:", resp.status))
+    .catch((err) => console.error("[gmail-push] sync trigger failed:", (err as Error).message));
 
   return NextResponse.json({ ok: true });
 }
