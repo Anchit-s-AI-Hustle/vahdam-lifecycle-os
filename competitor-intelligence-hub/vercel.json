@@ -4,11 +4,21 @@
     {
       "path": "/api/sync-emails",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/gmail-watch-refresh",
+      "schedule": "0 3 * * *"
     }
   ],
   "functions": {
     "app/api/sync-emails/route.ts": {
       "maxDuration": 60
+    },
+    "app/api/gmail-watch-refresh/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/gmail-push/route.ts": {
+      "maxDuration": 10
     }
   }
 }

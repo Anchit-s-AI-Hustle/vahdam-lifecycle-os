@@ -74,7 +74,14 @@
   }
   function currentStepId() {
     const p = location.pathname.toLowerCase();
-    for (const s of leafItems()) if ((s.match || []).some((m) => p === m || p.startsWith(m))) return s.id;
+    // Two-pass match: exact first, then prefix — but never prefix-match `/`
+    // (every path starts with `/`, so it would steal every page for Home).
+    for (const s of leafItems()) {
+      if ((s.match || []).some((m) => p === m)) return s.id;
+    }
+    for (const s of leafItems()) {
+      if ((s.match || []).some((m) => m !== '/' && p.startsWith(m + '/'))) return s.id;
+    }
     return 'home';
   }
   // Pages that must never gate behind the login wall.
@@ -88,17 +95,14 @@
   function injectTopbar(user) {
     if (document.getElementById('lifecycle-nav')) return;
     const cur = currentStepId();
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-      || window.navigator.standalone === true;
-    // In a normal browser, open OTHER features in a new tab so the user keeps
-    // their place; in an installed PWA, navigate in place like a native app.
-    const newTab = (isCurrent) => (!isCurrent && !isStandalone) ? ' target="_blank" rel="noopener"' : '';
     const svg = (k) => `<svg class="lnav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ICONS[k] || ''}</svg>`;
 
-    // Build the nav markup: flat items + expandable groups.
+    // Build the nav markup. Internal nav stays in the same tab so the back
+    // button works naturally; external links elsewhere in the app keep their
+    // own target="_blank" where they're declared.
     const linkRow = (item) => {
       const isCur = item.id === cur;
-      return `<a class="lnav-link${isCur ? ' active' : ''}" href="${item.href}"${newTab(isCur)} data-id="${item.id}" title="${item.label}">
+      return `<a class="lnav-link${isCur ? ' active' : ''}" href="${item.href}" data-id="${item.id}" title="${item.label}">
         ${svg(item.icon)}<span class="lnav-txt">${item.label}</span></a>`;
     };
     // Double-layer nav: Tier-1 = top-level features (flat items + group headers),

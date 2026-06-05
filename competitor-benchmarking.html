@@ -9,7 +9,7 @@
   <meta name="theme-color" content="#004A2B">
   <meta name="apple-mobile-web-app-title" content="Lifecycle OS">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <script src="/auth.js?v=20260604" defer></script>
+  <script src="/auth.js?v=20260605" defer></script>
   <script defer src="/_vercel/speed-insights/script.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -45,8 +45,8 @@
     .live .pulse { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: lp 1.8s ease-in-out infinite; }
     @keyframes lp { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
 
-    .table-wrap { background: #0f1d18; border: 1px solid rgba(171,135,67,0.18); border-radius: 14px; overflow: hidden; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .table-wrap { background: #0f1d18; border: 1px solid rgba(171,135,67,0.18); border-radius: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { width: 100%; min-width: 720px; border-collapse: collapse; font-size: 13px; }
     thead th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #5d6e64; font-weight: 600; padding: 12px 14px; border-bottom: 1px solid rgba(171,135,67,0.18); background: #0c1813; }
     thead th.sortable { cursor: pointer; }
     thead th.sortable:hover { color: #cdd8d2; }
@@ -54,6 +54,15 @@
     tbody tr:hover { background: rgba(171,135,67,0.05); }
     .brand { font-weight: 600; color: #FBF5EA; }
     .subj { color: #9aaaa1; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* Touch-friendly tap targets on mobile + swipe hint that there's more table to the right. */
+    @media (max-width: 620px) {
+      .table-wrap { position: relative; }
+      .table-wrap::after { content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 24px;
+        background: linear-gradient(to right, transparent, #0f1d18); pointer-events: none; border-radius: 0 14px 14px 0; }
+      .subj { max-width: 200px; }
+      tbody td, thead th { padding: 10px 11px; }
+      .a-btn { padding: 8px 10px; font-size: 12px; }
+    }
     .date { color: #5d6e64; white-space: nowrap; font-size: 12px; }
     .code { display: inline-block; background: rgba(34,197,94,0.14); color: #86efac; font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 2px 7px; border-radius: 99px; margin: 1px; }
     .files { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: #cdd8d2; background: rgba(171,135,67,0.12); padding: 2px 8px; border-radius: 99px; }
@@ -75,23 +84,44 @@
     .d-section .sh { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
     .d-section .sh h4 { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #5d6e64; font-weight: 600; }
     .d-section .sh .ops { display: flex; gap: 6px; }
-    .frame-wrap { border: 1px solid rgba(171,135,67,0.18); border-radius: 10px; overflow: hidden; background: #fff; }
-    .frame-wrap iframe { width: 100%; border: 0; display: block; background: #fff; }
-    .shot-wrap { border: 1px solid rgba(171,135,67,0.18); border-radius: 10px; overflow: hidden; background: #fff; }
-    .shot-wrap img { width: 100%; display: block; }
+    /* Email HTML is usually authored at 600–640px. On narrow screens we let
+       the user pinch + horizontally swipe inside the rendered frame rather
+       than crushing the layout. */
+    .frame-wrap { border: 1px solid rgba(171,135,67,0.18); border-radius: 10px; overflow: auto; background: #fff; -webkit-overflow-scrolling: touch; }
+    .frame-wrap iframe { width: 100%; min-width: 600px; border: 0; display: block; background: #fff; }
+    .shot-wrap { border: 1px solid rgba(171,135,67,0.18); border-radius: 10px; overflow: auto; background: #fff; -webkit-overflow-scrolling: touch; }
+    .shot-wrap img { width: 100%; max-width: 100%; height: auto; display: block; }
+    @media (max-width: 620px) {
+      .frame-wrap iframe { min-width: 100%; }
+    }
     .ph { padding: 30px; text-align: center; color: #5d6e64; font-size: 12.5px; background: #0c1813; border: 1px dashed rgba(171,135,67,0.2); border-radius: 10px; }
     pre.body { max-height: 240px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; background: #0c1813; border: 1px solid rgba(171,135,67,0.14); border-radius: 10px; padding: 14px; font-family: inherit; font-size: 12.5px; line-height: 1.6; color: #cdd8d2; }
 
     /* ── Preview modal ── */
-    #pm { position: fixed; inset: 0; z-index: 9500; display: none; }
-    #pm.open { display: block; }
-    #pm .bk { position: absolute; inset: 0; background: rgba(0,0,0,0.72); backdrop-filter: blur(6px); }
-    #pm .mc { position: absolute; inset: 4vh 4vw; background: #0b1813; border: 1px solid rgba(171,135,67,0.3); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
-    #pm .mh { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid rgba(171,135,67,0.18); background: #0a1410; }
-    #pm .mh .badge { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #AB8743; border: 1px solid rgba(171,135,67,0.3); padding: 3px 8px; border-radius: 99px; }
-    #pm .mh .t { font-family: 'Lora', serif; font-size: 16px; color: #FBF5EA; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    #pm .mh .sp { flex: 1; }
-    #pm .mb { flex: 1; overflow-y: auto; padding: 18px; }
+    #pm, #jm, #fcm { position: fixed; inset: 0; z-index: 9500; display: none; }
+    #pm.open, #jm.open, #fcm.open { display: block; }
+    #pm .bk, #jm .bk, #fcm .bk { position: absolute; inset: 0; background: rgba(0,0,0,0.72); backdrop-filter: blur(6px); }
+    #pm .mc, #jm .mc, #fcm .mc { position: absolute; inset: 4vh 4vw; background: #0b1813; border: 1px solid rgba(171,135,67,0.3); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+    #jm .mc, #fcm .mc { inset: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 480px; height: auto; max-height: 90vh; }
+    #pm .mh, #jm .mh, #fcm .mh { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid rgba(171,135,67,0.18); background: #0a1410; }
+    #pm .mh .badge, #jm .mh .badge, #fcm .mh .badge { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #AB8743; border: 1px solid rgba(171,135,67,0.3); padding: 3px 8px; border-radius: 99px; }
+    #pm .mh .t, #jm .mh .t, #fcm .mh .t { font-family: 'Lora', serif; font-size: 16px; color: #FBF5EA; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #pm .mh .sp, #jm .mh .sp, #fcm .mh .sp { flex: 1; }
+    #pm .mb, #jm .mb, #fcm .mb { flex: 1; overflow-y: auto; padding: 18px; }
+    .form-grp { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .form-grp label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #5d6e64; font-weight: 600; }
+    .form-grp input, .form-grp select { background: #0a1410; border: 1px solid rgba(171,135,67,0.2); border-radius: 8px; color: #e8ede9; padding: 10px 12px; font-size: 13px; font-family: inherit; width: 100%; }
+    .form-grp input:focus, .form-grp select:focus { outline: none; border-color: #AB8743; }
+    /* On a phone, use the entire screen so the email render gets every pixel. */
+    @media (max-width: 620px) {
+      #pm .mc { inset: 0; border-radius: 0; border: none; }
+      #pm .mh { padding: 10px 12px; gap: 8px; }
+      #pm .mh .badge { display: none; }
+      #pm .mh .t { font-size: 14px; }
+      #pm .mb { padding: 12px; }
+      .pm-act { padding: 7px 10px; font-size: 12px; }
+      .pm-close { width: 32px; height: 32px; }
+    }
     .pm-act { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; font-size: 12.5px; font-weight: 600; text-decoration: none; cursor: pointer; border: none; font-family: inherit; }
     .pm-detail { background: #AB8743; color: #0a1410; }
     .pm-close { background: transparent; border: 1px solid rgba(171,135,67,0.3); color: #cdd8d2; width: 34px; height: 34px; border-radius: 8px; font-size: 18px; }
@@ -141,6 +171,10 @@
       <button class="snav" data-sec="mailers">✉ Mailers</button>
       <button class="snav" data-sec="ads">📣 Ads</button>
     </div>
+    <div style="display: inline-flex; gap: 8px; margin-left: 12px; vertical-align: top; margin-top: 16px;">
+      <button class="snav" style="border: 1px solid rgba(171,135,67,0.3); color: #AB8743;" onclick="document.getElementById('fcm').classList.add('open')">Find more competitors</button>
+      <button class="snav" style="background: #AB8743; color: #0a1410;" onclick="document.getElementById('jm').classList.add('open')">Become a part of their journey</button>
+    </div>
   </div>
 
   <!-- ════ MAILERS (LIST) VIEW ════ -->
@@ -153,11 +187,11 @@
         <input id="search" type="text" placeholder="Search brand, subject, or body…">
       </div>
       <div class="filters">
-        <select id="brandFilter"><option value="">All brands</option></select>
+        <select id="brandFilter"><option value="">All platforms</option></select>
         <label class="chk"><input id="promoOnly" type="checkbox"> Promo only</label>
         <label class="chk"><input id="attachOnly" type="checkbox"> Has files</label>
         <span id="live" class="live" title="Auto-syncs new mail">● Live</span>
-        <button id="refresh" class="btn-ghost" title="Sync now">↻</button>
+        <a class="btn-ghost" href="https://mail.google.com/mail/u/0/#inbox" target="_blank" rel="noopener" title="Open the source inbox in Gmail">Open Gmail ↗</a>
       </div>
     </div>
 
@@ -244,6 +278,63 @@
   </div>
 </div>
 
+<!-- Find More Competitors Modal -->
+<div id="fcm" aria-hidden="true">
+  <div class="bk" onclick="this.parentElement.classList.remove('open')"></div>
+  <div class="mc" role="dialog" aria-modal="true">
+    <div class="mh">
+      <span class="t">Find More Competitors</span>
+      <span class="sp"></span>
+      <button class="pm-act pm-close" onclick="this.closest('#fcm').classList.remove('open')" aria-label="Close">×</button>
+    </div>
+    <div class="mb">
+      <div class="form-grp">
+        <label>Region</label>
+        <select id="fcm-region">
+          <option value="US">United States</option>
+          <option value="GB">United Kingdom</option>
+          <option value="IN">India</option>
+          <option value="AU">Australia</option>
+          <option value="AE">Middle East (UAE)</option>
+          <option value="DE">Europe (DE)</option>
+          <option value="ALL">Worldwide</option>
+        </select>
+      </div>
+      <div class="form-grp">
+        <label>Type of Product(s)</label>
+        <input type="text" id="fcm-products" placeholder="e.g. Loose leaf tea, matcha, teaware...">
+      </div>
+      <div style="margin-top: 24px; text-align: right;">
+        <button class="pm-act pm-detail" onclick="alert('Finding competitors...'); this.closest('#fcm').classList.remove('open')">Find Competitors →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Journey Modal -->
+<div id="jm" aria-hidden="true">
+  <div class="bk" onclick="this.parentElement.classList.remove('open')"></div>
+  <div class="mc" role="dialog" aria-modal="true">
+    <div class="mh">
+      <span class="t">Become a part of their journey</span>
+      <span class="sp"></span>
+      <button class="pm-act pm-close" onclick="this.closest('#jm').classList.remove('open')" aria-label="Close">×</button>
+    </div>
+    <div class="mb" style="display:flex; flex-direction: column; gap: 20px;">
+      <div class="d-section" style="background: rgba(171,135,67,0.05); padding: 16px; border-radius: 12px; border: 1px solid rgba(171,135,67,0.2);">
+        <h4 style="color:#FBF5EA; margin-bottom: 8px;">1. Subscribe to Asset Brands</h4>
+        <p style="font-size: 13px; color: #9aaaa1; margin-bottom: 14px;">Automatically subscribe to competitor email lists to capture their assets and marketing sequences.</p>
+        <button class="pm-act" style="background: transparent; border: 1px solid rgba(171,135,67,0.5); color: #cdd8d2; width: 100%; justify-content: center;" onclick="alert('Subscribing...');">Explore more Competitors</button>
+      </div>
+      <div class="d-section" style="background: rgba(171,135,67,0.05); padding: 16px; border-radius: 12px; border: 1px solid rgba(171,135,67,0.2);">
+        <h4 style="color:#FBF5EA; margin-bottom: 8px;">2. Simulate Customer Actions</h4>
+        <p style="font-size: 13px; color: #9aaaa1; margin-bottom: 14px;">Visit, add/remove products from cart, and perform actions for real-time segmentation to capture conditional campaigns.</p>
+        <button class="pm-act pm-detail" style="width: 100%; justify-content: center;" onclick="alert('Starting journey simulation...');">Become a part of their journey</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Preview modal -->
 <div id="pm" aria-hidden="true">
   <div class="bk" data-close></div>
@@ -282,7 +373,19 @@
     return htmlCache[id];
   }
 
+  // Force a server-side sync (IMAP pull → sheet append). Public + rate-limited
+  // on the server (30s throttle). Returns silently on any failure — the
+  // subsequent /api/emails read still works even if poll didn't refresh data.
+  async function triggerSync() {
+    try {
+      const r = await fetch(HUB + '/api/poll', { cache: 'no-store' });
+      return r.ok ? await r.json().catch(() => null) : null;
+    } catch { return null; }
+  }
+
   async function load() {
+    // Pull new mail BEFORE we read the sheet, so first paint already has it.
+    await triggerSync();
     try { const r = await fetch(HUB + '/api/emails'); const d = await r.json(); state.all = d.emails || []; }
     catch { state.all = []; }
     buildBrandFilter(); renderStats(); apply();
@@ -293,7 +396,7 @@
 
   function buildBrandFilter() {
     const brands = [...new Set(state.all.map((e) => e.brand))].sort();
-    $('brandFilter').innerHTML = '<option value="">All brands</option>' + brands.map((b) => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
+    $('brandFilter').innerHTML = '<option value="">All platforms</option>' + brands.map((b) => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
   }
   function renderStats() {
     const all = state.all;
@@ -434,12 +537,48 @@
   const DEFAULT_BRANDS = ['Teabox', 'Tea Forte', 'Twinings', 'Harney & Sons', 'Art of Tea', 'The Republic of Tea'];
   const adBrands = () => { try { return JSON.parse(localStorage.getItem(ADS_KEY)) || DEFAULT_BRANDS.slice(); } catch { return DEFAULT_BRANDS.slice(); } };
   const saveBrands = (list) => localStorage.setItem(ADS_KEY, JSON.stringify(list));
+  // Build deep-link URLs that pre-fill the brand name (always) and the
+  // region (only when explicitly chosen). When the user picks "All
+  // countries", we drop the region param so the source shows worldwide
+  // results — matching how Meta Ad Library behaves with country=ALL.
   function adSources(brand, region) {
+    const hasRegion = !!region && region !== 'ALL';
     const q = encodeURIComponent(brand);
+
+    // Meta Ad Library — country=ALL means worldwide; only set it when
+    // we're filtering. Brand passed via `q` (the official param).
+    const metaParams = new URLSearchParams({
+      active_status: 'all',
+      ad_type: 'all',
+      country: hasRegion ? region : 'ALL',
+      q: brand,
+      search_type: 'keyword_unordered',
+      media_type: 'all',
+    });
+    const metaUrl = `https://www.facebook.com/ads/library/?${metaParams}`;
+
+    // Google Ads Transparency — region defaults to "anywhere" (their
+    // worldwide value) when not specified. `query` is the brand keyword
+    // the page's search box reads on load.
+    const googleParams = new URLSearchParams({
+      region: hasRegion ? region : 'anywhere',
+      query: brand,
+    });
+    const googleUrl = `https://adstransparency.google.com/?${googleParams}`;
+
+    // TikTok Creative Center — Top Ads inspiration view, filtered by
+    // brand keyword. Region only appended when the user specified one.
+    const tiktokParams = new URLSearchParams({
+      period: '30',
+      keyword: brand,
+    });
+    if (hasRegion) tiktokParams.set('region', region);
+    const tiktokUrl = `https://ads.tiktok.com/business/creativecenter/inspiration/topads/pc/en?${tiktokParams}`;
+
     return [
-      { label: 'Meta Ad Library', cls: 'src-meta', ic: 'f', url: `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=${region}&q=${q}&search_type=keyword_unordered&media_type=all` },
-      { label: 'Google Ads Transparency', cls: 'src-google', ic: 'G', url: `https://adstransparency.google.com/?region=${region === 'ALL' ? 'anywhere' : region}&query=${q}` },
-      { label: 'TikTok Creative Center', cls: 'src-tiktok', ic: 'T', url: `https://ads.tiktok.com/business/creativecenter/inspiration/topads/pc/en?period=30${region === 'ALL' ? '' : '&region=' + region}` },
+      { label: 'Meta Ad Library', cls: 'src-meta', ic: 'f', url: metaUrl },
+      { label: 'Google Ads Transparency', cls: 'src-google', ic: 'G', url: googleUrl },
+      { label: 'TikTok Creative Center', cls: 'src-tiktok', ic: 'T', url: tiktokUrl },
     ];
   }
   function renderAds() {
@@ -469,13 +608,17 @@
     el.innerHTML = `<span class="pulse"></span> ${stale ? 'Reconnecting…' : 'Live · ' + t}`;
   }
   async function quietRefresh() {
+    // Wait for the sync to complete so we don't fetch stale emails and
+    // mess up the email count sync flow.
+    setLive(true); // Show reconnecting state immediately
+    await triggerSync();
     let emails;
     try { const r = await fetch(HUB + '/api/emails'); const d = await r.json(); emails = d.emails || []; }
     catch { setLive(true); return; }
     const prevBrand = $('brandFilter').value;
     state.all = emails;
     const brands = [...new Set(emails.map((e) => e.brand))].sort();
-    $('brandFilter').innerHTML = '<option value="">All brands</option>' + brands.map((b) => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
+    $('brandFilter').innerHTML = '<option value="">All platforms</option>' + brands.map((b) => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
     $('brandFilter').value = brands.includes(prevBrand) ? prevBrand : '';
     renderStats();
     if (!document.body.classList.contains('detail-mode')) apply();
@@ -487,7 +630,6 @@
 
   // Events
   ['search', 'brandFilter', 'promoOnly', 'attachOnly'].forEach((id) => $(id).addEventListener(id === 'search' ? 'input' : 'change', apply));
-  $('refresh').addEventListener('click', () => { setLive(false); quietRefresh(); });
   document.querySelectorAll('th[data-sort]').forEach((th) => th.addEventListener('click', () => {
     const k = th.dataset.sort;
     if (state.sortKey === k) state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';

@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lifecycle OS">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
-<script src="/auth.js?v=20260604" defer></script>
+<script src="/auth.js?v=20260605" defer></script>
 <script defer src="/_vercel/speed-insights/script.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -76,15 +76,20 @@
   .btn-solid:hover { opacity: 0.92; }
   .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  .strip {
-    margin: 40px 0 8px; padding: 24px 26px; border-radius: 16px;
+  .flow {
+    margin: 36px 0 8px; padding: 22px 24px; border-radius: 16px;
     background: rgba(171,135,67,0.04); border: 1px solid rgba(171,135,67,0.15);
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;
   }
-  @media (max-width: 720px) { .strip { grid-template-columns: repeat(2, 1fr); } }
-  .stat-val { font-family: 'Lora', serif; font-size: 26px; font-weight: 600; }
-  .stat-val em { font-style: italic; color: #AB8743; }
-  .stat-label { font-size: 10.5px; color: #9aaaa1; text-transform: uppercase; letter-spacing: 0.12em; margin-top: 4px; }
+  .flow-row { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+  .flow-step { font-size: 13.5px; color: #cdd8d2; }
+  .flow-step b { color: #AB8743; font-weight: 700; margin-right: 6px; font-family: 'Lora', serif; }
+  .flow-arrow { color: #5d6e64; font-size: 14px; }
+  .flow-tip { font-size: 12px; color: #9aaaa1; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(171,135,67,0.12); }
+  .flow-tip b { color: #FBF5EA; font-weight: 600; }
+  @media (max-width: 620px) {
+    .flow-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .flow-arrow { display: none; }
+  }
 
   .foot { margin-top: 36px; padding-top: 22px; border-top: 1px solid rgba(171,135,67,0.15);
     font-size: 11px; color: #5d6e64; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
@@ -126,27 +131,30 @@
 
   <section class="hero">
     <div class="eyebrow">VAHDAM · Lifecycle OS</div>
-    <h1>One workspace for the <em>full retention engine</em>.</h1>
+    <h1>All your email work, <em>in one app</em>.</h1>
     <p class="lede">
-      Read your <b>campaign + customer + order data</b>, watch what <b>competitors send</b>,
-      plan and write every <b>email</b>, and run <b>paid campaigns &amp; landing pages</b> — all from one place.
-      Open any feature in a quick <b>Preview</b>, or jump straight to the full tool with <b>View in Detail</b>.
+      See your data. Watch competitors. Plan the month. Write the emails. Run the ads.
     </p>
   </section>
 
-  <div class="section-label">Features</div>
+  <div class="section-label">What's inside</div>
   <div class="grid" id="feature-grid"></div>
 
-  <section class="strip">
-    <div><div class="stat-val">5 <em>features</em></div><div class="stat-label">One unified app</div></div>
-    <div><div class="stat-val">9 <em>segments</em></div><div class="stat-label">RFM + overlays</div></div>
-    <div><div class="stat-val">4 <em>variants</em></div><div class="stat-label">Per planned send</div></div>
-    <div><div class="stat-val">4 <em>markets</em></div><div class="stat-label">US · UK · India · Global</div></div>
+  <section class="flow">
+    <div class="flow-row">
+      <span class="flow-step"><b>1.</b> Look at your data</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step"><b>2.</b> Plan a month</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step"><b>3.</b> Write the emails</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step"><b>4.</b> Send & compare</span>
+    </div>
+    <div class="flow-tip">Each card has two buttons. <b>Open →</b> goes to the full tool. <b>◱ Preview</b> opens a quick look right here.</div>
   </section>
 
   <footer class="foot">
-    <div>© VAHDAM India · Lifecycle OS · <code>v2.0</code> · unified workspace</div>
-    <div>Preview any feature, or open it in detail from the left nav.</div>
+    <div>© VAHDAM India · Lifecycle OS · <code>v2.0</code></div>
   </footer>
 </div>
 
@@ -183,23 +191,23 @@
 
   const FEATURES = [
     { icon: 'analysis',   title: 'Data Analysis',           href: '/dashboard.html',
-      desc: 'RFM segmentation, cohort retention, channel mix and cross-sell — on the seeded data, your own uploads, or a linked database.',
-      subs: ['Upload CSV / XLSX on top of seed data', 'Link a database — scoped analysis', '9 RFM segments · 10 auto-insights'] },
+      desc: 'See who buys, who drifts, and what to send next.',
+      subs: ['Drop in a CSV or link your database', 'See your best & at-risk customers', 'Auto-suggested next moves'] },
     { icon: 'competitor', title: 'Competitor Benchmarking', href: '/competitor-benchmarking.html',
-      desc: 'Every competitor email captured automatically — subject, promo codes, full HTML and a screenshot stored for each and every mail.',
-      subs: ['Screenshots + raw HTML per email', 'Promo-code & cadence tracking', 'Filter by brand, promo, files'] },
+      desc: 'Every email your competitors send — captured for you, automatically.',
+      subs: ['New mail synced as it arrives', 'Promo codes flagged on every email', 'Search any brand · open in Gmail'] },
     { icon: 'calendar',   title: 'Marketing Calendar',      href: '/calendar.html', group: 'Marketing Mailers',
-      desc: 'A 30-day plan: which mailer goes to which segment, in which market, on which day. Festivals and send-times auto-tuned.',
-      subs: ['Segment capacity guardrails', 'Festival-weighted archetypes', 'One-click → build the mailer'] },
+      desc: 'A 30-day email plan, built by AI in seconds.',
+      subs: ['One day · one email', 'Festivals & best send times built in', 'Click a day → build that email'] },
     { icon: 'mailer',     title: 'Mailer Studio',           href: '/studio', group: 'Marketing Mailers',
-      desc: 'The 6-LLM cascade pipeline. Two types, two variants each — brand-locked palette, voice and layout, export-ready HTML.',
-      subs: ['Editorial Hero + Narrative variants', '11 layout archetypes, region URLs', 'Score + audit + export HTML'] },
+      desc: 'Type a brief. Get a brand-perfect email, ready to send.',
+      subs: ['Two design variants per brief', 'Brand voice, palette & layout locked', 'Export ready-to-send HTML'] },
     { icon: 'ads',        title: 'Ad Campaigns',            href: '/ad-campaigns.html', group: 'Ad Campaigns',
-      desc: 'Plan and brief paid campaigns across Google and Meta from one calendar, with creative and copy aligned to the brand system.',
-      subs: ['Calendar across all channels', 'Google · Meta · more', 'Brief + creative generation'] },
+      desc: 'Plan Google and Meta ads on the same calendar as your emails.',
+      subs: ['AI-written briefs and copy', 'Google · Meta · more', 'Linked to each landing page'] },
     { icon: 'landing',    title: 'Landing Pages',           href: '/ad-campaigns.html#landing', group: 'Ad Campaigns',
-      desc: 'Build campaign landing pages in the same brand system, linked to the ad campaigns that drive traffic to them.',
-      subs: ['Brand-locked page builder', 'Tied to ad campaigns', 'Export-ready HTML'] },
+      desc: 'Build landing pages that match your campaigns — same brand, same look.',
+      subs: ['Same brand voice & palette', 'Linked to the ad that drives traffic', 'Export ready HTML'] },
   ];
 
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
@@ -213,8 +221,8 @@
       <p>${f.desc}</p>
       <ul class="card-subs">${f.subs.map((s) => `<li>${s}</li>`).join('')}</ul>
       <div class="card-ctas">
-        <button class="btn btn-ghost" data-preview="${i}">◱ Preview</button>
-        <a class="btn btn-solid" href="${f.href}"${isStandalone ? '' : ' target="_blank" rel="noopener"'}>View in Detail →</a>
+        <a class="btn btn-solid" href="${f.href}">Open →</a>
+        <button class="btn btn-ghost" data-preview="${i}" title="Quick look without leaving this page">◱ Preview</button>
       </div>
     </div>`).join('');
 
