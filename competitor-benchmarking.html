@@ -34,7 +34,9 @@
     .search input { width: 100%; background: #0a1410; border: 1px solid rgba(171,135,67,0.2); border-radius: 9px; color: #e8ede9; padding: 9px 11px 9px 34px; font-size: 13px; font-family: inherit; }
     .search input:focus { outline: none; border-color: #AB8743; }
     .search svg { position: absolute; left: 10px; top: 9px; width: 16px; height: 16px; color: #5d6e64; }
-    .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .toolbar { row-gap: 14px; column-gap: 18px; }
+    .filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .filters .live { margin-left: 4px; padding-left: 14px; border-left: 1px solid rgba(171,135,67,0.18); }
     select, .chk { background: #0a1410; border: 1px solid rgba(171,135,67,0.2); border-radius: 9px; color: #e8ede9; padding: 8px 11px; font-size: 12.5px; font-family: inherit; }
     .chk { display: flex; align-items: center; gap: 6px; cursor: pointer; color: #cdd8d2; }
     .chk input { accent-color: #AB8743; }
@@ -126,11 +128,19 @@
     .pm-detail { background: #AB8743; color: #0a1410; }
     .pm-close { background: transparent; border: 1px solid rgba(171,135,67,0.3); color: #cdd8d2; width: 34px; height: 34px; border-radius: 8px; font-size: 18px; }
 
-    /* ── Section sub-nav (Mailers | Ads) ── */
-    .subnav { display: inline-flex; gap: 4px; margin-top: 16px; padding: 4px; background: #0f1d18; border: 1px solid rgba(171,135,67,0.18); border-radius: 10px; }
+    /* ── Section sub-nav (Mailers | Ads) + header CTAs ── */
+    .cb-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px 20px; margin-top: 22px; }
+    .subnav { display: inline-flex; gap: 4px; padding: 4px; background: #0f1d18; border: 1px solid rgba(171,135,67,0.18); border-radius: 10px; }
     .snav { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 7px; font-size: 13px; font-weight: 600; color: #9aaaa1; background: transparent; border: none; cursor: pointer; font-family: inherit; transition: all .14s; }
     .snav:hover { color: #e8ede9; }
     .snav.active { color: #FBF5EA; background: rgba(171,135,67,0.16); }
+    .cb-cta-group { display: flex; flex-wrap: wrap; gap: 10px; }
+    .cb-cta { padding: 9px 18px; border-radius: 9px; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; border: 1px solid transparent; transition: all .14s; white-space: nowrap; }
+    .cb-cta-ghost { background: transparent; border-color: rgba(171,135,67,0.3); color: #AB8743; }
+    .cb-cta-ghost:hover { border-color: #AB8743; color: #FBF5EA; }
+    .cb-cta-solid { background: #AB8743; color: #0a1410; }
+    .cb-cta-solid:hover { opacity: 0.92; }
+    @media (max-width: 620px) { .cb-actions { gap: 12px; } .cb-cta-group { width: 100%; } .cb-cta { flex: 1; text-align: center; } }
 
     /* ── Ads view ── */
     #ads-view { display: none; margin-top: 22px; }
@@ -167,13 +177,15 @@
     <div class="eyebrow"><span class="dot"></span> Competitor Intelligence</div>
     <h1>Competitor <em>Benchmarking</em></h1>
     <div class="sub" id="cb-sub">Every competitor email captured automatically — subject, promo codes, the full HTML and a screenshot stored for each and every mail.</div>
-    <div class="subnav" id="subnav">
-      <button class="snav" data-sec="mailers">✉ Mailers</button>
-      <button class="snav" data-sec="ads">📣 Ads</button>
-    </div>
-    <div style="display: inline-flex; gap: 8px; margin-left: 12px; vertical-align: top; margin-top: 16px;">
-      <button class="snav" style="border: 1px solid rgba(171,135,67,0.3); color: #AB8743;" onclick="document.getElementById('fcm').classList.add('open')">Find more competitors</button>
-      <button class="snav" style="background: #AB8743; color: #0a1410;" onclick="document.getElementById('jm').classList.add('open')">Become a part of their journey</button>
+    <div class="cb-actions">
+      <div class="subnav" id="subnav">
+        <button class="snav" data-sec="mailers">✉ Mailers</button>
+        <button class="snav" data-sec="ads">📣 Ads</button>
+      </div>
+      <div class="cb-cta-group">
+        <button class="cb-cta cb-cta-ghost" onclick="document.getElementById('fcm').classList.add('open')">Find more competitors</button>
+        <button class="cb-cta cb-cta-solid" onclick="document.getElementById('jm').classList.add('open')">Become a part of their journey</button>
+      </div>
     </div>
   </div>
 
