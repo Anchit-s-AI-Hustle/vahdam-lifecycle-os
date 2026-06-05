@@ -31,6 +31,8 @@
     { "source": "/competitor", "destination": "/competitor-benchmarking.html" },
     { "source": "/ads",        "destination": "/ad-campaigns.html" },
     { "source": "/landing",    "destination": "/ad-campaigns.html" },
+    { "source": "/knowledge-base", "destination": "/knowledge-base.html" },
+    { "source": "/kb",         "destination": "/knowledge-base.html" },
     { "source": "/api/health", "destination": "/api/public-config?health=1" }
   ],
   "headers": [

@@ -43,6 +43,7 @@
     google:     '<circle cx="12" cy="12" r="8"/><path d="M12 8h7"/><path d="M12 12h6"/>',
     meta:       '<path d="M4 16c2-7 4-8 5-8 2 0 3 4 3 4s1-4 3-4c1 0 3 1 5 8"/>',
     landing:    '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/>',
+    kb:         '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M19 17H6a2 2 0 0 0-2 2"/>',
   };
   const NAV = [
     { id: 'home',       label: 'Home',          href: '/',               icon: 'home',     match: ['/', '/index.html'] },
@@ -63,6 +64,10 @@
       { id: 'ads-google',  label: 'Google Ads',    href: '/ad-campaigns.html#google',   icon: 'google' },
       { id: 'ads-meta',    label: 'Meta Ads',      href: '/ad-campaigns.html#meta',     icon: 'meta' },
       { id: 'ads-landing', label: 'Landing Pages', href: '/ad-campaigns.html#landing',  icon: 'landing',  match: ['/landing'] },
+    ]},
+    { group: 'Knowledge Base', icon: 'kb', children: [
+      { id: 'kb-vahdam',     label: 'VAHDAM',     href: '/knowledge-base.html#vahdam',     icon: 'mailer', match: ['/knowledge-base.html', '/kb'] },
+      { id: 'kb-competitor', label: 'Competitor', href: '/knowledge-base.html#competitor', icon: 'competitor' },
     ]},
   ];
 
