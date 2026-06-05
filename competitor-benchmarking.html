@@ -238,6 +238,7 @@
       </div></div>
       <div id="dv-html-wrap"></div>
     </div>
+    <div id="dv-shot"></div>
     <div class="d-section">
       <h4 style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:#5d6e64;font-weight:600;margin-bottom:8px">Body (plain text)</h4>
       <pre class="body" id="dv-body"></pre>
@@ -480,13 +481,16 @@
     const htmlBlock = html
       ? `<div class="frame-wrap"><iframe sandbox="" style="height:${big ? 720 : 420}px" srcdoc="${esc(html)}"></iframe></div>`
       : `<div class="ph">Raw HTML not stored for this email (captured before HTML storage was enabled).</div>`;
+    const shotBlock = isHttp(e.screenshotUrl)
+      ? `<div class="d-section"><div class="sh"><h4>Full-mailer screenshot</h4><div class="ops"><a class="a-btn a-prev" href="${esc(e.screenshotUrl)}" target="_blank" rel="noopener">Open ↗</a><a class="a-btn a-prev" href="${esc(e.screenshotUrl)}" download>Download</a></div></div><div class="shot-wrap" style="max-height:${big ? 'none' : '420px'};overflow:auto"><img src="${esc(e.screenshotUrl)}" alt="full mailer screenshot"></div></div>`
+      : (e.screenshotUrl === 'Pending' ? `<div class="d-section"><div class="sh"><h4>Full-mailer screenshot</h4></div><div class="ph">Screenshot pending — will appear after the next sync once Vercel Blob is connected.</div></div>` : '');
     const meta = [['Sender', esc(e.senderEmail) || '—'], ['Received', esc(fmtDate(e.receivedAt))],
       ['Promo', codes.length ? codes.map((c) => `<span class="code">${esc(c)}</span>`).join('') : '<span class="muted">None</span>']]
       .map(([k, v]) => `<div><span class="k">${k}</span>${v}</div>`).join('');
     const assets = (att.length || inl.length)
       ? `${att.length ? `<h4 style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#5d6e64;margin-bottom:6px">📎 Attachments</h4><div style="margin-bottom:10px">${linkBtns(att)}</div>` : ''}${inl.length ? `<h4 style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#5d6e64;margin-bottom:6px">🖼 Inline images</h4><div>${linkBtns(inl)}</div>` : ''}`
       : '';
-    return { meta, htmlBlock, assets, body: e.bodyText || '—' };
+    return { meta, htmlBlock, shotBlock, assets, body: e.bodyText || '—' };
   }
 
   // ── Preview modal ──────────────────────────────────────────────────
@@ -502,6 +506,7 @@
     $('pm-body').innerHTML = `
       <div class="d-meta">${b.meta}</div>
       <div class="d-section"><div class="sh"><h4>Email (as received)</h4></div>${b.htmlBlock}</div>
+      ${b.shotBlock}
       <div class="d-section"><div class="sh"><h4>Body (plain text)</h4></div><pre class="body">${esc(b.body)}</pre></div>
       ${b.assets ? `<div class="d-section">${b.assets}</div>` : ''}`;
   }
@@ -520,6 +525,7 @@
     const b = emailBlocks(e, html, { big: true });
     $('dv-meta').innerHTML = b.meta;
     $('dv-html-wrap').innerHTML = b.htmlBlock;
+    $('dv-shot').innerHTML = b.shotBlock;
     $('dv-body').textContent = b.body;
     $('dv-assets').innerHTML = b.assets;
     $('dv-html-open').onclick = () => { if (!html) return alert('Raw HTML not stored.'); const w = window.open('', '_blank'); if (w) { w.document.open(); w.document.write(html); w.document.close(); } };
