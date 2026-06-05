@@ -230,31 +230,18 @@
     <div class="eyebrow"><span class="dot"></span> <span id="dv-brand"></span></div>
     <h1 id="dv-subject" style="font-size:24px"></h1>
     <div class="d-meta" id="dv-meta" style="margin-top:14px"></div>
-    <div class="detail-grid">
-      <div>
-        <div class="d-section">
-          <div class="sh"><h4>Email (as received)</h4><div class="ops">
-            <button class="a-btn a-prev" id="dv-html-open">Open</button>
-            <button class="a-btn a-prev" id="dv-html-dl">Download .html</button>
-          </div></div>
-          <div id="dv-html-wrap"></div>
-        </div>
-        <div class="d-section">
-          <h4 style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:#5d6e64;font-weight:600;margin-bottom:8px">Body (plain text)</h4>
-          <pre class="body" id="dv-body"></pre>
-        </div>
-      </div>
-      <div>
-        <div class="d-section">
-          <div class="sh"><h4>Full screenshot</h4><div class="ops" id="dv-shot-ops" style="display:none">
-            <button class="a-btn a-prev" id="dv-shot-open">Open</button>
-            <button class="a-btn a-prev" id="dv-shot-dl">Download</button>
-          </div></div>
-          <div id="dv-shot-wrap"></div>
-        </div>
-        <div class="d-section" id="dv-assets"></div>
-      </div>
+    <div class="d-section">
+      <div class="sh"><h4>Email (as received)</h4><div class="ops">
+        <button class="a-btn a-prev" id="dv-html-open">Open in new tab</button>
+        <button class="a-btn a-prev" id="dv-html-dl">Download .html</button>
+      </div></div>
+      <div id="dv-html-wrap"></div>
     </div>
+    <div class="d-section">
+      <h4 style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:#5d6e64;font-weight:600;margin-bottom:8px">Body (plain text)</h4>
+      <pre class="body" id="dv-body"></pre>
+    </div>
+    <div class="d-section" id="dv-assets"></div>
   </div>
 
   <!-- ════ ADS VIEW ════ -->
@@ -463,18 +450,15 @@
     const att = splitLinks(e.attachmentUrls), inl = splitLinks(e.inlineImageUrls);
     const linkBtns = (arr) => arr.map((u, i) => `<a href="${esc(u)}" target="_blank" rel="noopener" class="a-btn a-prev" style="margin:2px">File ${i + 1} ↗</a>`).join('');
     const htmlBlock = html
-      ? `<div class="frame-wrap"><iframe sandbox="" style="height:${big ? 620 : 360}px" srcdoc="${esc(html)}"></iframe></div>`
-      : `<div class="ph">Raw HTML not stored for this email.</div>`;
-    const shotBlock = isHttp(e.screenshotUrl)
-      ? `<div class="shot-wrap" style="max-height:${big ? 'none' : '360px'};overflow:auto"><img src="${esc(e.screenshotUrl)}" alt="screenshot"></div>`
-      : `<div class="ph">No screenshot stored for this email.</div>`;
+      ? `<div class="frame-wrap"><iframe sandbox="" style="height:${big ? 720 : 420}px" srcdoc="${esc(html)}"></iframe></div>`
+      : `<div class="ph">Raw HTML not stored for this email (captured before HTML storage was enabled).</div>`;
     const meta = [['Sender', esc(e.senderEmail) || '—'], ['Received', esc(fmtDate(e.receivedAt))],
       ['Promo', codes.length ? codes.map((c) => `<span class="code">${esc(c)}</span>`).join('') : '<span class="muted">None</span>']]
       .map(([k, v]) => `<div><span class="k">${k}</span>${v}</div>`).join('');
     const assets = (att.length || inl.length)
       ? `${att.length ? `<h4 style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#5d6e64;margin-bottom:6px">📎 Attachments</h4><div style="margin-bottom:10px">${linkBtns(att)}</div>` : ''}${inl.length ? `<h4 style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#5d6e64;margin-bottom:6px">🖼 Inline images</h4><div>${linkBtns(inl)}</div>` : ''}`
       : '';
-    return { meta, htmlBlock, shotBlock, assets, body: e.bodyText || '—' };
+    return { meta, htmlBlock, assets, body: e.bodyText || '—' };
   }
 
   // ── Preview modal ──────────────────────────────────────────────────
@@ -489,10 +473,7 @@
     const b = emailBlocks(e, html, { big: false });
     $('pm-body').innerHTML = `
       <div class="d-meta">${b.meta}</div>
-      <div class="detail-grid">
-        <div class="d-section"><div class="sh"><h4>Email (as received)</h4></div>${b.htmlBlock}</div>
-        <div class="d-section"><div class="sh"><h4>Screenshot</h4></div>${b.shotBlock}</div>
-      </div>
+      <div class="d-section"><div class="sh"><h4>Email (as received)</h4></div>${b.htmlBlock}</div>
       <div class="d-section"><div class="sh"><h4>Body (plain text)</h4></div><pre class="body">${esc(b.body)}</pre></div>
       ${b.assets ? `<div class="d-section">${b.assets}</div>` : ''}`;
   }
@@ -511,14 +492,10 @@
     const b = emailBlocks(e, html, { big: true });
     $('dv-meta').innerHTML = b.meta;
     $('dv-html-wrap').innerHTML = b.htmlBlock;
-    $('dv-shot-wrap').innerHTML = b.shotBlock;
     $('dv-body').textContent = b.body;
     $('dv-assets').innerHTML = b.assets;
-    $('dv-shot-ops').style.display = isHttp(e.screenshotUrl) ? 'flex' : 'none';
     $('dv-html-open').onclick = () => { if (!html) return alert('Raw HTML not stored.'); const w = window.open('', '_blank'); if (w) { w.document.open(); w.document.write(html); w.document.close(); } };
     $('dv-html-dl').onclick = () => { if (!html) return alert('Raw HTML not stored.'); downloadBlob(html, 'text/html', `${slug(e.brand)}_${slug(e.subject)}.html`); };
-    $('dv-shot-open').onclick = () => isHttp(e.screenshotUrl) && window.open(e.screenshotUrl, '_blank');
-    $('dv-shot-dl').onclick = async () => { try { const r = await fetch(e.screenshotUrl); const bl = await r.blob(); downloadBlob(bl, bl.type || 'image/png', `${slug(e.brand)}_screenshot.png`); } catch { window.open(e.screenshotUrl, '_blank'); } };
   }
 
   function downloadBlob(content, type, filename) {

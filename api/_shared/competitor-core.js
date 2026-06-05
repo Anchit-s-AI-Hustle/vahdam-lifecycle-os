@@ -202,28 +202,12 @@ function extractPromoCodes(text) {
 }
 const joinOrNone = (arr) => (arr && arr.length ? arr.join(', ') : NONE);
 
-// ── Screenshot (HCTI hosted URL — stored directly, no Drive needed) ──────────
-function wrapHtml(rawHtml) {
-  if (/<html[\s>]/i.test(rawHtml)) return rawHtml;
-  return `<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:#fff;font-family:Arial,Helvetica,sans-serif;}.__wrap{width:640px;margin:0 auto;}</style></head><body><div class="__wrap">${rawHtml}</div></body></html>`;
-}
-async function renderScreenshotUrl(html) {
-  if (!html || !html.trim()) return null;
-  const userId = process.env.HCTI_USER_ID;
-  const apiKey = process.env.HCTI_API_KEY;
-  if (!userId || !apiKey) return null;
-  try {
-    const auth = Buffer.from(`${userId}:${apiKey}`).toString('base64');
-    const res = await fetch('https://hcti.io/v1/image', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Basic ${auth}` },
-      body: JSON.stringify({ html: wrapHtml(html), ms_delay: 500 }),
-    });
-    if (!res.ok) { console.error('[competitor] HCTI failed', res.status); return null; }
-    const data = await res.json();
-    return data && data.url ? data.url : null;
-  } catch (e) { console.error('[competitor] screenshot error', e.message); return null; }
-}
+// ── Visual rendering ──────────────────────────────────────────────────────────
+// We store the FULL raw HTML per mail (column K) and the dashboard renders it
+// live in a sandboxed iframe — a free, exact, on-demand view of the email. No
+// paid screenshot service (HCTI removed). A server-side PNG/PDF (Playwright)
+// is the future self-hosted path, but belongs in an off-request queue+worker
+// (PRD §8.1), not inside this 12-function, 60s serverless endpoint.
 
 // ── IMAP ingestion ────────────────────────────────────────────────────────────
 function imapConfig() {
@@ -285,13 +269,9 @@ async function runSync(limit) {
       const key = `${address}|${subject}|${receivedAt}`;
       if (existing.has(key)) continue;
 
-      // Image: HCTI hosted URL (stored directly). Inline/attachment file storage
-      // deferred (service-account Drive has no quota on personal accounts; see PRD §8.4).
-      let screenshotUrl = NO_SCREENSHOT;
-      try {
-        const url = await renderScreenshotUrl(fullHtml);
-        if (url) screenshotUrl = url;
-      } catch (e) { errors.push(`screenshot(${brand}): ${e.message}`); }
+      // No paid screenshot service — the stored raw HTML (col K) is the source
+      // of truth and the dashboard renders it live. Column kept for compat.
+      const screenshotUrl = NONE;
 
       const inlineCount = (parsed.attachments || []).filter((a) => a.contentDisposition === 'inline' || a.cid || a.related).length;
       const attachCount = (parsed.attachments || []).length - inlineCount;
