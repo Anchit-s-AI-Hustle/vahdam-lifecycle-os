@@ -350,9 +350,17 @@ const BRAND_COLUMNS = [
   'Confirmation Required', 'Confirmation Completed', 'Source', 'Added At',
 ];
 
-// Priority seed brands (Prompt 1). Inserted on demand so the DB is never empty.
+// Our OWN brand domains — never treated as competitors (excluded from seed,
+// discovery, and display).
+const OWN_DOMAINS = ['vahdamteas.com', 'vahdamindia.com', 'vahdam.com'];
+function isOwnBrand(domainOrUrl) {
+  const d = normalizeDomain(domainOrUrl);
+  return OWN_DOMAINS.some((o) => d === o || d.endsWith('.' + o));
+}
+
+// Priority seed brands (Prompt 1) — VAHDAM is the reference, NOT a competitor,
+// so it is intentionally excluded.
 const SEED_BRANDS = [
-  { brandName: 'VAHDAM', websiteUrl: 'https://www.vahdamteas.com', category: 'Tea', country: 'Global', positioning: 'Premium' },
   { brandName: 'Pique', websiteUrl: 'https://www.piquelife.com', category: 'Tea', country: 'United States', positioning: 'Premium' },
   { brandName: 'Four Sigmatic', websiteUrl: 'https://foursigmatic.com', category: 'Functional Coffee', country: 'United States', positioning: 'Premium' },
   { brandName: 'AG1', websiteUrl: 'https://drinkag1.com', category: 'Supplements', country: 'United States', positioning: 'Premium' },
@@ -418,7 +426,9 @@ async function getBrands() {
   const sheets = sheetsClient();
   const res = await sheets.spreadsheets.values.get({ spreadsheetId: sheetId(), range: `${brandsTab()}!A2:R` });
   const rows = res.data.values || [];
-  return rows.map((r, i) => brandRowToRecord(r, i + 2)).filter((b) => b.brandName || b.domain);
+  return rows
+    .map((r, i) => brandRowToRecord(r, i + 2))
+    .filter((b) => (b.brandName || b.domain) && !isOwnBrand(b.domain || b.websiteUrl));
 }
 
 /** Append brands, de-duplicated by domain against what's already stored. */
@@ -429,7 +439,7 @@ async function appendBrands(list, nowIso) {
   const fresh = [];
   for (const b of list) {
     const d = normalizeDomain(b.websiteUrl);
-    if (!d || seen.has(d)) continue;
+    if (!d || seen.has(d) || isOwnBrand(d)) continue; // skip dupes + our own brand
     seen.add(d);
     fresh.push(brandToRow(b, nowIso));
   }
@@ -462,11 +472,11 @@ async function discoverBrands(opts) {
   const limit = Math.min(Math.max(Number(opts.limit) || 30, 5), 50);
 
   const existing = await getBrands();
-  const excludeDomains = existing.map((b) => b.domain).filter(Boolean);
+  const excludeDomains = [...new Set([...existing.map((b) => b.domain).filter(Boolean), ...OWN_DOMAINS])];
 
   const system = 'You are a competitor-intelligence research engine specializing in premium DTC wellness brands (tea, coffee, functional beverages, adaptogens, supplements, superfoods). You only output strict JSON. Use REAL, currently-operating brands with their REAL primary website domains. Never invent brands or fake domains.';
   const user = [
-    `Find up to ${limit} high-quality competitor brands similar to VAHDAM and to: Pique, Four Sigmatic, AG1, Everyday Dose, MUD\\WTR, Beam, RYZE.`,
+    `Find up to ${limit} high-quality competitor brands similar to VAHDAM and to: Pique, Four Sigmatic, AG1, Everyday Dose, MUD\\WTR, Beam, RYZE. Do NOT include VAHDAM itself (we are VAHDAM — it is not a competitor).`,
     `Categories to cover: ${categories.join(', ')}.`,
     `Geographies: ${geographies.join(', ')}.`,
     excludeDomains.length ? `EXCLUDE these domains already in our database (do not return them): ${excludeDomains.slice(0, 200).join(', ')}.` : '',

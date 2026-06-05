@@ -183,10 +183,6 @@
         <button class="snav" data-sec="ads">📣 Ads</button>
         <button class="snav" data-sec="brands">🏷 Brands</button>
       </div>
-      <div class="cb-cta-group">
-        <button class="cb-cta cb-cta-ghost" onclick="showSection('brands')">Find more competitors</button>
-        <button class="cb-cta cb-cta-solid" onclick="document.getElementById('jm').classList.add('open')">Become a part of their journey</button>
-      </div>
     </div>
   </div>
 
@@ -642,8 +638,8 @@
         <td style="padding:9px 12px;color:#cdd8d2">${esc(b.category)}</td>
         <td style="padding:9px 12px;color:#9aaaa1">${esc(b.country)}</td>
         <td style="padding:9px 12px;color:#9aaaa1">${esc(b.positioning)}</td>
-        <td style="padding:9px 12px">${b.newsletterSignupUrl ? `<a href="${esc(b.newsletterSignupUrl)}" target="_blank" rel="noopener" style="color:#AB8743">Signup ↗</a>` : '<span style="color:#5d6e64">—</span>'}</td>
-        <td style="padding:9px 12px">${pill(b.subscriptionStatus)}</td>
+        <td style="padding:9px 12px">${(b.newsletterSignupUrl || b.websiteUrl) ? `<a href="${esc(b.newsletterSignupUrl || b.websiteUrl)}" target="_blank" rel="noopener" style="color:#AB8743">Signup ↗</a>` : '<span style="color:#5d6e64">—</span>'}</td>
+        <td style="padding:9px 12px;white-space:nowrap">${pill(b.subscriptionStatus)}${(b.newsletterSignupUrl || b.websiteUrl) && !(/subscribed/i.test(b.subscriptionStatus) && !/not/i.test(b.subscriptionStatus)) ? ` <a href="${esc(b.newsletterSignupUrl || b.websiteUrl)}" target="_blank" rel="noopener" style="color:#AB8743;font-size:11px;margin-left:6px">Subscribe ↗</a>` : ''}</td>
       </tr>`).join('');
   }
   async function runBrandAction(btn, action, busyText) {
