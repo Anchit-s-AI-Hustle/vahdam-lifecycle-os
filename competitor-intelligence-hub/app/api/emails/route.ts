@@ -9,6 +9,7 @@
  * the response is sent, so reads stay fast, and the CRON_SECRET never leaves the
  * server. An external 1-min cron can still be layered on for when nobody's looking.
  */
+// @ts-ignore
 import { NextRequest, NextResponse, unstable_after as after } from "next/server";
 import { getAllEmails } from "@/lib/google-client";
 
