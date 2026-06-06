@@ -24,9 +24,38 @@
   // ─── PWA install: register the service worker once per page load ────────
   // This is what makes the address-bar install icon appear in Chrome / Edge
   // (and adds "Add to Home Screen" on iOS/Android) — alongside the manifest.
+  //
+  // Aggressive update path: every page load, ask the registration to update;
+  // if a waiting SW exists, tell it to skipWaiting; once it takes control,
+  // reload the page so the user instantly sees the new auth.js / shell.
+  // Without this the user had to do a manual "hard reload" to see sidebar
+  // changes — we now self-heal the cache on every navigation.
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    window.addEventListener('load', async () => {
+      try {
+        const reg = await navigator.serviceWorker.register('/sw.js');
+        // Trigger an update check on every page load.
+        reg.update().catch(() => {});
+        // If a new SW is already waiting (from a previous visit), activate now.
+        if (reg.waiting) reg.waiting.postMessage('skipWaiting');
+        // When a new SW takes over, reload once so the page uses the fresh shell.
+        let didReload = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (didReload) return; didReload = true;
+          // Defer slightly so any in-flight nav clicks finish.
+          setTimeout(() => location.reload(), 50);
+        });
+        // Listen for "updatefound" → "installed" so we don't sit on a waiting SW.
+        reg.addEventListener('updatefound', () => {
+          const sw = reg.installing;
+          if (!sw) return;
+          sw.addEventListener('statechange', () => {
+            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+              sw.postMessage('skipWaiting');
+            }
+          });
+        });
+      } catch { /* SW registration failed — site still works */ }
     });
   }
 
