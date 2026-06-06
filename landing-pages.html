@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Landing Pages · VAHDAM Lifecycle OS</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#004A2B">
+  <meta name="apple-mobile-web-app-title" content="Lifecycle OS">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="/auth.js?v=20260610" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script defer src="/_vercel/speed-insights/script.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #0a1410; color: #e8ede9; min-height: 100vh; }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 28px 24px 60px; }
+    @media (max-width: 620px) { .wrap { padding: 20px 16px 50px; } }
+
+    .eyebrow { display: flex; align-items: center; gap: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color: #AB8743; font-weight: 600; margin-bottom: 10px; }
+    .eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; background: #16a34a; }
+    h1 { font-family: 'Lora', serif; font-size: 32px; font-weight: 600; letter-spacing: -0.01em; }
+    h1 em { font-style: italic; color: #AB8743; }
+    .sub { color: #9aaaa1; font-size: 13.5px; margin-top: 6px; max-width: 800px; line-height: 1.6; }
+
+    .tabs { display: inline-flex; gap: 4px; margin: 22px 0 18px; padding: 4px; background: #0f1d18; border: 1px solid rgba(171,135,67,0.18); border-radius: 10px; flex-wrap: wrap; }
+    .tab { padding: 8px 14px; border-radius: 7px; font-size: 13px; font-weight: 600; color: #9aaaa1; background: transparent; border: none; cursor: pointer; font-family: inherit; transition: all .14s; }
+    .tab:hover { color: #e8ede9; }
+    .tab.active { color: #FBF5EA; background: rgba(171,135,67,0.16); }
+
+    .panel { display: none; margin-top: 18px; }
+    .panel.active { display: block; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1.4fr; gap: 18px; }
+    @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    .card { background: #0f1d18; border: 1px solid rgba(171,135,67,0.18); border-radius: 14px; padding: 18px 20px; }
+    .card h3 { font-family: 'Lora', serif; font-size: 17px; font-weight: 600; color: #FBF5EA; margin-bottom: 6px; }
+    .card .meta { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #5d6e64; font-weight: 600; margin-bottom: 12px; }
+
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #5d6e64; font-weight: 600; margin-bottom: 6px; }
+    .field input, .field select, .field textarea {
+      width: 100%; background: #0a1410; border: 1px solid rgba(171,135,67,0.22); border-radius: 9px;
+      color: #e8ede9; padding: 10px 12px; font-size: 13.5px; font-family: inherit;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: #AB8743; }
+    .field textarea { resize: vertical; min-height: 90px; }
+
+    .regions { display: flex; flex-wrap: wrap; gap: 6px; }
+    .region-chip { padding: 7px 13px; border-radius: 99px; background: #0a1410; border: 1px solid rgba(171,135,67,0.22); color: #cdd8d2; font-size: 12px; cursor: pointer; font-family: inherit; }
+    .region-chip.active { background: #AB8743; color: #0a1410; border-color: #AB8743; }
+
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: 9px; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; text-decoration: none; border: 1px solid transparent; }
+    .btn-solid { background: #AB8743; color: #0a1410; border: 0; }
+    .btn-solid:hover { opacity: 0.92; }
+    .btn-ghost { background: transparent; border-color: rgba(171,135,67,0.3); color: #cdd8d2; }
+    .btn-ghost:hover { border-color: #AB8743; color: #FBF5EA; }
+
+    .pill { display: inline-block; background: rgba(171,135,67,0.14); color: #cdd8d2; font-size: 11px; padding: 3px 9px; border-radius: 99px; margin: 2px; }
+
+    .lp-list { display: flex; flex-direction: column; gap: 10px; }
+    .lp-row { display: flex; gap: 12px; align-items: center; padding: 12px 14px; background: #0f1d18; border: 1px solid rgba(171,135,67,0.14); border-radius: 12px; }
+    .lp-row .body { flex: 1; min-width: 0; }
+    .lp-row .name { font-size: 13.5px; font-weight: 600; color: #FBF5EA; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lp-row .meta-row { font-size: 11.5px; color: #9aaaa1; margin-top: 3px; }
+    .lp-row .region-tag { background: rgba(171,135,67,0.14); color: #cdb98a; font-size: 10.5px; padding: 2px 8px; border-radius: 99px; font-weight: 700; }
+    .empty { padding: 30px; text-align: center; color: #5d6e64; font-size: 13px; background: rgba(171,135,67,0.04); border: 1px dashed rgba(171,135,67,0.2); border-radius: 12px; }
+
+    .channel-info { background: rgba(171,135,67,0.04); border: 1px solid rgba(171,135,67,0.15); border-radius: 12px; padding: 14px 18px; margin-bottom: 14px; font-size: 12.5px; color: #cdd8d2; line-height: 1.55; }
+    .channel-info b { color: #AB8743; }
+
+    .status { font-size: 12.5px; color: #9aaaa1; min-height: 16px; margin-top: 8px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow"><span class="dot"></span> Landing Pages</div>
+  <h1>Landing Pages <em>for every channel</em></h1>
+  <p class="sub">
+    One brand-locked landing-page system that serves every channel: mailers, Meta ads, Google ads, TikTok ads. Pick a channel below, choose a region, and either link to an existing asset or write a fresh brief — the page is generated in the same brand system as the email or ad that drives traffic to it.
+  </p>
+
+  <div class="tabs" id="tabs">
+    <button class="tab" data-tab="mailers">✉ For Mailers</button>
+    <button class="tab" data-tab="meta">▼ For Meta Ads</button>
+    <button class="tab" data-tab="google">G For Google Ads</button>
+    <button class="tab" data-tab="tiktok">♪ For TikTok Ads</button>
+  </div>
+
+  <!-- ─── For Mailers ────────────────────────────────────────────── -->
+  <section class="panel" id="panel-mailers">
+    <div class="channel-info">
+      Pair every mailer with a landing page that continues the email's narrative. Same hero, same offer, deeper product context, one CTA. Linked back to the mailer so the brief feeds both surfaces.
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="meta">New landing page · For Mailer</div>
+        <h3>Brief the page</h3>
+        <div class="field"><label>Linked mailer</label>
+          <select data-form="mailers" name="linked_asset"><option value="">— pick a mailer or leave blank —</option></select>
+        </div>
+        <div class="field"><label>Region</label>
+          <div class="regions" data-regions="mailers">
+            <button class="region-chip" data-region="US">US</button>
+            <button class="region-chip" data-region="UK">UK</button>
+            <button class="region-chip" data-region="Global">Global</button>
+            <button class="region-chip" data-region="India">India</button>
+          </div>
+        </div>
+        <div class="field"><label>Hero headline</label>
+          <input type="text" data-form="mailers" name="hero" placeholder="The exact promise the email made — repeat it">
+        </div>
+        <div class="field"><label>Sub-headline</label>
+          <input type="text" data-form="mailers" name="sub" placeholder="One line of reassurance or detail">
+        </div>
+        <div class="field"><label>Offer / promo code</label>
+          <input type="text" data-form="mailers" name="offer" placeholder="FLASH25 · 25% off this week">
+        </div>
+        <div class="field"><label>Brief notes</label>
+          <textarea data-form="mailers" name="notes" placeholder="Who this lands for · what they should do · why now"></textarea>
+        </div>
+        <button class="btn btn-solid" data-create="mailers">✨ Generate landing page</button>
+        <div class="status" data-status="mailers"></div>
+      </div>
+      <div class="card">
+        <div class="meta">Existing pages · For Mailers</div>
+        <h3>Library</h3>
+        <div class="lp-list" data-list="mailers"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── For Meta Ads ───────────────────────────────────────────── -->
+  <section class="panel" id="panel-meta">
+    <div class="channel-info">
+      Meta-friendly landing pages: fast above-the-fold load, mobile-first, one CTA. <b>Match the ad's image + headline exactly</b> so the click-through doesn't feel like a different brand.
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="meta">New landing page · For Meta Ad</div>
+        <h3>Brief the page</h3>
+        <div class="field"><label>Linked Meta campaign</label>
+          <select data-form="meta" name="linked_asset"><option value="">— pick a Meta campaign or leave blank —</option></select>
+        </div>
+        <div class="field"><label>Region</label>
+          <div class="regions" data-regions="meta">
+            <button class="region-chip" data-region="US">US</button>
+            <button class="region-chip" data-region="UK">UK</button>
+            <button class="region-chip" data-region="Global">Global</button>
+            <button class="region-chip" data-region="India">India</button>
+          </div>
+        </div>
+        <div class="field"><label>Hero headline (≤40 chars, matches ad)</label>
+          <input type="text" data-form="meta" name="hero" maxlength="40">
+        </div>
+        <div class="field"><label>Primary text / value prop</label>
+          <input type="text" data-form="meta" name="sub" placeholder="One sentence — the ad's promise">
+        </div>
+        <div class="field"><label>Offer / promo code</label>
+          <input type="text" data-form="meta" name="offer">
+        </div>
+        <div class="field"><label>Brief notes</label>
+          <textarea data-form="meta" name="notes" placeholder="Audience · placements · objective · why this offer for them"></textarea>
+        </div>
+        <button class="btn btn-solid" data-create="meta">✨ Generate landing page</button>
+        <div class="status" data-status="meta"></div>
+      </div>
+      <div class="card">
+        <div class="meta">Existing pages · For Meta</div>
+        <h3>Library</h3>
+        <div class="lp-list" data-list="meta"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── For Google Ads ─────────────────────────────────────────── -->
+  <section class="panel" id="panel-google">
+    <div class="channel-info">
+      Google-friendly landing pages: <b>match the search intent exactly</b>. If the keyword is "darjeeling first flush", the H1 should say "Darjeeling First Flush". Quality Score rewards this.
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="meta">New landing page · For Google Ad</div>
+        <h3>Brief the page</h3>
+        <div class="field"><label>Linked Google campaign</label>
+          <select data-form="google" name="linked_asset"><option value="">— pick a Google campaign or leave blank —</option></select>
+        </div>
+        <div class="field"><label>Region</label>
+          <div class="regions" data-regions="google">
+            <button class="region-chip" data-region="US">US</button>
+            <button class="region-chip" data-region="UK">UK</button>
+            <button class="region-chip" data-region="Global">Global</button>
+            <button class="region-chip" data-region="India">India</button>
+          </div>
+        </div>
+        <div class="field"><label>Target keyword(s)</label>
+          <input type="text" data-form="google" name="hero" placeholder="darjeeling first flush, single-estate tea">
+        </div>
+        <div class="field"><label>Headline (matches keyword)</label>
+          <input type="text" data-form="google" name="sub" maxlength="30">
+        </div>
+        <div class="field"><label>Offer / discount</label>
+          <input type="text" data-form="google" name="offer">
+        </div>
+        <div class="field"><label>Brief notes</label>
+          <textarea data-form="google" name="notes" placeholder="Match type · search intent · expected CVR"></textarea>
+        </div>
+        <button class="btn btn-solid" data-create="google">✨ Generate landing page</button>
+        <div class="status" data-status="google"></div>
+      </div>
+      <div class="card">
+        <div class="meta">Existing pages · For Google</div>
+        <h3>Library</h3>
+        <div class="lp-list" data-list="google"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── For TikTok Ads ─────────────────────────────────────────── -->
+  <section class="panel" id="panel-tiktok">
+    <div class="channel-info">
+      TikTok pages need to <b>feel native to the video</b>. Open with social-proof + the exact same hook as the creative. Mobile only. Bold typography. UGC over polish.
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="meta">New landing page · For TikTok Ad</div>
+        <h3>Brief the page</h3>
+        <div class="field"><label>Linked TikTok creative</label>
+          <select data-form="tiktok" name="linked_asset"><option value="">— pick a TikTok creative or leave blank —</option></select>
+        </div>
+        <div class="field"><label>Region</label>
+          <div class="regions" data-regions="tiktok">
+            <button class="region-chip" data-region="US">US</button>
+            <button class="region-chip" data-region="UK">UK</button>
+            <button class="region-chip" data-region="Global">Global</button>
+            <button class="region-chip" data-region="India">India</button>
+          </div>
+        </div>
+        <div class="field"><label>Hook (matches video opener)</label>
+          <input type="text" data-form="tiktok" name="hero" placeholder="POV: you finally found a tea that actually wakes you up">
+        </div>
+        <div class="field"><label>Top creator quote / social proof</label>
+          <input type="text" data-form="tiktok" name="sub">
+        </div>
+        <div class="field"><label>Offer / promo code</label>
+          <input type="text" data-form="tiktok" name="offer">
+        </div>
+        <div class="field"><label>Brief notes</label>
+          <textarea data-form="tiktok" name="notes" placeholder="Creator handle · hashtag · audience"></textarea>
+        </div>
+        <button class="btn btn-solid" data-create="tiktok">✨ Generate landing page</button>
+        <div class="status" data-status="tiktok"></div>
+      </div>
+      <div class="card">
+        <div class="meta">Existing pages · For TikTok</div>
+        <h3>Library</h3>
+        <div class="lp-list" data-list="tiktok"></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function () {
+  const $$ = (sel, root) => [...(root||document).querySelectorAll(sel)];
+  const $  = (sel, root) => (root||document).querySelector(sel);
+  const esc = (s) => (s||'').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  // ─── Tab switching ─────────────────────────────────────────────
+  const tabs = $$('#tabs .tab');
+  const panels = $$('.panel');
+  function showTab(key) {
+    tabs.forEach((t) => t.classList.toggle('active', t.dataset.tab === key));
+    panels.forEach((p) => p.classList.toggle('active', p.id === 'panel-' + key));
+    if (location.hash.replace('#','') !== key) history.replaceState(null, '', '#' + key);
+  }
+  tabs.forEach((t) => t.addEventListener('click', () => showTab(t.dataset.tab)));
+  window.addEventListener('hashchange', () => showTab((location.hash||'#mailers').replace('#','')));
+
+  // ─── Region chip selection (per-channel) ───────────────────────
+  const selectedRegion = { mailers: 'US', meta: 'US', google: 'US', tiktok: 'US' };
+  $$('.regions').forEach((grp) => {
+    const channel = grp.dataset.regions;
+    const chips = $$('.region-chip', grp);
+    const setActive = (r) => chips.forEach((c) => c.classList.toggle('active', c.dataset.region === r));
+    setActive(selectedRegion[channel]);
+    chips.forEach((c) => c.addEventListener('click', () => { selectedRegion[channel] = c.dataset.region; setActive(c.dataset.region); }));
+  });
+
+  // ─── Generate handler (placeholder — wires to /api/landing/generate later) ─
+  $$('[data-create]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const channel = btn.dataset.create;
+      const form = $$('[data-form="' + channel + '"]').reduce((acc, el) => { acc[el.name] = el.value; return acc; }, {});
+      form.channel = channel;
+      form.region = selectedRegion[channel];
+      const status = $('[data-status="' + channel + '"]');
+      if (!form.hero) { status.textContent = 'Add a hero headline first.'; return; }
+      status.textContent = 'Briefing… (the generator endpoint will be wired next)';
+      btn.disabled = true;
+      try {
+        const r = await fetch('/api/landing/generate', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(form) });
+        if (r.ok) {
+          const d = await r.json();
+          status.textContent = 'Generated. URL: ' + (d.url || '—');
+          loadLibrary(channel);
+        } else {
+          status.textContent = 'Endpoint not yet live — brief saved locally. Generator API ships next.';
+          // Local fallback: store brief in localStorage so the UI still tracks it
+          const key = 'lp-' + channel;
+          const list = JSON.parse(localStorage.getItem(key) || '[]');
+          list.unshift({ ...form, created_at: new Date().toISOString() });
+          localStorage.setItem(key, JSON.stringify(list.slice(0, 50)));
+          loadLibrary(channel);
+        }
+      } catch (err) {
+        status.textContent = 'Saved locally. Generator API ships next.';
+      }
+      btn.disabled = false;
+    });
+  });
+
+  // ─── Library renderer (reads localStorage stub + future /api/landing/list) ─
+  function loadLibrary(channel) {
+    const list = $('[data-list="' + channel + '"]');
+    const local = JSON.parse(localStorage.getItem('lp-' + channel) || '[]');
+    if (!local.length) { list.innerHTML = '<div class="empty">No pages yet for ' + channel + '. Brief one on the left to start.</div>'; return; }
+    list.innerHTML = local.map((p) => `
+      <div class="lp-row">
+        <div class="body">
+          <div class="name">${esc(p.hero || '(no headline)')}</div>
+          <div class="meta-row"><span class="region-tag">${esc(p.region || '—')}</span> · ${esc(p.offer || 'no offer')} · ${new Date(p.created_at).toLocaleDateString()}</div>
+        </div>
+      </div>`).join('');
+  }
+  ['mailers','meta','google','tiktok'].forEach(loadLibrary);
+
+  // Initial tab from hash
+  const initial = (location.hash || '#mailers').replace('#','');
+  showTab(['mailers','meta','google','tiktok'].includes(initial) ? initial : 'mailers');
+})();
+</script>
+
+</body>
+</html>

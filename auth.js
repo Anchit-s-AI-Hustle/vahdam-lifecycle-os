@@ -54,31 +54,39 @@
     landing:    '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/>',
     kb:         '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M19 17H6a2 2 0 0 0-2 2"/>',
   };
+  // The app automates creation of three artefact types across four regions
+  // (US, UK, Global, India). Landing Pages is its own L1 — used by both
+  // mailers and ads — not nested under Ad Campaigns anymore.
   const NAV = [
     { id: 'home',       label: 'Home',          href: '/',               icon: 'home',     match: ['/', '/index.html'] },
     { group: 'Knowledge Base', icon: 'kb', children: [
-      { id: 'kb-vahdam',     label: 'VAHDAM',     href: '/knowledge-base.html#vahdam',     icon: 'mailer', match: ['/knowledge-base.html', '/kb'] },
+      { id: 'kb-vahdam',     label: 'VAHDAM',     href: '/knowledge-base.html#vahdam',     icon: 'mailer' },
       { id: 'kb-competitor', label: 'Competitor', href: '/knowledge-base.html#competitor', icon: 'competitor' },
       { id: 'kb-manual',     label: 'Manual',     href: '/knowledge-base.html#manual',     icon: 'kb' },
     ]},
     { id: 'analysis',   label: 'Data Analysis', href: '/dashboard.html', icon: 'analysis', match: ['/dashboard.html', '/analytics'] },
     { group: 'Competitor Benchmarking', icon: 'competitor', children: [
-      { id: 'comp-mailers', label: 'Mailers',       href: '/competitor-benchmarking.html#mailers',  icon: 'mailer', match: ['/competitor-benchmarking.html', '/competitor'] },
-      { id: 'comp-ads',     label: 'Ads',           href: '/competitor-benchmarking.html#ads',      icon: 'ads' },
-      { id: 'comp-brands',  label: 'Brands',        href: '/competitor-benchmarking.html#brands',   icon: 'kb' },
+      { id: 'comp-mailers', label: 'Mailers',  href: '/competitor-benchmarking.html#mailers', icon: 'mailer' },
+      { id: 'comp-ads',     label: 'Ads',      href: '/competitor-benchmarking.html#ads',     icon: 'ads' },
+      { id: 'comp-brands',  label: 'Brands',   href: '/competitor-benchmarking.html#brands',  icon: 'kb' },
     ]},
     { group: 'Marketing Mailers', icon: 'mailer', children: [
       { id: 'calendar', label: 'Calendar', href: '/calendar.html', icon: 'calendar', match: ['/calendar.html', '/plan'] },
-      // Mailer Studio is an OPEN feature — it never requires sign-in (works as an
-      // individual app). The Lifecycle OS sign-in done at the first step still
-      // carries through here, but it is not enforced.
+      // Mailer Studio is an OPEN feature — works as an individual app
+      // without forcing the Lifecycle OS sign-in.
       { id: 'studio',   label: 'Mailers',  href: '/studio', open: true, icon: 'mailer', match: ['/studio', '/vahdam_mailer_architect_v34.html', '/app', '/mailer'] },
     ]},
     { group: 'Ad Campaigns', icon: 'ads', children: [
-      { id: 'ads-cal',     label: 'Calendar',      href: '/ad-campaigns.html#calendar', icon: 'calendar', match: ['/ad-campaigns.html', '/ads'] },
-      { id: 'ads-google',  label: 'Google Ads',    href: '/ad-campaigns.html#google',   icon: 'google' },
-      { id: 'ads-meta',    label: 'Meta Ads',      href: '/ad-campaigns.html#meta',     icon: 'meta' },
-      { id: 'ads-landing', label: 'Landing Pages', href: '/ad-campaigns.html#landing',  icon: 'landing',  match: ['/landing'] },
+      { id: 'ads-cal',     label: 'Calendar',   href: '/ad-campaigns.html#calendar', icon: 'calendar' },
+      { id: 'ads-google',  label: 'Google Ads', href: '/ad-campaigns.html#google',   icon: 'google' },
+      { id: 'ads-meta',    label: 'Meta Ads',   href: '/ad-campaigns.html#meta',     icon: 'meta' },
+      { id: 'ads-tiktok',  label: 'TikTok Ads', href: '/ad-campaigns.html#tiktok',   icon: 'ads' },
+    ]},
+    { group: 'Landing Pages', icon: 'landing', children: [
+      { id: 'lp-mailers', label: 'For Mailers',    href: '/landing-pages.html#mailers',  icon: 'mailer' },
+      { id: 'lp-meta',    label: 'For Meta Ads',   href: '/landing-pages.html#meta',     icon: 'meta' },
+      { id: 'lp-google',  label: 'For Google Ads', href: '/landing-pages.html#google',   icon: 'google' },
+      { id: 'lp-tiktok',  label: 'For TikTok Ads', href: '/landing-pages.html#tiktok',   icon: 'ads' },
     ]},
   ];
 
@@ -88,13 +96,37 @@
     NAV.forEach((n) => { if (n.children) n.children.forEach((c) => out.push(c)); else out.push(n); });
     return out;
   }
+  // currentStepId: pick the best-matching NAV leaf for the current URL.
+  // Priority order:
+  //   1. EXACT match on full href (pathname + hash) — distinguishes sub-tabs
+  //      like /ad-campaigns.html#calendar from /ad-campaigns.html#google.
+  //   2. EXACT match on pathname against `match[]`.
+  //   3. EXACT match on pathname against href's pathname part (fallback for
+  //      sub-tabs whose container page is open with no hash yet).
+  //   4. PREFIX match against `match[]` — but never against `/`.
   function currentStepId() {
     const p = location.pathname.toLowerCase();
-    // Two-pass match: exact first, then prefix — but never prefix-match `/`
-    // (every path starts with `/`, so it would steal every page for Home).
+    const h = (location.hash || '').toLowerCase();
+    const fullHref = p + h;
+
+    // 1. full href exact (preferred for hash sub-tabs)
+    for (const s of leafItems()) {
+      if (s.href && s.href.toLowerCase() === fullHref) return s.id;
+    }
+    // 2. match[] exact on pathname
     for (const s of leafItems()) {
       if ((s.match || []).some((m) => p === m)) return s.id;
     }
+    // 3. href pathname exact + no hash on URL → first sub-tab of that page
+    if (!h) {
+      for (const s of leafItems()) {
+        if (s.href) {
+          const hp = s.href.split('#')[0].toLowerCase();
+          if (hp === p) return s.id;
+        }
+      }
+    }
+    // 4. match[] prefix (never `/`)
     for (const s of leafItems()) {
       if ((s.match || []).some((m) => m !== '/' && p.startsWith(m + '/'))) return s.id;
     }
@@ -321,6 +353,25 @@
     wrap.querySelectorAll('.lnav-ghead').forEach((btn) => {
       btn.addEventListener('click', () => btn.parentElement.classList.toggle('open'));
     });
+
+    // Re-apply active state when the URL hash changes (e.g. user clicks
+    // sub-tabs on ad-campaigns.html that just flip the hash). No re-render
+    // — just toggle the `active` classes so the sidebar mirrors the new
+    // sub-tab without losing scroll position or open-group state.
+    const refreshActive = () => {
+      const cur = currentStepId();
+      wrap.querySelectorAll('.lnav-link').forEach((a) => {
+        a.classList.toggle('active', a.dataset.id === cur);
+      });
+      wrap.querySelectorAll('.lnav-group').forEach((g) => {
+        const hit = !!g.querySelector('.lnav-link.active');
+        g.classList.toggle('active-group', hit);
+        if (hit) g.classList.add('open'); // auto-expand the group that owns the active link
+      });
+    };
+    window.addEventListener('hashchange', refreshActive);
+    // Also refresh on history navigation (back/forward across hash routes).
+    window.addEventListener('popstate', refreshActive);
 
     // Mobile drawer open/close
     const setOpen = (o) => wrap.classList.toggle('open', o);
