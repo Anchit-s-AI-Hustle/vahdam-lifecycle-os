@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lifecycle OS">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
-<script src="/auth.js?v=20260605" defer></script>
+<script src="/auth.js?v=20260608" defer></script>
 <script defer src="/_vercel/speed-insights/script.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -182,32 +182,31 @@
   const IC = {
     analysis:   '<path d="M4 19V5"/><path d="M4 19h16"/><rect x="7" y="11" width="3" height="5"/><rect x="12" y="7" width="3" height="9"/><rect x="17" y="13" width="3" height="3"/>',
     competitor: '<path d="m21 21-4.3-4.3"/><circle cx="11" cy="11" r="7"/><path d="M11 8v6M8 11h6"/>',
-    calendar:   '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>',
     mailer:     '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
     ads:        '<path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1Z"/><path d="M15 8a4 4 0 0 1 0 8"/>',
-    landing:    '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/>',
+    kb:         '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M19 17H6a2 2 0 0 0-2 2"/>',
   };
   const svg = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${IC[k]||''}</svg>`;
 
+  // Cards mirror the L1 sidebar features: Data Analysis, Competitor
+  // Benchmarking, Marketing Mailers, Ad Campaigns, Knowledge Base.
+  // L2 sub-items appear as bullets so the user sees what's inside each.
   const FEATURES = [
     { icon: 'analysis',   title: 'Data Analysis',           href: '/dashboard.html',
       desc: 'See who buys, who drifts, and what to send next.',
-      subs: ['Drop in a CSV or link your database', 'See your best & at-risk customers', 'Auto-suggested next moves'] },
+      subs: ['RFM segments + cohort retention', 'Auto-insights & next moves', 'CSV upload or link a database'] },
     { icon: 'competitor', title: 'Competitor Benchmarking', href: '/competitor-benchmarking.html',
       desc: 'Every email your competitors send — captured for you, automatically.',
-      subs: ['New mail synced as it arrives', 'Promo codes flagged on every email', 'Search any brand · open in Gmail'] },
-    { icon: 'calendar',   title: 'Marketing Calendar',      href: '/calendar.html', group: 'Marketing Mailers',
-      desc: 'A 30-day email plan, built by AI in seconds.',
-      subs: ['One day · one email', 'Festivals & best send times built in', 'Click a day → build that email'] },
-    { icon: 'mailer',     title: 'Mailer Studio',           href: '/studio', group: 'Marketing Mailers',
-      desc: 'Type a brief. Get a brand-perfect email, ready to send.',
-      subs: ['Two design variants per brief', 'Brand voice, palette & layout locked', 'Export ready-to-send HTML'] },
-    { icon: 'ads',        title: 'Ad Campaigns',            href: '/ad-campaigns.html', group: 'Ad Campaigns',
+      subs: ['Mailers · Ads · Landing Pages', 'Promo codes flagged on every email', 'Search any brand · open in Gmail'] },
+    { icon: 'mailer',     title: 'Marketing Mailers',       href: '/calendar.html',
+      desc: '30-day plan + brand-perfect emails on demand.',
+      subs: ['Calendar — one day, one email', 'Mailer Studio — type brief, get HTML', 'Festivals & send-times baked in'] },
+    { icon: 'ads',        title: 'Ad Campaigns',            href: '/ad-campaigns.html',
       desc: 'Plan Google and Meta ads on the same calendar as your emails.',
-      subs: ['AI-written briefs and copy', 'Google · Meta · more', 'Linked to each landing page'] },
-    { icon: 'landing',    title: 'Landing Pages',           href: '/ad-campaigns.html#landing', group: 'Ad Campaigns',
-      desc: 'Build landing pages that match your campaigns — same brand, same look.',
-      subs: ['Same brand voice & palette', 'Linked to the ad that drives traffic', 'Export ready HTML'] },
+      subs: ['Calendar · Google Ads · Meta Ads', 'Landing Pages tied to each campaign', 'AI-written briefs & copy'] },
+    { icon: 'kb',         title: 'Knowledge Base',          href: '/knowledge-base.html',
+      desc: 'Brand kit, markets, products — every output reads from here.',
+      subs: ['VAHDAM brand kit + catalog', 'Competitor profiles & assets', 'Upload any format · auto-indexed'] },
   ];
 
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
