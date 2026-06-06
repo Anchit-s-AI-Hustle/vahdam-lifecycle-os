@@ -66,10 +66,22 @@
   <div class="tabs" id="srcTabs">
     <button class="tab" data-src="vahdam">VAHDAM</button>
     <button class="tab" data-src="competitor">Competitor Benchmarking</button>
+    <button class="tab" data-src="manual">📚 Manual Knowledge</button>
   </div>
   <div class="subtabs" id="chanTabs">
     <button class="subtab" data-chan="mailers">✉ Mailers</button>
     <button class="subtab" data-chan="ads">📣 Ads</button>
+  </div>
+
+  <!-- Manual Knowledge form (shown only when source = manual) -->
+  <div id="kbManualForm" style="display:none; margin-top:22px; background:#0f1d18; border:1px solid rgba(171,135,67,.18); border-radius:14px; padding:18px 20px">
+    <div style="font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:#5d6e64; font-weight:600; margin-bottom:10px">Add a source</div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:stretch">
+      <input id="kbManualUrl" type="url" placeholder="https://… blog · tweet · article · video" style="flex:1; min-width:260px; background:#0a1410; border:1px solid rgba(171,135,67,.25); border-radius:9px; color:#e8ede9; padding:11px 13px; font-family:inherit; font-size:13.5px">
+      <input id="kbManualTags" type="text" placeholder="tags (comma-sep, optional)" style="min-width:200px; background:#0a1410; border:1px solid rgba(171,135,67,.25); border-radius:9px; color:#e8ede9; padding:11px 13px; font-family:inherit; font-size:13.5px">
+      <button id="kbManualAdd" class="kb-cta" style="border:0; cursor:pointer; font-family:inherit">Ingest with AI</button>
+    </div>
+    <div id="kbManualStatus" style="font-size:12.5px; color:#9aaaa1; min-height:18px; margin-top:10px"></div>
   </div>
 
   <div class="panel" id="panel"></div>
@@ -93,13 +105,68 @@
   const $=(id)=>document.getElementById(id);
   const esc=(s)=>(s||'').replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmtDate=(iso)=>{const d=new Date(iso);return isNaN(d)?(iso||'—'):d.toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});};
-  const state={src:'competitor',chan:'mailers',emails:null};
+  const state={src:'competitor',chan:'mailers',emails:null,knowledge:null};
   const htmlCache={};
 
   function setActive(){
     document.querySelectorAll('#srcTabs .tab').forEach(b=>b.classList.toggle('active',b.dataset.src===state.src));
     document.querySelectorAll('#chanTabs .subtab').forEach(b=>b.classList.toggle('active',b.dataset.chan===state.chan));
-    location.hash=state.src+(state.chan==='ads'?'-ads':'');
+    // Hide channel tabs + show ingest form when in manual mode
+    document.getElementById('chanTabs').style.display = state.src==='manual' ? 'none' : '';
+    document.getElementById('kbManualForm').style.display = state.src==='manual' ? '' : 'none';
+    location.hash = state.src==='manual' ? 'manual' : (state.src+(state.chan==='ads'?'-ads':''));
+  }
+
+  // ─── Manual knowledge: ingest + render ───────────────────────────────
+  async function fetchKnowledge(force){
+    if(state.knowledge && !force) return state.knowledge;
+    try{ const r=await fetch('/api/kb/list?limit=200'); const d=await r.json(); state.knowledge = d.items||[]; }
+    catch{ state.knowledge=[]; }
+    return state.knowledge;
+  }
+  async function ingestManual(){
+    const urlEl=$('kbManualUrl'), tagsEl=$('kbManualTags'), statusEl=$('kbManualStatus'), btn=$('kbManualAdd');
+    const url=(urlEl.value||'').trim();
+    if(!url){ statusEl.textContent='Paste a URL first.'; return; }
+    const tags=(tagsEl.value||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean);
+    btn.disabled=true; btn.style.opacity='0.6';
+    statusEl.textContent='Fetching + summarizing… (5-15s)';
+    try{
+      const r=await fetch('/api/kb/ingest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,tags,added_by:'dashboard'})});
+      const d=await r.json();
+      if(!r.ok || !d.ok){ statusEl.textContent='Failed: '+(d.error||r.statusText); return; }
+      statusEl.textContent='Added: '+(d.title||url);
+      urlEl.value=''; tagsEl.value='';
+      await fetchKnowledge(true);
+      if(state.src==='manual') render();
+    }catch(err){ statusEl.textContent='Error: '+err.message; }
+    finally{ btn.disabled=false; btn.style.opacity=''; }
+  }
+  document.getElementById('kbManualAdd').addEventListener('click', ingestManual);
+  document.getElementById('kbManualUrl').addEventListener('keydown', (e)=>{ if(e.key==='Enter') ingestManual(); });
+
+  function renderManual(p){
+    const items=state.knowledge||[];
+    if(!items.length){ p.innerHTML=emptyState('Nothing in the knowledge base yet','Paste any blog post, tweet, article, or video URL above. AI fetches the page, extracts the key points, and stores it here so Mailer Studio + Ad Campaigns can use it as context.','',''); return; }
+    p.innerHTML = `<p class="count">${items.length} sources ingested · click any to read the summary</p>
+      <div style="display:flex; flex-direction:column; gap:12px" id="kbList"></div>`;
+    document.getElementById('kbList').innerHTML = items.map(it=>{
+      const tags=(it.tags||[]).slice(0,5).map(t=>'<span class="chip">'+esc(t)+'</span>').join(' ');
+      const kp=(it.key_points||[]).slice(0,4).map(k=>'<li style="margin:3px 0">'+esc(k)+'</li>').join('');
+      return `<div class="card" style="cursor:auto; padding:16px 18px">
+        <div style="display:flex; justify-content:space-between; align-items:start; gap:12px">
+          <div style="flex:1; min-width:0">
+            <div style="font-size:9.5px; text-transform:uppercase; letter-spacing:.08em; color:#5d6e64; font-weight:700; margin-bottom:4px">${esc(it.source_type||'web')} · ${esc(fmtDate(it.added_at))}</div>
+            <div class="brand" style="font-size:15px">${esc(it.title||it.url)}</div>
+            ${it.author?'<div style="font-size:11.5px; color:#9aaaa1; margin-top:2px">by '+esc(it.author)+'</div>':''}
+          </div>
+          <a href="${esc(it.url)}" target="_blank" rel="noopener" class="kbm-act" style="text-decoration:none; flex-shrink:0">Open ↗</a>
+        </div>
+        ${it.summary?'<p style="color:#cdd8d2; font-size:13px; line-height:1.55; margin-top:10px">'+esc(it.summary)+'</p>':'<p style="color:#5d6e64; font-style:italic; font-size:12.5px; margin-top:10px">Status: '+esc(it.status||'pending')+'</p>'}
+        ${kp?'<ul style="margin-top:8px; padding-left:18px; color:#9aaaa1; font-size:12.5px">'+kp+'</ul>':''}
+        ${tags?'<div style="margin-top:8px">'+tags+'</div>':''}
+      </div>`;
+    }).join('');
   }
 
   async function fetchEmails(){
@@ -115,6 +182,13 @@
   async function render(){
     setActive();
     const p=$('panel');
+    // Manual knowledge — different shape (no channel split).
+    if(state.src==='manual'){
+      p.innerHTML='<div class="loading">Loading knowledge base…</div>';
+      await fetchKnowledge();
+      renderManual(p);
+      return;
+    }
     // Only Competitor → Mailers has live data today (the captured emails).
     if(state.src==='competitor' && state.chan==='mailers'){
       p.innerHTML='<div class="loading">Loading captured competitor mailers…</div>';
@@ -170,9 +244,10 @@
   document.querySelectorAll('#srcTabs .tab').forEach(b=>b.addEventListener('click',()=>{state.src=b.dataset.src;render();}));
   document.querySelectorAll('#chanTabs .subtab').forEach(b=>b.addEventListener('click',()=>{state.chan=b.dataset.chan;render();}));
 
-  // Deep-link from the hash: #vahdam, #competitor, #vahdam-ads, #competitor-ads
+  // Deep-link from the hash: #vahdam, #competitor, #vahdam-ads, #competitor-ads, #manual
   (function initFromHash(){
     const h=(location.hash||'').replace('#','');
+    if(h==='manual'){ state.src='manual'; state.chan='mailers'; return; }
     if(h.startsWith('vahdam'))state.src='vahdam'; else state.src='competitor';
     state.chan=h.endsWith('ads')?'ads':'mailers';
   })();
