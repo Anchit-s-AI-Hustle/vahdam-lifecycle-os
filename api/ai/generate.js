@@ -380,6 +380,138 @@ HARD RULES:
 - Specificity comes from BEHAVIOUR ("buys premium grocery weekly", "gifts 3-4 times a year") and TRIGGER ("the 15% off code", "the new harvest"), not from city/stat name-dropping.
 Return ONLY the segment text. No preamble, no quotes around it, no JSON.`;
     userMessage = `MARKET: ${market}\nCAMPAIGN TYPE: ${theme || 'Bestseller'}\nCAMPAIGN BRIEF:\n${(campaign_brief || '').substring(0, 1200)}\n${body.seed_segment ? 'SEED (refine, do not discard): ' + String(body.seed_segment).substring(0, 400) + '\n' : ''}\nWrite the Target User Segment now. Country-level geography only.`;
+  } else if (mode === 'autofill') {
+    // ─────────────────────────────────────────────────────────────────
+    // AUTOFILL — single-prompt → all form fields for the chosen surface.
+    // Used by ad-campaigns.html (google/meta/tiktok) and landing-pages.html
+    // (lp-mailer/lp-meta/lp-google/lp-tiktok).
+    //
+    // Input  : { mode:'autofill', surface:'<surface>', prompt:'<plain text>', market?, region? }
+    // Output : STRICT JSON object whose keys match the form-field names for
+    //          that surface. The frontend reads each key into its corresponding
+    //          <input> / <textarea> / <select>.
+    //
+    // The system prompt is surface-specific because the field schema differs
+    // per channel (Google needs keywords + URL, Meta needs audience + primary
+    // text, TikTok needs hook + caption + hashtags, landing pages have a
+    // hero / sub / offer / notes set).
+    // ─────────────────────────────────────────────────────────────────
+    response_format = { type: 'json_object' };
+    const surface = String(body.surface || '').toLowerCase();
+    const userPrompt = String(body.prompt || campaign_brief || '').trim().slice(0, 1600);
+    const targetMarket = body.market || body.region || market || 'US';
+
+    const BRAND_GUARDRAILS = `BRAND: VAHDAM India — premium D2C tea, single-estate, garden-fresh in 72h, B-Corp.
+PALETTE: forest green #004A2B / amber gold #AB8743 / cream #FBF5EA / black #171717.
+BANNED: "wellness journey", "transform", "liquid gold", "game-changer", "LIMITED TIME" (caps), "hurry", "don't miss out".
+PREFERRED: ritual, restore, balance, origin, single-estate, hand-picked, steep, heritage, crafted.
+COUNTRY-LEVEL geo only. No cities. Currency: $ for US/Global, £ for UK, ₹ for India, € for EU.`;
+
+    const SURFACE_SCHEMAS = {
+      google: {
+        what: 'a Google Search ad campaign',
+        fields: `{
+  "name": "<≤60 chars campaign name>",
+  "type": "<Search|Performance Max|Display|Shopping|YouTube>",
+  "budget": <integer daily budget in market currency, 20-200>,
+  "market": "<US|UK|IN|Global|EU|AU|ME>",
+  "url": "<final landing URL — start with /, never absolute>",
+  "keywords": "<comma-separated 6-12 keywords, lowercase, no quotes>",
+  "headlines": "<3-5 headlines, one per line, each ≤30 chars>",
+  "desc": "<2 descriptions, one per line, each ≤90 chars>"
+}`,
+      },
+      meta: {
+        what: 'a Meta (Facebook + Instagram) ad campaign',
+        fields: `{
+  "name": "<≤60 chars campaign name>",
+  "obj": "<Sales / Conversions|Traffic|Awareness|Engagement|Leads>",
+  "budget": <integer daily budget, 20-200>,
+  "market": "<US|UK|IN|Global|EU|AU|ME>",
+  "place": "<Advantage+ (all)|Feed|Stories/Reels|Manual>",
+  "aud": "<one-sentence audience targeting — interests + lookalike if relevant>",
+  "primary": "<primary text, 60-180 chars, emotional + concrete + ends with implicit CTA>",
+  "headline": "<≤40 chars headline>"
+}`,
+      },
+      tiktok: {
+        what: 'a TikTok ad campaign',
+        fields: `{
+  "name": "<≤60 chars campaign name>",
+  "obj": "<Web Conversions|Traffic|Reach|App Promotion|Video Views|Lead Generation>",
+  "budget": <integer daily budget, 20-200>,
+  "market": "<US|UK|IN|Global|AU|ME>",
+  "place": "<TikTok In-Feed|Spark Ads|TopView|Pangle Network>",
+  "aud": "<one-line audience — interests, age, lifestyle>",
+  "hook": "<≤80 chars opener — conversational, sounds native to TikTok, not marketing speak>",
+  "caption": "<≤140 chars on-screen text — short phrases separated by · or , >",
+  "creator": "<@handle if relevant, else empty string>",
+  "hashtags": "<3-6 hashtags space-separated, lowercase, no marketing-speak>"
+}`,
+      },
+      'lp-mailer': {
+        what: 'a landing page paired with a mailer',
+        fields: `{
+  "hero": "<hero headline — repeats the mailer's promise verbatim, ≤80 chars>",
+  "sub": "<one line of reassurance / detail, ≤140 chars>",
+  "offer": "<offer + promo code, e.g. FLASH25 — 25% off this week>",
+  "notes": "<2-4 sentences on who lands here, the cohort intent, the conversion trigger>"
+}`,
+      },
+      'lp-meta': {
+        what: 'a landing page paired with a Meta ad',
+        fields: `{
+  "hero": "<≤40 chars hero, must match the ad headline verbatim>",
+  "sub": "<one-sentence value prop, matches the ad's promise>",
+  "offer": "<offer + promo code>",
+  "notes": "<audience · placements · objective · why this offer for them>"
+}`,
+      },
+      'lp-google': {
+        what: 'a landing page paired with a Google search ad',
+        fields: `{
+  "hero": "<the target keyword(s), comma-separated — must appear verbatim on the page>",
+  "sub": "<≤30 chars headline that exactly matches the keyword intent>",
+  "offer": "<offer or discount>",
+  "notes": "<match type · search intent · expected CVR · 2 sentences>"
+}`,
+      },
+      'lp-tiktok': {
+        what: 'a landing page paired with a TikTok ad',
+        fields: `{
+  "hero": "<the video's opening hook, verbatim — conversational, mobile-first>",
+  "sub": "<top creator quote or social-proof line>",
+  "offer": "<offer + promo code>",
+  "notes": "<creator handle · hashtag · audience · 2 sentences>"
+}`,
+      },
+    };
+
+    const schema = SURFACE_SCHEMAS[surface];
+    if (!schema) {
+      return res.status(400).json({ ok: false, error: `Unknown surface "${surface}". Use one of: ${Object.keys(SURFACE_SCHEMAS).join(', ')}` });
+    }
+
+    systemPrompt = `You autofill ${schema.what} from a single user prompt.
+
+${BRAND_GUARDRAILS}
+
+OUTPUT FORMAT — return STRICT JSON ONLY, matching this exact shape (no markdown, no commentary, first character {, last character }):
+
+${schema.fields}
+
+RULES:
+- Fill EVERY field with a concrete, on-brand value derived from the prompt.
+- If the prompt doesn't specify a value, infer a sensible default from VAHDAM's brand + the target market.
+- Numbers (budget) must be plain integers, not strings.
+- Strings must obey the character limits inside <…>.
+- Never use the banned phrases.
+- COUNTRY-LEVEL geography only.
+- Currency in copy must match the market.
+
+Target market for this autofill: ${targetMarket}.`;
+
+    userMessage = `USER PROMPT:\n"""\n${userPrompt}\n"""\n\nReturn the JSON object now. Do not include any text outside the JSON.`;
   } else {
     // create_brief mode (default)
     // Market context — informs audience psychology and visual direction

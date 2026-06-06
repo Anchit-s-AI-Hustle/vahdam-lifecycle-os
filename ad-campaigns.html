@@ -94,6 +94,11 @@
     border-radius: 14px; padding: 22px; max-height: 88vh; overflow-y: auto; }
   .modal h3 { font-family: 'Lora', serif; font-size: 18px; margin-bottom: 4px; }
   .note { font-size: 11px; color: #5d6e64; margin-top: 4px; }
+
+  /* Single-prompt autofill bar at the top of each ad form. */
+  .ai-bar { background: rgba(171,135,67,0.06); border: 1px solid rgba(171,135,67,0.22); border-radius: 10px; padding: 12px 14px; margin: 8px 0 16px; }
+  .ai-bar .label { margin-top: 0; color: #AB8743; font-size: 11.5px; }
+  .ai-bar textarea { min-height: 64px; font-family: inherit; }
 </style>
 </head>
 <body>
@@ -130,6 +135,11 @@
     <div class="grid2">
       <div class="card">
         <div class="list-head"><h3>New Google campaign</h3></div>
+        <div class="ai-bar" data-surface="google">
+          <label class="label">✨ Or describe the campaign in plain English — AI fills every field below</label>
+          <textarea data-ai-prompt placeholder="e.g. Promote single-estate Darjeeling First Flush at 25% off in the US, target tea-curious buyers searching for premium loose-leaf"></textarea>
+          <div class="btn-row" style="margin-top:8px"><button class="btn btn-solid" data-ai-fill>✨ Autofill from prompt</button><span data-ai-status class="note"></span></div>
+        </div>
         <label class="label">Campaign name</label>
         <input id="g-name" placeholder="e.g. Darjeeling First Flush — Search">
         <div class="row">
@@ -164,6 +174,11 @@
     <div class="grid2">
       <div class="card">
         <div class="list-head"><h3>New Meta campaign</h3></div>
+        <div class="ai-bar" data-surface="meta">
+          <label class="label">✨ Or describe the campaign in plain English — AI fills every field below</label>
+          <textarea data-ai-prompt placeholder="e.g. Re-engage lapsed US buyers with our Chai Bestsellers bundle, $40/day, Advantage+ placements, primary text in our 'morning ritual' voice"></textarea>
+          <div class="btn-row" style="margin-top:8px"><button class="btn btn-solid" data-ai-fill>✨ Autofill from prompt</button><span data-ai-status class="note"></span></div>
+        </div>
         <label class="label">Campaign name</label>
         <input id="m-name" placeholder="e.g. Gifting Season — Advantage+">
         <div class="row">
@@ -198,6 +213,11 @@
     <div class="grid2">
       <div class="card">
         <div class="list-head"><h3>New TikTok campaign</h3></div>
+        <div class="ai-bar" data-surface="tiktok">
+          <label class="label">✨ Or describe the campaign in plain English — AI fills every field below</label>
+          <textarea data-ai-prompt placeholder="e.g. UGC creator drop for our Mushroom Coffee alternative, $30/day, In-Feed + Spark Ads, hook in the 'POV: morning coffee crash' lane"></textarea>
+          <div class="btn-row" style="margin-top:8px"><button class="btn btn-solid" data-ai-fill>✨ Autofill from prompt</button><span data-ai-status class="note"></span></div>
+        </div>
         <label class="label">Campaign name</label>
         <input id="t-name" placeholder="e.g. Morning Ritual — UGC Creator Drop">
         <div class="row">
@@ -437,6 +457,68 @@
 
   // ── Init ─────────────────────────────────────────────────────────────
   renderCal(); renderGoogle(); renderMeta(); renderTikTok();
+
+  // ── Single-prompt autofill ───────────────────────────────────────────
+  // The Generate-from-prompt bar at the top of each ad form. Calls
+  // /api/ai/generate with mode='autofill' + surface=<channel>, then walks
+  // the returned JSON and sets every form field by key.
+  //
+  // Surface → DOM-id-prefix map (the ad-campaigns forms use single-letter
+  // prefixes per channel: g- for Google, m- for Meta, t- for TikTok).
+  const AI_FIELD_MAP = {
+    google: { name:'g-name', type:'g-type', budget:'g-budget', market:'g-market', url:'g-url', keywords:'g-keywords', headlines:'g-headlines', desc:'g-desc' },
+    meta:   { name:'m-name', obj:'m-obj',   budget:'m-budget', market:'m-market', place:'m-place', aud:'m-aud', primary:'m-primary', headline:'m-headline' },
+    tiktok: { name:'t-name', obj:'t-obj',   budget:'t-budget', market:'t-market', place:'t-place', aud:'t-aud', hook:'t-hook', caption:'t-caption', creator:'t-creator', hashtags:'t-hash' },
+  };
+  function setField(id, value) {
+    const el = document.getElementById(id);
+    if (!el || value === undefined || value === null) return;
+    const v = String(value);
+    if (el.tagName === 'SELECT') {
+      // Try exact match first, then case-insensitive contains
+      const opts = [...el.options];
+      const exact = opts.find((o) => o.value === v || o.textContent.trim() === v);
+      const fuzzy = exact || opts.find((o) => o.textContent.trim().toLowerCase().includes(v.toLowerCase()));
+      if (fuzzy) el.value = fuzzy.value;
+    } else {
+      el.value = v;
+    }
+  }
+  document.querySelectorAll('.ai-bar [data-ai-fill]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const bar = btn.closest('.ai-bar');
+      const surface = bar.dataset.surface;
+      const promptEl = bar.querySelector('[data-ai-prompt]');
+      const status = bar.querySelector('[data-ai-status]');
+      const prompt = (promptEl.value || '').trim();
+      if (!prompt) { status.textContent = 'Type what you want first.'; return; }
+      const fieldMap = AI_FIELD_MAP[surface];
+      if (!fieldMap) { status.textContent = 'Unknown surface: ' + surface; return; }
+      const orig = btn.textContent; btn.disabled = true; btn.textContent = '✨ Filling… (5-15s)';
+      status.textContent = '';
+      try {
+        const r = await fetch('/api/ai/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: 'autofill', surface, prompt, market: document.getElementById(fieldMap.market)?.value || 'US' }),
+        });
+        const d = await r.json();
+        if (!r.ok || !d) { status.textContent = 'Failed: ' + (d?.error || r.statusText); return; }
+        // Some providers wrap the JSON in { text: '...' }; tolerate either.
+        const fields = typeof d === 'string' ? JSON.parse(d) : (d.text ? JSON.parse(d.text) : d);
+        let filled = 0;
+        for (const key in fieldMap) {
+          if (fields[key] !== undefined) { setField(fieldMap[key], fields[key]); filled++; }
+        }
+        status.textContent = filled ? `Filled ${filled} fields — review and save.` : 'No matching fields returned. Try a more specific prompt.';
+        toast('Form pre-filled — tweak and save');
+      } catch (err) {
+        status.textContent = 'Error: ' + err.message;
+      } finally {
+        btn.disabled = false; btn.textContent = orig;
+      }
+    });
+  });
   showTab(location.hash.slice(1) || (location.pathname.includes('landing') ? 'landing' : 'calendar'));
 })();
 </script>
