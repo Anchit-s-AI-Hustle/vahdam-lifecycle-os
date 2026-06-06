@@ -108,7 +108,7 @@
     <button class="tab" data-tab="calendar">Calendar</button>
     <button class="tab" data-tab="google">Google Ads</button>
     <button class="tab" data-tab="meta">Meta Ads</button>
-    <button class="tab" data-tab="landing">Landing Pages</button>
+    <button class="tab" data-tab="tiktok">TikTok Ads</button>
   </div>
 
   <!-- CALENDAR -->
@@ -193,30 +193,40 @@
     </div>
   </section>
 
-  <!-- LANDING -->
-  <section class="panel" id="panel-landing">
+  <!-- TIKTOK -->
+  <section class="panel" id="panel-tiktok">
     <div class="grid2">
       <div class="card">
-        <div class="list-head"><h3>New landing page</h3></div>
-        <label class="label">Page name</label>
-        <input id="l-name" placeholder="e.g. First Flush Launch LP">
-        <label class="label">Linked campaign</label>
-        <select id="l-link"><option value="">— none —</option></select>
-        <label class="label">Hero headline</label>
-        <input id="l-headline" placeholder="The First Flush Has Landed">
-        <label class="label">Sub-headline</label>
-        <textarea id="l-sub" placeholder="Hand-picked this week in Darjeeling. Steeped in your kitchen by next."></textarea>
+        <div class="list-head"><h3>New TikTok campaign</h3></div>
+        <label class="label">Campaign name</label>
+        <input id="t-name" placeholder="e.g. Morning Ritual — UGC Creator Drop">
         <div class="row">
-          <div><label class="label">CTA text</label><input id="l-cta" placeholder="Shop the First Flush"></div>
-          <div><label class="label">CTA URL</label><input id="l-url" placeholder="https://www.vahdamteas.com/..."></div>
+          <div><label class="label">Objective</label><select id="t-obj"><option>Web Conversions</option><option>Traffic</option><option>Reach</option><option>App Promotion</option><option>Video Views</option><option>Lead Generation</option></select></div>
+          <div><label class="label">Daily budget</label><input id="t-budget" type="number" placeholder="40"></div>
+        </div>
+        <div class="row">
+          <div><label class="label">Market</label><select id="t-market"><option>US</option><option>UK</option><option>IN</option><option>Global</option><option>AU</option><option>ME</option></select></div>
+          <div><label class="label">Placement</label><select id="t-place"><option>TikTok In-Feed</option><option>Spark Ads</option><option>TopView</option><option>Pangle Network</option></select></div>
+        </div>
+        <label class="label">Audience</label>
+        <input id="t-aud" placeholder="Wellness + morning routines · 22-45 · interests: matcha, ayurveda">
+        <label class="label">Hook (first 3 seconds)</label>
+        <input id="t-hook" placeholder="POV: you finally found a tea that actually wakes you up">
+        <label class="label">Caption / on-screen text</label>
+        <textarea id="t-caption" placeholder="single-estate · steeped in 4 min · no caffeine crash"></textarea>
+        <div class="row">
+          <div><label class="label">Creator handle (optional)</label><input id="t-creator" placeholder="@username"></div>
+          <div><label class="label">Hashtags</label><input id="t-hash" placeholder="#tea #morningritual #wellness"></div>
         </div>
         <div class="btn-row">
-          <button class="btn btn-solid" id="l-save">Save landing page</button>
+          <button class="btn btn-ghost" id="t-ai">✨ Generate hook + caption with AI</button>
+          <button class="btn btn-solid" id="t-save">Save campaign</button>
         </div>
+        <p class="note" id="t-ai-note"></p>
       </div>
       <div>
-        <div class="list-head"><h3>Landing pages</h3><span class="pill" id="l-count">0</span></div>
-        <div id="l-list"></div>
+        <div class="list-head"><h3>TikTok campaigns</h3><span class="pill" id="t-count">0</span></div>
+        <div id="t-list"></div>
       </div>
     </div>
   </section>
@@ -258,10 +268,10 @@
   const KEY = 'vahdam-ads-v1';
   const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
   const save = () => localStorage.setItem(KEY, JSON.stringify(store));
-  const store = Object.assign({ google: [], meta: [], landing: [], calendar: {} }, load());
+  const store = Object.assign({ google: [], meta: [], tiktok: [], landing: [], calendar: {} }, load());
 
   // ── Tabs (hash-routed to match sidebar deep-links) ───────────────────
-  const TABS = ['calendar', 'google', 'meta', 'landing'];
+  const TABS = ['calendar', 'google', 'meta', 'tiktok'];
   function showTab(t) {
     if (!TABS.includes(t)) t = 'calendar';
     document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === t));
@@ -396,44 +406,37 @@
     save(); renderMeta(); ['m-name', 'm-budget', 'm-aud', 'm-primary', 'm-headline'].forEach((id) => $('#' + id).value = ''); toast('Campaign saved');
   };
 
-  // ── Landing pages ──────────────────────────────────────────────────
-  function renderLanding() {
-    $('#l-count').textContent = store.landing.length;
-    // refresh linked-campaign options
-    const opts = ['<option value="">— none —</option>']
-      .concat(store.google.map((c) => `<option value="g:${c.id}">Google · ${esc(c.name)}</option>`))
-      .concat(store.meta.map((c) => `<option value="m:${c.id}">Meta · ${esc(c.name)}</option>`));
-    $('#l-link').innerHTML = opts.join('');
-    $('#l-list').innerHTML = store.landing.length ? store.landing.map((p) => `
+  // ── TikTok Ads ─────────────────────────────────────────────────────
+  function renderTikTok() {
+    $('#t-count').textContent = store.tiktok.length;
+    $('#t-list').innerHTML = store.tiktok.length ? store.tiktok.map((c) => `
       <div class="item">
-        <div class="item-top"><span class="chan chan-other">Landing</span><b>${esc(p.name)}</b><button class="x" data-rm="${p.id}">×</button></div>
-        <div class="item-copy"><span class="h">${esc(p.headline || '')}</span><br>${esc(p.sub || '')}</div>
-        <div class="item-meta" style="margin-top:8px"><span>CTA: <b>${esc(p.cta || '—')}</b></span>${p.link ? `<span>${esc(p.linkLabel || '')}</span>` : ''}</div>
-        <div class="btn-row"><button class="btn btn-ghost" data-prev="${p.id}">Preview HTML</button></div>
-      </div>`).join('') : '<div class="empty">No landing pages yet.</div>';
-    $('#l-list').querySelectorAll('[data-rm]').forEach((b) => b.addEventListener('click', () => { store.landing = store.landing.filter((x) => x.id !== b.dataset.rm); save(); renderLanding(); }));
-    $('#l-list').querySelectorAll('[data-prev]').forEach((b) => b.addEventListener('click', () => previewLanding(store.landing.find((x) => x.id === b.dataset.prev))));
+        <div class="item-top"><span class="chan chan-other">TikTok</span><b>${esc(c.name)}</b><button class="x" data-rm="${c.id}">×</button></div>
+        <div class="item-meta"><span>${esc(c.obj || '')}</span>${c.budget ? `<span>$${esc(c.budget)}/day</span>` : ''}<span>${esc(c.market || '')}</span>${c.creator ? `<span>${esc(c.creator)}</span>` : ''}</div>
+        <div class="item-copy" style="margin-top:6px"><span class="h">${esc(c.hook || '')}</span><br>${esc(c.caption || '')}</div>
+        ${c.hashtags ? `<div class="item-meta" style="margin-top:6px"><span>${esc(c.hashtags)}</span></div>` : ''}
+      </div>`).join('') : '<div class="empty">No TikTok campaigns yet.</div>';
+    $('#t-list').querySelectorAll('[data-rm]').forEach((b) => b.addEventListener('click', () => { store.tiktok = store.tiktok.filter((x) => x.id !== b.dataset.rm); save(); renderTikTok(); }));
   }
-  $('#l-save').onclick = () => {
-    const name = $('#l-name').value.trim(); if (!name) { toast('Enter a page name'); return; }
-    const linkVal = $('#l-link').value, linkLabel = $('#l-link').selectedOptions[0]?.textContent || '';
-    store.landing.unshift({ id: uid(), name, link: linkVal, linkLabel, headline: $('#l-headline').value.trim(),
-      sub: $('#l-sub').value.trim(), cta: $('#l-cta').value.trim(), url: $('#l-url').value.trim() });
-    save(); renderLanding(); ['l-name', 'l-headline', 'l-sub', 'l-cta', 'l-url'].forEach((id) => $('#' + id).value = ''); toast('Landing page saved');
+  $('#t-save').onclick = () => {
+    const name = $('#t-name').value.trim(); if (!name) { toast('Enter a campaign name'); return; }
+    store.tiktok.unshift({ id: uid(), name, obj: $('#t-obj').value, budget: $('#t-budget').value, market: $('#t-market').value,
+      place: $('#t-place').value, aud: $('#t-aud').value.trim(), hook: $('#t-hook').value.trim(), caption: $('#t-caption').value.trim(),
+      creator: $('#t-creator').value.trim(), hashtags: $('#t-hash').value.trim() });
+    save(); renderTikTok(); ['t-name','t-budget','t-aud','t-hook','t-caption','t-creator','t-hash'].forEach((id) => $('#' + id).value = ''); toast('Campaign saved');
   };
-  function previewLanding(p) {
-    if (!p) return;
-    const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Lora:wght@600&family=Inter:wght@400;600&display=swap" rel="stylesheet">
-<style>body{margin:0;font-family:Inter,sans-serif;background:#FBF5EA;color:#171717}.h{background:#004A2B;color:#FBF5EA;padding:80px 24px;text-align:center}
-.h h1{font-family:Lora,serif;font-size:44px;margin:0 0 14px;max-width:760px;margin-inline:auto}.h p{font-size:18px;opacity:.9;max-width:560px;margin:0 auto 28px}
-.cta{display:inline-block;background:#AB8743;color:#171717;text-decoration:none;font-weight:600;padding:15px 34px;border-radius:8px}</style></head>
-<body><div class="h"><h1>${esc(p.headline || p.name)}</h1><p>${esc(p.sub || '')}</p><a class="cta" href="${esc(p.url || '#')}">${esc(p.cta || 'Shop Now')}</a></div></body></html>`;
-    const w = window.open('', '_blank'); if (w) { w.document.open(); w.document.write(html); w.document.close(); }
-  }
+  $('#t-ai').onclick = async () => {
+    const name = $('#t-name').value.trim() || 'TikTok campaign';
+    const text = await aiBrief($('#t-ai-note'), $('#t-market').value, 'Launch', name + ' — write a TikTok hook (≤80 chars, native, conversational) + caption (≤120 chars, no marketing-speak) for VAHDAM tea.');
+    if (!text) return;
+    // Naive split: first line → hook, rest → caption
+    const lines = text.split('\n').map((s) => s.trim()).filter(Boolean);
+    if (lines[0]) $('#t-hook').value = lines[0].replace(/^["'`]|["'`]$/g, '');
+    if (lines.slice(1).length) $('#t-caption').value = lines.slice(1).join(' ').replace(/^["'`]|["'`]$/g, '');
+  };
 
   // ── Init ─────────────────────────────────────────────────────────────
-  renderCal(); renderGoogle(); renderMeta(); renderLanding();
+  renderCal(); renderGoogle(); renderMeta(); renderTikTok();
   showTab(location.hash.slice(1) || (location.pathname.includes('landing') ? 'landing' : 'calendar'));
 })();
 </script>
