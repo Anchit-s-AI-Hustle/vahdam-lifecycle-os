@@ -117,6 +117,102 @@
     location.hash = state.src==='manual' ? 'manual' : (state.src+(state.chan==='ads'?'-ads':''));
   }
 
+  // ─── Top VAHDAM emails: list + bulk import ─────────────────────────
+  state.topEmails = null;
+  async function fetchTopEmails(force){
+    if(state.topEmails && !force) return state.topEmails;
+    try{ const r=await fetch('/api/kb/top-emails?limit=200'); const d=await r.json(); state.topEmails = d.items||[]; }
+    catch{ state.topEmails=[]; }
+    return state.topEmails;
+  }
+  function fmtPct(v){ if(v==null) return '—'; return (Number(v)*100).toFixed(1)+'%'; }
+  function fmtRev(v){ if(v==null) return '—'; const n=Number(v); if(!isFinite(n)) return '—'; return n.toLocaleString(undefined,{style:'currency',currency:'USD',maximumFractionDigits:0}); }
+  function renderTopEmails(p, items){
+    const importBlock = `
+      <details style="background:#0f1d18; border:1px solid rgba(171,135,67,.18); border-radius:12px; padding:14px 18px; margin-bottom:18px">
+        <summary style="cursor:pointer; font-weight:600; color:#FBF5EA; font-size:13.5px">⬆ Import top emails (paste JSON or CSV)</summary>
+        <p style="font-size:12.5px; color:#9aaaa1; margin:10px 0">
+          Each row needs at minimum <code style="color:#AB8743">subject</code> and <code style="color:#AB8743">body_text</code>. Optional:
+          <code style="color:#AB8743">sent_at, preheader, market, segment, campaign_type, open_rate, click_rate, conversion_rate, revenue, send_count, tags, notes</code>.
+          Rates can be 0–1 or 0–100 (auto-detected).
+        </p>
+        <textarea id="kbTopPaste" rows="8" placeholder='[
+  {"subject":"Single-Estate Darjeeling — 25% off this week", "body_text":"Hand-picked, garden-fresh in 72 hours…", "market":"US", "campaign_type":"Sale", "open_rate":0.42, "click_rate":0.08, "revenue":12500, "send_count":50000}
+]' style="width:100%; background:#0a1410; border:1px solid rgba(171,135,67,.25); border-radius:9px; color:#e8ede9; padding:10px 12px; font-family:monospace; font-size:12px"></textarea>
+        <div style="display:flex; gap:10px; margin-top:10px; align-items:center; flex-wrap:wrap">
+          <button id="kbTopImport" class="kb-cta" style="border:0; cursor:pointer; font-family:inherit">Import</button>
+          <span id="kbTopStatus" style="font-size:12.5px; color:#9aaaa1"></span>
+        </div>
+      </details>`;
+    if(!items.length){
+      p.innerHTML = importBlock + emptyState(
+        'No top VAHDAM emails seeded yet',
+        'Feed the historical winners (min 50 with metrics) above — open rate, CTR, revenue. They become style + voice anchors for every new mailer the Studio generates.',
+        '', ''
+      );
+    } else {
+      p.innerHTML = importBlock +
+        `<p class="count">${items.length} top mailers seeded · sorted by recency</p>
+         <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px" id="kbTopGrid"></div>`;
+      document.getElementById('kbTopGrid').innerHTML = items.map(it=>{
+        const tags=(it.tags||[]).slice(0,4).map(t=>'<span class="chip">'+esc(t)+'</span>').join(' ');
+        return `<div class="card" style="cursor:auto; padding:14px 16px">
+          <div style="font-size:9.5px; text-transform:uppercase; letter-spacing:.08em; color:#5d6e64; font-weight:700; margin-bottom:4px">${esc(it.market||'—')} · ${esc(it.campaign_type||'—')} · ${esc(fmtDate(it.sent_at||it.added_at))}</div>
+          <div class="brand" style="font-size:14px">${esc(it.subject)}</div>
+          ${it.preheader?'<div style="font-size:12px; color:#9aaaa1; margin-top:3px">'+esc(it.preheader)+'</div>':''}
+          <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; margin-top:10px; padding:10px 0; border-top:1px solid rgba(171,135,67,.08); border-bottom:1px solid rgba(171,135,67,.08)">
+            <div><div style="font-size:9px; color:#5d6e64; text-transform:uppercase; letter-spacing:.06em">Open</div><div style="color:#FBF5EA; font-weight:600; font-size:13px">${fmtPct(it.open_rate)}</div></div>
+            <div><div style="font-size:9px; color:#5d6e64; text-transform:uppercase; letter-spacing:.06em">CTR</div><div style="color:#FBF5EA; font-weight:600; font-size:13px">${fmtPct(it.click_rate)}</div></div>
+            <div><div style="font-size:9px; color:#5d6e64; text-transform:uppercase; letter-spacing:.06em">Revenue</div><div style="color:#AB8743; font-weight:600; font-size:13px">${fmtRev(it.revenue)}</div></div>
+          </div>
+          ${it.body_text?'<p style="color:#cdd8d2; font-size:12px; line-height:1.55; margin-top:8px; max-height:80px; overflow:hidden">'+esc(it.body_text.slice(0,280))+(it.body_text.length>280?'…':'')+'</p>':''}
+          ${tags?'<div style="margin-top:8px">'+tags+'</div>':''}
+        </div>`;
+      }).join('');
+    }
+    // Wire the importer
+    document.getElementById('kbTopImport').addEventListener('click', importTopEmails);
+  }
+  async function importTopEmails(){
+    const ta=document.getElementById('kbTopPaste'), status=document.getElementById('kbTopStatus'), btn=document.getElementById('kbTopImport');
+    const raw=(ta.value||'').trim();
+    if(!raw){ status.textContent='Paste JSON or CSV first.'; return; }
+    let items;
+    try{ items = JSON.parse(raw); if(!Array.isArray(items)) items=[items]; }
+    catch{ items = parseCsv(raw); }
+    if(!items || !items.length){ status.textContent='Could not parse — JSON array or CSV with headers expected.'; return; }
+    btn.disabled=true; btn.style.opacity='0.6'; status.textContent='Importing '+items.length+' rows…';
+    try{
+      const r=await fetch('/api/kb/top-emails?bulk=1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items})});
+      const d=await r.json();
+      if(!r.ok || !d.ok){ status.textContent='Failed: '+(d.error||r.statusText); return; }
+      status.textContent='Imported '+d.inserted+(d.rejected?(' · skipped '+d.rejected+' (missing subject/body_text)'):'');
+      ta.value='';
+      await fetchTopEmails(true);
+      if(state.src==='vahdam' && state.chan==='mailers') render();
+    }catch(err){ status.textContent='Error: '+err.message; }
+    finally{ btn.disabled=false; btn.style.opacity=''; }
+  }
+  // Minimal CSV → array of objects (header row, comma separator, quoted-fields supported)
+  function parseCsv(text){
+    const lines = text.split(/\r?\n/).filter(l=>l.trim());
+    if(lines.length<2) return null;
+    const splitRow = (line) => {
+      const out=[]; let cur='', q=false;
+      for(let i=0;i<line.length;i++){ const c=line[i];
+        if(c==='"'){ if(q && line[i+1]==='"'){ cur+='"'; i++; } else q=!q; }
+        else if(c===',' && !q){ out.push(cur); cur=''; }
+        else cur+=c;
+      } out.push(cur); return out.map(s=>s.trim());
+    };
+    const headers = splitRow(lines[0]).map(h=>h.toLowerCase());
+    return lines.slice(1).map(line=>{
+      const cols=splitRow(line); const obj={};
+      headers.forEach((h,i)=>{ if(cols[i]!==undefined && cols[i]!=='') obj[h]=cols[i]; });
+      return obj;
+    });
+  }
+
   // ─── Manual knowledge: ingest + render ───────────────────────────────
   async function fetchKnowledge(force){
     if(state.knowledge && !force) return state.knowledge;
@@ -210,7 +306,10 @@
       p.innerHTML=emptyState('Competitor ad creatives','Captured competitor ads (image/video creative, landing URL, copy, first/last seen) will be archived here — mirroring the mailer pipeline. For now, browse live ad libraries (Meta, Google, TikTok) from the Ads tab.','Browse competitor ads','/competitor-benchmarking.html#ads');return;
     }
     if(state.src==='vahdam' && state.chan==='mailers'){
-      p.innerHTML=emptyState('VAHDAM mailer library','Your sent/created VAHDAM mailers will be archived here as a brand-locked design reference that seeds future generation. Create mailers in the Studio — archiving them into the KB is the next step.','Open Mailer Studio','/studio');return;
+      p.innerHTML='<div class="loading">Loading top VAHDAM mailers…</div>';
+      const items = await fetchTopEmails();
+      renderTopEmails(p, items);
+      return;
     }
     // vahdam ads
     p.innerHTML=emptyState('VAHDAM ad creatives','Your VAHDAM ad creatives + landing pages will live here as a reusable creative library. Build them in Ad Campaigns; KB archiving comes with the Phase-2 creative store.','Open Ad Campaigns','/ad-campaigns.html');
