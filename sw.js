@@ -9,7 +9,7 @@
  *  - Cross-origin / non-GET: pass through to the network.
  *  - On activate: drop old caches + claim clients so updates ship immediately.
  */
-const VERSION = 'lifecycle-os-v9';
+const VERSION = 'lifecycle-os-v10';
 const SHELL = [
   '/', '/index.html', '/dashboard.html', '/calendar.html',
   '/auth.js', '/table-sort.js', '/chart-enhance.js',
@@ -30,17 +30,35 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+// Helper: safely put a response in cache.
+// Critical: clone() must happen SYNCHRONOUSLY before any await/then — the
+// response body is a stream that can be read exactly once. The previous bug
+// ("Failed to execute 'clone' on 'Response': Response body is already used")
+// was caused by calling r.clone() inside a deferred caches.open().then(),
+// by which time the page consumer had already drained the body.
+function safePut(req, resp) {
+  if (!resp || !resp.ok) return;                       // never cache 4xx/5xx
+  if (resp.type === 'opaque' || resp.type === 'opaqueredirect') return;
+  let clone;
+  try { clone = resp.clone(); } catch { return; }     // clone NOW, while body is intact
+  caches.open(VERSION).then((c) => c.put(req, clone)).catch(() => {});
+}
+
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;                     // never intercept POST etc.
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;      // pass-through CDN / Supabase
 
+  // API endpoints are dynamic — never cache. A cached 500 stays bad until the
+  // SW evicts; a cached list of competitor emails goes stale instantly.
+  if (url.pathname.startsWith('/api/')) return;
+
   // Navigation: network first, fall back to a cached shell.
   if (req.mode === 'navigate') {
     e.respondWith(
       fetch(req)
-        .then((r) => { caches.open(VERSION).then((c) => c.put(req, r.clone())); return r; })
+        .then((r) => { safePut(req, r); return r; })
         .catch(() => caches.match(req).then((r) => r || caches.match('/index.html')))
     );
     return;
@@ -49,10 +67,7 @@ self.addEventListener('fetch', (e) => {
   // Static GETs: stale-while-revalidate.
   e.respondWith(
     caches.match(req).then((cached) => {
-      const fresh = fetch(req).then((r) => {
-        if (r && r.ok) caches.open(VERSION).then((c) => c.put(req, r.clone()));
-        return r;
-      }).catch(() => cached);
+      const fresh = fetch(req).then((r) => { safePut(req, r); return r; }).catch(() => cached);
       return cached || fresh;
     })
   );
