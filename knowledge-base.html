@@ -26,6 +26,16 @@
   .subtab{padding:7px 14px;border-radius:7px;font-size:12.5px;font-weight:600;color:#9aaaa1;background:transparent;border:none;cursor:pointer;font-family:inherit}
   .subtab:hover{color:#e8ede9}
   .subtab.active{color:#FBF5EA;background:rgba(171,135,67,.16)}
+  .region-chip{padding:6px 12px;border-radius:99px;background:#0a1410;border:1px solid rgba(171,135,67,.22);color:#cdd8d2;font-size:11.5px;cursor:pointer;font-family:inherit}
+  .region-chip.active{background:#AB8743;color:#0a1410;border-color:#AB8743}
+  /* Files tab list */
+  .kb-file-row{display:flex;gap:14px;align-items:center;background:#0f1d18;border:1px solid rgba(171,135,67,.18);border-radius:12px;padding:12px 14px;margin-bottom:8px}
+  .kb-file-row .ic{font-size:18px;line-height:1}
+  .kb-file-row .meta-line{font-size:11px;color:#9aaaa1;margin-top:2px}
+  .kb-file-row .pill{display:inline-block;background:rgba(171,135,67,.14);color:#cdd8d2;font-size:10.5px;padding:1px 7px;border-radius:99px;margin-right:4px}
+  .kb-upload{background:rgba(171,135,67,.04);border:1px dashed rgba(171,135,67,.3);border-radius:12px;padding:18px 22px;margin-bottom:16px}
+  .kb-upload select,.kb-upload input{background:#0a1410;border:1px solid rgba(171,135,67,.3);border-radius:9px;color:#cdd8d2;padding:8px 11px;font-family:inherit;font-size:13px}
+  .kb-upload .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   .panel{margin-top:22px}
   /* gallery */
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
@@ -65,12 +75,26 @@
 
   <div class="tabs" id="srcTabs">
     <button class="tab" data-src="vahdam">VAHDAM</button>
-    <button class="tab" data-src="competitor">Competitor Benchmarking</button>
+    <button class="tab" data-src="competitor">Competitors</button>
     <button class="tab" data-src="manual">📚 Manual Knowledge</button>
+    <button class="tab" data-src="files">📁 Files</button>
   </div>
   <div class="subtabs" id="chanTabs">
     <button class="subtab" data-chan="mailers">✉ Mailers</button>
-    <button class="subtab" data-chan="ads">📣 Ads</button>
+    <button class="subtab" data-chan="meta">▼ Meta Ads</button>
+    <button class="subtab" data-chan="google">G Google Ads</button>
+    <button class="subtab" data-chan="tiktok">♪ TikTok Ads</button>
+    <button class="subtab" data-chan="landing">▦ Landing Pages</button>
+  </div>
+
+  <!-- Region filter — applies to all VAHDAM + Competitor channels. -->
+  <div id="kbRegions" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:12px">
+    <span style="font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:#5d6e64; font-weight:600; align-self:center; margin-right:8px">Region</span>
+    <button class="region-chip active" data-region="">All</button>
+    <button class="region-chip" data-region="US">US</button>
+    <button class="region-chip" data-region="UK">UK</button>
+    <button class="region-chip" data-region="Global">Global</button>
+    <button class="region-chip" data-region="India">India</button>
   </div>
 
   <!-- Manual Knowledge form (shown only when source = manual) -->
@@ -105,16 +129,26 @@
   const $=(id)=>document.getElementById(id);
   const esc=(s)=>(s||'').replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmtDate=(iso)=>{const d=new Date(iso);return isNaN(d)?(iso||'—'):d.toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});};
-  const state={src:'competitor',chan:'mailers',emails:null,knowledge:null};
+  const state={src:'competitor',chan:'mailers',region:'',emails:null,knowledge:null,files:null};
   const htmlCache={};
+  // Sub-channels that show the email/ad library. The Mailers channel reuses
+  // the existing competitor sync; Meta/Google/TikTok/Landing are placeholders
+  // until per-channel capture lands — they render empty states pointing at
+  // the right place to seed/capture them.
+  const CHANNELS = ['mailers','meta','google','tiktok','landing'];
 
   function setActive(){
     document.querySelectorAll('#srcTabs .tab').forEach(b=>b.classList.toggle('active',b.dataset.src===state.src));
     document.querySelectorAll('#chanTabs .subtab').forEach(b=>b.classList.toggle('active',b.dataset.chan===state.chan));
-    // Hide channel tabs + show ingest form when in manual mode
-    document.getElementById('chanTabs').style.display = state.src==='manual' ? 'none' : '';
+    // Channel tabs visible only for VAHDAM + Competitors (not Manual or Files).
+    const isLibrary = state.src==='vahdam' || state.src==='competitor';
+    document.getElementById('chanTabs').style.display = isLibrary ? '' : 'none';
+    document.getElementById('kbRegions').style.display = isLibrary ? 'flex' : 'none';
     document.getElementById('kbManualForm').style.display = state.src==='manual' ? '' : 'none';
-    location.hash = state.src==='manual' ? 'manual' : (state.src+(state.chan==='ads'?'-ads':''));
+    // Hash schema: #<src>[-<chan>][/<region>]
+    let h = state.src;
+    if (isLibrary) { h += '-' + state.chan; if (state.region) h += '/' + state.region; }
+    location.hash = h;
   }
 
   // ─── Top VAHDAM emails: list + bulk import ─────────────────────────
@@ -275,44 +309,177 @@
     return `<div class="empty-kb"><h3>${esc(title)}</h3><p>${body}</p>${ctaHref?`<a class="kb-cta" href="${ctaHref}">${esc(ctaLabel)} →</a>`:''}</div>`;
   }
 
+  // Channel-specific copy used for empty states so each panel still feels
+  // intentional even before the per-channel data lands.
+  const CHANNEL_META = {
+    mailers: { name: 'Mailers',      icon: '✉', dest: '/calendar.html',         destLabel: 'Open Marketing Mailers' },
+    meta:    { name: 'Meta Ads',     icon: '▼', dest: '/ad-campaigns.html#meta', destLabel: 'Open Meta Ads' },
+    google:  { name: 'Google Ads',   icon: 'G', dest: '/ad-campaigns.html#google', destLabel: 'Open Google Ads' },
+    tiktok:  { name: 'TikTok Ads',   icon: '♪', dest: '/ad-campaigns.html#tiktok', destLabel: 'Open TikTok Ads' },
+    landing: { name: 'Landing Pages',icon: '▦', dest: '/landing-pages.html',     destLabel: 'Open Landing Pages' },
+  };
+
   async function render(){
     setActive();
     const p=$('panel');
-    // Manual knowledge — different shape (no channel split).
+
+    // ── Manual Knowledge ────────────────────────────────────────
     if(state.src==='manual'){
       p.innerHTML='<div class="loading">Loading knowledge base…</div>';
       await fetchKnowledge();
       renderManual(p);
       return;
     }
-    // Only Competitor → Mailers has live data today (the captured emails).
+    // ── Files ───────────────────────────────────────────────────
+    if(state.src==='files'){
+      await renderFilesTab(p);
+      return;
+    }
+
+    const meta = CHANNEL_META[state.chan];
+
+    // ── Competitor → Mailers (live: captured competitor emails) ─
     if(state.src==='competitor' && state.chan==='mailers'){
       p.innerHTML='<div class="loading">Loading captured competitor mailers…</div>';
       const emails=await fetchEmails();
-      if(!emails.length){p.innerHTML=emptyState('No mailers captured yet','Competitor emails captured into the monitored inbox will appear here as a visual design library.','Open Competitor Benchmarking','/competitor-benchmarking.html');return;}
-      p.innerHTML=`<p class="count">${emails.length} competitor mailers archived · click any to preview the full email</p><div class="grid" id="grid"></div>`;
-      $('grid').innerHTML=emails.map(e=>`
+      const filtered = state.region ? emails.filter(e => regionOfBrand(e.brand) === state.region) : emails;
+      if(!filtered.length){p.innerHTML=emptyState('No mailers captured yet'+(state.region?(' for '+state.region):''),'Competitor emails captured into the monitored inbox will appear here as a visual design library.','Open Competitor Benchmarking','/competitor-benchmarking.html');return;}
+      p.innerHTML=`<p class="count">${filtered.length} competitor mailers archived${state.region?(' · '+state.region):''} · click any to preview</p><div class="grid" id="grid"></div>`;
+      $('grid').innerHTML=filtered.map(e=>`
         <div class="card" data-id="${esc(e.id)}">
           <div class="frame" data-frame="${esc(e.id)}"></div>
           <div class="meta"><div class="brand">${esc(e.brand)}</div><div class="subj">${esc(e.subject)}</div><div class="date">${esc(fmtDate(e.receivedAt))}</div>${e.promoCodes&&e.promoCodes!=='None'?`<span class="chip">🏷 ${esc(e.promoCodes.split(',')[0])}</span>`:''}</div>
         </div>`).join('');
       $('grid').querySelectorAll('.card').forEach(c=>{
         c.addEventListener('click',()=>openPreview(c.dataset.id));
-        lazyThumb(c.dataset.id); // fill the mini live-HTML thumbnail
+        lazyThumb(c.dataset.id);
       });
       return;
     }
-    if(state.src==='competitor' && state.chan==='ads'){
-      p.innerHTML=emptyState('Competitor ad creatives','Captured competitor ads (image/video creative, landing URL, copy, first/last seen) will be archived here — mirroring the mailer pipeline. For now, browse live ad libraries (Meta, Google, TikTok) from the Ads tab.','Browse competitor ads','/competitor-benchmarking.html#ads');return;
-    }
+
+    // ── VAHDAM → Mailers (live: hand-seeded top emails) ─────────
     if(state.src==='vahdam' && state.chan==='mailers'){
       p.innerHTML='<div class="loading">Loading top VAHDAM mailers…</div>';
       const items = await fetchTopEmails();
-      renderTopEmails(p, items);
+      const filtered = state.region ? items.filter(x => x.market === state.region) : items;
+      renderTopEmails(p, filtered);
       return;
     }
-    // vahdam ads
-    p.innerHTML=emptyState('VAHDAM ad creatives','Your VAHDAM ad creatives + landing pages will live here as a reusable creative library. Build them in Ad Campaigns; KB archiving comes with the Phase-2 creative store.','Open Ad Campaigns','/ad-campaigns.html');
+
+    // ── Everything else: scaffolded empty state per channel ─────
+    const who = state.src==='vahdam' ? 'VAHDAM' : 'Competitor';
+    p.innerHTML = emptyState(
+      `${meta.icon} ${who} ${meta.name}${state.region?(' · '+state.region):''}`,
+      state.src==='vahdam'
+        ? `Your ${meta.name.toLowerCase()} will live here as a brand-locked reference for future generation. The creation flow is one click away — build them there, archive them here.`
+        : `Captured competitor ${meta.name.toLowerCase()} will be archived here once per-channel capture lands (mirroring the mailer pipeline). For now, browse live in Competitor Benchmarking.`,
+      state.src==='vahdam' ? meta.destLabel : 'Open Competitor Benchmarking',
+      state.src==='vahdam' ? meta.dest : '/competitor-benchmarking.html'
+    );
+  }
+
+  // Quick heuristic: tag a brand to a region. Real region attribution comes
+  // from competitor_brands once we hook the captured mailers to it.
+  function regionOfBrand(brand) {
+    if (!brand) return null;
+    const UK = ['Pukka','Twinings','Yogi Europe','Bird & Blend','Clipper','Teapigs','Whittard','Brew Tea','Newby','Pact Coffee','Grind','Origin Coffee','Square Mile','Workshop Coffee','MyProtein','Holland & Barrett','Bulk','Vitabiotics','Healthspan','Solgar UK','Wild Nutrition','Innermost','Vitl'];
+    if (UK.some((u) => brand.toLowerCase().includes(u.toLowerCase()))) return 'UK';
+    return 'US';
+  }
+
+  // ─── Files tab: all uploaded knowledge-base files (any format) ─
+  async function renderFilesTab(p) {
+    p.innerHTML = `
+      <div class="kb-upload">
+        <div style="font-weight:600;color:#FBF5EA;margin-bottom:6px;font-size:14px">Upload anything — PDFs, CSVs, PNGs, MP4s, ZIPs</div>
+        <div style="color:#9aaaa1;font-size:12.5px;margin-bottom:12px">Tag the file by feature (which surface uses it) and region (which market it's for). Indexes via Supabase Storage.</div>
+        <div class="row" style="margin-bottom:10px">
+          <select id="kbUpFeature">
+            <option value="brand">Brand kit</option>
+            <option value="mailers">Mailers</option>
+            <option value="meta">Meta Ads</option>
+            <option value="google">Google Ads</option>
+            <option value="tiktok">TikTok Ads</option>
+            <option value="landing">Landing Pages</option>
+            <option value="products">Product catalog</option>
+            <option value="references">References</option>
+            <option value="other">Other</option>
+          </select>
+          <select id="kbUpRegion">
+            <option value="">All regions</option>
+            <option value="US">US</option>
+            <option value="UK">UK</option>
+            <option value="Global">Global</option>
+            <option value="India">India</option>
+          </select>
+          <label class="kb-cta" style="border:0;cursor:pointer">
+            <input id="kbUpFile" type="file" multiple style="display:none">⬆ Choose files
+          </label>
+        </div>
+        <div id="kbUpStatus" style="font-size:12.5px;color:#9aaaa1;min-height:16px"></div>
+      </div>
+      <div id="kbFilesList"></div>`;
+    $('kbUpFile').addEventListener('change', (e) => { if (e.target.files?.length) uploadFiles(e.target.files); });
+    await loadFilesList();
+  }
+  async function loadFilesList() {
+    const target = $('kbFilesList');
+    target.innerHTML = '<div class="loading">Loading files…</div>';
+    try {
+      const cfgR = await fetch('/api/public-config'); const cfg = await cfgR.json();
+      const sbUrl = cfg?.supabase?.url, anon = cfg?.supabase?.anonKey;
+      if (!sbUrl || !anon) { target.innerHTML = '<div class="empty-kb"><p>Supabase config not reachable.</p></div>'; return; }
+      const r = await fetch(`${sbUrl}/rest/v1/kb_files?select=*&order=uploaded_at.desc&limit=500`, { headers: { apikey: anon, Authorization: `Bearer ${anon}` } });
+      const items = r.ok ? await r.json() : [];
+      if (!items.length) { target.innerHTML = '<div class="empty-kb"><h3>No files yet</h3><p>Upload anything above — it lands in Supabase Storage and becomes available to every generator.</p></div>'; return; }
+      target.innerHTML = items.map((f) => {
+        const ic = (f.mime_type||'').startsWith('image/') ? '🖼' : f.mime_type==='application/pdf' ? '📄' : /(sheet|csv|xlsx)/i.test(f.mime_type||f.file_name||'') ? '📊' : (f.mime_type||'').startsWith('video/') ? '🎬' : '📎';
+        return `<div class="kb-file-row">
+          <div class="ic">${ic}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:600;color:#FBF5EA;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.file_name)}</div>
+            <div class="meta-line">
+              <span class="pill">${esc(f.category||'other')}</span>
+              ${f.region ? `<span class="pill">${esc(f.region)}</span>` : ''}
+              ${fmtBytes(f.size_bytes||0)} · ${esc(f.mime_type||'unknown')} · ${new Date(f.uploaded_at).toLocaleDateString()}
+            </div>
+          </div>
+          <a href="${esc(f.public_url||'#')}" target="_blank" rel="noopener" class="kbm-act" style="text-decoration:none">Open ↗</a>
+        </div>`;
+      }).join('');
+    } catch (err) { target.innerHTML = '<div class="empty-kb"><p>Could not load files: '+esc(err.message)+'</p></div>'; }
+  }
+  function fmtBytes(n){if(!n)return '0 B';const u=['B','KB','MB','GB'];let i=0,v=n;while(v>=1024&&i<u.length-1){v/=1024;i++;}return v.toFixed(v<10?1:0)+' '+u[i];}
+  async function uploadFiles(fileList) {
+    const status = $('kbUpStatus');
+    const feature = $('kbUpFeature').value;
+    const region = $('kbUpRegion').value || null;
+    try {
+      const cfgR = await fetch('/api/public-config'); const cfg = await cfgR.json();
+      const sbUrl = cfg?.supabase?.url, anon = cfg?.supabase?.anonKey;
+      if (!sbUrl || !anon) { status.textContent = 'Supabase not configured.'; return; }
+      // Lazy-load Supabase SDK
+      for (let i=0; i<50 && !window.supabase; i++) await new Promise(r => setTimeout(r,60));
+      if (!window.supabase) {
+        const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+        await new Promise((res, rej) => { s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+      }
+      const sb = window.supabase.createClient(sbUrl, anon);
+      let done = 0, total = fileList.length, failed = 0;
+      for (const f of fileList) {
+        status.textContent = `Uploading ${++done}/${total}: ${f.name}…`;
+        const path = `${feature}/${Date.now()}_${f.name.replace(/[^\w.\-]+/g,'_')}`;
+        try {
+          const { error: upErr } = await sb.storage.from('knowledge-base').upload(path, f, { upsert: false, contentType: f.type || 'application/octet-stream' });
+          if (upErr) throw upErr;
+          const pub = sb.storage.from('knowledge-base').getPublicUrl(path).data?.publicUrl || '';
+          const { error: rowErr } = await sb.from('kb_files').insert({ storage_path: path, file_name: f.name, mime_type: f.type||'application/octet-stream', size_bytes: f.size, category: feature, region, public_url: pub, uploaded_by: 'dashboard' });
+          if (rowErr) throw rowErr;
+        } catch (err) { failed++; console.warn('[kb] upload', f.name, err.message); }
+      }
+      status.textContent = failed ? `Done. ${total-failed} uploaded, ${failed} failed.` : `Uploaded ${total} file${total>1?'s':''}.`;
+      loadFilesList();
+    } catch (err) { status.textContent = 'Error: '+err.message; }
   }
 
   async function loadHtml(id){
@@ -342,13 +509,31 @@
 
   document.querySelectorAll('#srcTabs .tab').forEach(b=>b.addEventListener('click',()=>{state.src=b.dataset.src;render();}));
   document.querySelectorAll('#chanTabs .subtab').forEach(b=>b.addEventListener('click',()=>{state.chan=b.dataset.chan;render();}));
+  document.querySelectorAll('#kbRegions .region-chip').forEach(b=>b.addEventListener('click',()=>{
+    state.region = b.dataset.region;
+    document.querySelectorAll('#kbRegions .region-chip').forEach(x=>x.classList.toggle('active', x===b));
+    render();
+  }));
 
-  // Deep-link from the hash: #vahdam, #competitor, #vahdam-ads, #competitor-ads, #manual
+  // Deep-link parser. Modern: #<src>-<chan>[/<region>]. Legacy:
+  // #vahdam, #vahdam-ads, #competitor, #competitor-ads, #manual.
   (function initFromHash(){
-    const h=(location.hash||'').replace('#','');
-    if(h==='manual'){ state.src='manual'; state.chan='mailers'; return; }
-    if(h.startsWith('vahdam'))state.src='vahdam'; else state.src='competitor';
-    state.chan=h.endsWith('ads')?'ads':'mailers';
+    const raw=(location.hash||'').replace('#','');
+    if(!raw) return;
+    const [main, region] = raw.split('/');
+    if (main==='manual' || main==='files') { state.src = main; state.chan='mailers'; return; }
+    const parts = main.split('-');
+    const src = parts[0];
+    if (src==='vahdam' || src==='competitor') {
+      state.src = src;
+      const chan = parts.slice(1).join('-') || 'mailers';
+      // Legacy 'ads' -> 'meta' (closest match)
+      state.chan = (chan === 'ads') ? 'meta' : (CHANNELS.includes(chan) ? chan : 'mailers');
+    }
+    if (region && ['US','UK','Global','India'].includes(region)) {
+      state.region = region;
+      document.querySelectorAll('#kbRegions .region-chip').forEach(x => x.classList.toggle('active', x.dataset.region === region));
+    }
   })();
   render();
 })();
