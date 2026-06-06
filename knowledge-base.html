@@ -155,7 +155,7 @@
   state.topEmails = null;
   async function fetchTopEmails(force){
     if(state.topEmails && !force) return state.topEmails;
-    try{ const r=await fetch('/api/kb/top-emails?limit=200'); const d=await r.json(); state.topEmails = d.items||[]; }
+    try{ const r=await fetch('/api/kb?action=top-emails&limit=200'); const d=await r.json(); state.topEmails = d.items||[]; }
     catch{ state.topEmails=[]; }
     return state.topEmails;
   }
@@ -217,7 +217,7 @@
     if(!items || !items.length){ status.textContent='Could not parse — JSON array or CSV with headers expected.'; return; }
     btn.disabled=true; btn.style.opacity='0.6'; status.textContent='Importing '+items.length+' rows…';
     try{
-      const r=await fetch('/api/kb/top-emails?bulk=1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items})});
+      const r=await fetch('/api/kb?action=top-emails&bulk=1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items})});
       const d=await r.json();
       if(!r.ok || !d.ok){ status.textContent='Failed: '+(d.error||r.statusText); return; }
       status.textContent='Imported '+d.inserted+(d.rejected?(' · skipped '+d.rejected+' (missing subject/body_text)'):'');
@@ -250,7 +250,7 @@
   // ─── Manual knowledge: ingest + render ───────────────────────────────
   async function fetchKnowledge(force){
     if(state.knowledge && !force) return state.knowledge;
-    try{ const r=await fetch('/api/kb/list?limit=200'); const d=await r.json(); state.knowledge = d.items||[]; }
+    try{ const r=await fetch('/api/kb?action=list&limit=200'); const d=await r.json(); state.knowledge = d.items||[]; }
     catch{ state.knowledge=[]; }
     return state.knowledge;
   }
@@ -262,7 +262,7 @@
     btn.disabled=true; btn.style.opacity='0.6';
     statusEl.textContent='Fetching + summarizing… (5-15s)';
     try{
-      const r=await fetch('/api/kb/ingest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,tags,added_by:'dashboard'})});
+      const r=await fetch('/api/kb?action=ingest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,tags,added_by:'dashboard'})});
       const d=await r.json();
       if(!r.ok || !d.ok){ statusEl.textContent='Failed: '+(d.error||r.statusText); return; }
       statusEl.textContent='Added: '+(d.title||url);

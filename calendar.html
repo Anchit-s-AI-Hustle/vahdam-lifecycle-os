@@ -270,7 +270,7 @@ async function generatePlan() {
   $('btnGenerate').textContent = 'Generating…';
 
   try {
-    const res = await fetch('/api/calendar/generate', {
+    const res = await fetch('/api/calendar?action=generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -408,7 +408,7 @@ async function openMailer(entry) {
   setStudioHandoff(entry, null, null, null);
 
   try {
-    const res = await fetch('/api/calendar/trigger-mailer', {
+    const res = await fetch('/api/calendar?action=trigger-mailer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ entry }),
