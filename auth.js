@@ -30,6 +30,15 @@
     });
   }
 
+  // ─── Brand mark (proper logo, replaces the old gradient dot) ────────
+  // Stylized V with a leaf accent — VAHDAM tea brand cue inside the V monogram.
+  // Single inline SVG, two render sizes via the .lnav-mark CSS class.
+  const LOGO_SVG = `<svg class="lnav-mark" viewBox="0 0 32 32" aria-label="VAHDAM Lifecycle OS" xmlns="http://www.w3.org/2000/svg">
+    <rect width="32" height="32" rx="8" fill="#004A2B"/>
+    <path class="stroke" d="M9 10 L 16 23 L 23 10" stroke="#AB8743" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <ellipse class="leaf" cx="16" cy="9.2" rx="2.1" ry="1.3" fill="#AB8743" transform="rotate(-12 16 9.2)"/>
+  </svg>`;
+
   // ─── Information architecture (left-hand sidebar) ───────────────────
   // Flat items render as top-level links; `children` render as an expandable
   // group. `open:true` marks a feature that never requires sign-in.
@@ -47,10 +56,16 @@
   };
   const NAV = [
     { id: 'home',       label: 'Home',          href: '/',               icon: 'home',     match: ['/', '/index.html'] },
+    { group: 'Knowledge Base', icon: 'kb', children: [
+      { id: 'kb-vahdam',     label: 'VAHDAM',     href: '/knowledge-base.html#vahdam',     icon: 'mailer', match: ['/knowledge-base.html', '/kb'] },
+      { id: 'kb-competitor', label: 'Competitor', href: '/knowledge-base.html#competitor', icon: 'competitor' },
+      { id: 'kb-manual',     label: 'Manual',     href: '/knowledge-base.html#manual',     icon: 'kb' },
+    ]},
     { id: 'analysis',   label: 'Data Analysis', href: '/dashboard.html', icon: 'analysis', match: ['/dashboard.html', '/analytics'] },
     { group: 'Competitor Benchmarking', icon: 'competitor', children: [
-      { id: 'comp-mailers', label: 'Mailers', href: '/competitor-benchmarking.html#mailers', icon: 'mailer', match: ['/competitor-benchmarking.html', '/competitor'] },
-      { id: 'comp-ads',     label: 'Ads',     href: '/competitor-benchmarking.html#ads',     icon: 'ads' },
+      { id: 'comp-mailers', label: 'Mailers',       href: '/competitor-benchmarking.html#mailers',  icon: 'mailer', match: ['/competitor-benchmarking.html', '/competitor'] },
+      { id: 'comp-ads',     label: 'Ads',           href: '/competitor-benchmarking.html#ads',      icon: 'ads' },
+      { id: 'comp-brands',  label: 'Brands',        href: '/competitor-benchmarking.html#brands',   icon: 'kb' },
     ]},
     { group: 'Marketing Mailers', icon: 'mailer', children: [
       { id: 'calendar', label: 'Calendar', href: '/calendar.html', icon: 'calendar', match: ['/calendar.html', '/plan'] },
@@ -64,10 +79,6 @@
       { id: 'ads-google',  label: 'Google Ads',    href: '/ad-campaigns.html#google',   icon: 'google' },
       { id: 'ads-meta',    label: 'Meta Ads',      href: '/ad-campaigns.html#meta',     icon: 'meta' },
       { id: 'ads-landing', label: 'Landing Pages', href: '/ad-campaigns.html#landing',  icon: 'landing',  match: ['/landing'] },
-    ]},
-    { group: 'Knowledge Base', icon: 'kb', children: [
-      { id: 'kb-vahdam',     label: 'VAHDAM',     href: '/knowledge-base.html#vahdam',     icon: 'mailer', match: ['/knowledge-base.html', '/kb'] },
-      { id: 'kb-competitor', label: 'Competitor', href: '/knowledge-base.html#competitor', icon: 'competitor' },
     ]},
   ];
 
@@ -162,8 +173,7 @@
         #lifecycle-nav .lnav-mbrand { display: flex; align-items: center; gap: 8px;
           font-size: 11px; font-weight: 700; letter-spacing: 0.14em; color: #AB8743;
           text-transform: uppercase; text-decoration: none; }
-        #lifecycle-nav .lnav-mbrand .lnav-dot { width: 8px; height: 8px; border-radius: 50%;
-          background: linear-gradient(135deg,#AB8743,#004A2B); }
+        #lifecycle-nav .lnav-mbrand .lnav-mark { width: 22px; height: 22px; flex-shrink: 0; }
 
         #lifecycle-nav .lnav-backdrop {
           position: fixed; inset: 0; z-index: 109; background: rgba(0,0,0,0.55);
@@ -183,8 +193,12 @@
           display: flex; align-items: center; gap: 10px; text-decoration: none;
           padding: 4px 8px 16px; color: #AB8743;
         }
-        #lifecycle-nav .lnav-brand .lnav-dot { width: 26px; height: 26px; border-radius: 50%;
-          background: linear-gradient(135deg,#AB8743,#004A2B); flex-shrink: 0; }
+        /* Brand mark — proper SVG logo (replaces the old gradient dot). */
+        #lifecycle-nav .lnav-mark { width: 30px; height: 30px; flex-shrink: 0; display: block; }
+        #lifecycle-nav .lnav-mark rect { transition: fill .2s; }
+        #lifecycle-nav .lnav-brand:hover .lnav-mark rect { fill: #006a3f; }
+        #lifecycle-nav .lnav-brand:hover .lnav-mark .stroke { stroke: #d6a85a; }
+        #lifecycle-nav .lnav-brand:hover .lnav-mark .leaf  { fill: #d6a85a; }
         #lifecycle-nav .lnav-brand .lnav-bt { display: flex; flex-direction: column; line-height: 1.15; }
         #lifecycle-nav .lnav-brand .lnav-bt b { font-family: 'Lora', serif; font-size: 14px; color: #FBF5EA; font-weight: 600; }
         #lifecycle-nav .lnav-brand .lnav-bt small { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #AB8743; }
@@ -270,13 +284,13 @@
       </style>
       <div class="lnav-mbar">
         <button class="lnav-burger" id="lnav-burger" aria-label="Open navigation">☰</button>
-        <a class="lnav-mbrand" href="/"><span class="lnav-dot"></span> VAHDAM · Lifecycle OS</a>
+        <a class="lnav-mbrand" href="/">${LOGO_SVG} <span style="margin-left:8px">VAHDAM · Lifecycle OS</span></a>
       </div>
       <div class="lnav-backdrop" id="lnav-backdrop"></div>
       <aside class="lnav-side">
         <div class="lnav-head">
           <a class="lnav-brand" href="/">
-            <span class="lnav-dot"></span>
+            ${LOGO_SVG}
             <span class="lnav-bt"><b>Lifecycle OS</b><small>VAHDAM</small></span>
           </a>
           <button class="lnav-collapse" id="lnav-collapse" type="button" title="Collapse sidebar" aria-label="Collapse sidebar">«</button>
