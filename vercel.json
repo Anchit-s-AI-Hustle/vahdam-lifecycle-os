@@ -34,6 +34,8 @@
     { "source": "/landing-pages", "destination": "/landing-pages.html" },
     { "source": "/knowledge-base", "destination": "/knowledge-base.html" },
     { "source": "/kb",         "destination": "/knowledge-base.html" },
+    { "source": "/discover",   "destination": "/mailer-discovery.html" },
+    { "source": "/mailer-discovery", "destination": "/mailer-discovery.html" },
     { "source": "/api/health", "destination": "/api/public-config?health=1" }
   ],
   "headers": [

@@ -9,7 +9,7 @@
   <meta name="theme-color" content="#004A2B">
   <meta name="apple-mobile-web-app-title" content="Lifecycle OS">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <script src="/auth.js?v=20260615" defer></script>
+  <script src="/auth.js?v=20260617" defer></script>
   <script defer src="/_vercel/speed-insights/script.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -589,61 +589,67 @@
   const DEFAULT_BRANDS = ['Teabox', 'Tea Forte', 'Twinings', 'Harney & Sons', 'Art of Tea', 'The Republic of Tea'];
   const adBrands = () => { try { return JSON.parse(localStorage.getItem(ADS_KEY)) || DEFAULT_BRANDS.slice(); } catch { return DEFAULT_BRANDS.slice(); } };
   const saveBrands = (list) => localStorage.setItem(ADS_KEY, JSON.stringify(list));
-  // Normalize a brand entry to {name, domain, keyword}. Each library has a
-  // DIFFERENT primary search key — so we store all three and use the right
-  // one per platform:
-  //   - Meta Ad Library      → brand NAME ("Pukka Herbs")  via q=
-  //   - Google Ads Transparency → DOMAIN ("pukkaherbs.com") via domain=
-  //   - TikTok Creative Center  → KEYWORDS ("organic tea")  via keyword=
-  // Legacy storage (array of plain strings) gets auto-upgraded: name = the
-  // string, domain = best-guess `<slug>.com`, keyword = the string.
+  // Known real domains for common brands so Google ATC's domain= search
+  // resolves to the right advertiser (a wrong slug guess loads nothing).
+  const BRAND_DOMAINS = {
+    'teabox':'teabox.com', 'tea forte':'teaforte.com', 'twinings':'twinings.co.uk',
+    'harney & sons':'harney.com', 'art of tea':'artoftea.com',
+    'the republic of tea':'republicoftea.com', 'pukka herbs':'pukkaherbs.com',
+    'yogi':'yogiproducts.com', 'tea forté':'teaforte.com', 'traditional medicinals':'traditionalmedicinals.com',
+    'everyday dose':'everydaydose.com', 'javvy coffee':'javvycoffee.com', 'ryze':'ryzesuperfoods.com',
+  };
+  // Normalize a brand entry to {name, domain}. Meta uses name (q=), Google
+  // uses domain (domain=), TikTok library uses name (adv_name=). Domain comes
+  // from the known map, else a best-guess slug.com.
   function brandObj(b) {
     if (typeof b === 'object' && b) return b;
     const name = String(b || '').trim();
+    const known = BRAND_DOMAINS[name.toLowerCase()];
     const slug = name.toLowerCase().replace(/[^a-z0-9]/g, '');
-    return { name, domain: slug ? slug + '.com' : '', keyword: name };
+    return { name, domain: known || (slug ? slug + '.com' : '') };
   }
 
-  // Build deep-link URLs. Every platform gets the BRAND NAME as its search
-  // value so each link loads real results directly (not a blank library).
-  // Region applied only when explicitly chosen ("All countries" drops it).
-  // If a brand object carries an explicit `domain`, Google additionally
-  // prefers it (domain search is the most precise on Transparency Center),
-  // but we ALWAYS keep a brand-name text query as the universal fallback.
+  // Deep-link URLs use each platform's REAL search mechanism (researched):
+  //   • Meta Ad Library      — free-text advertiser search via ?q=<name>     ✓ works
+  //   • Google Ads Transparency Center — searches by VERIFIED DOMAIN via
+  //       ?region=<R>&domain=<domain>. (A bare name does NOT deep-link — the
+  //       prior ?searchQuery= just dumped you on the homepage.) We pass the
+  //       brand's real domain; region 2-letter or omitted = worldwide.
+  //   • TikTok — Creative Center has NO URL keyword search (UI-only). TikTok's
+  //       official searchable transparency tool is the Commercial Content
+  //       Library at library.tiktok.com, which takes a region + advertiser
+  //       name query.
   function adSources(b, region) {
     const brand = brandObj(b);
     const name = brand.name;
-    const enc = encodeURIComponent(name);
+    const domain = brand.domain || '';            // real domain when known
     const hasRegion = !!region && region !== 'ALL';
 
-    // Meta Ad Library — text search by brand name (q=). country=ALL = worldwide.
+    // Meta — q=<name>, country=ALL = worldwide.
     const metaParams = new URLSearchParams({
-      active_status: 'all',
-      ad_type: 'all',
+      active_status: 'all', ad_type: 'all',
       country: hasRegion ? region : 'ALL',
-      q: name,
-      search_type: 'keyword_unordered',
-      media_type: 'all',
+      q: name, search_type: 'keyword_unordered', media_type: 'all',
     });
     const metaUrl = `https://www.facebook.com/ads/library/?${metaParams}`;
 
-    // Google Ads Transparency Center — its search box reads ?searchQuery=.
-    // Pass the brand name so the advertiser results load directly. Region
-    // via ?region= (2-letter, or omit for worldwide).
-    const googleParams = new URLSearchParams({ searchQuery: name });
-    if (hasRegion) googleParams.set('region', region);
+    // Google — domain search (the only param that actually deep-links).
+    const googleParams = new URLSearchParams({ region: hasRegion ? region : 'anywhere' });
+    if (domain) googleParams.set('domain', domain);
+    else googleParams.set('text', name);          // best-effort free-text fallback
     const googleUrl = `https://adstransparency.google.com/?${googleParams}`;
 
-    // TikTok Creative Center — the Top Ads search reads ?keyword=. Brand name
-    // is the search value. Region is a 2-letter country code when chosen.
-    const tiktokParams = new URLSearchParams({ period: '30', keyword: name });
-    if (hasRegion) tiktokParams.set('region', region);
-    const tiktokUrl = `https://ads.tiktok.com/business/creativecenter/inspiration/topads/pc/en?${tiktokParams}`;
+    // TikTok — Commercial Content Library, advertiser-name search.
+    const ttParams = new URLSearchParams();
+    if (hasRegion) ttParams.set('region', region); else ttParams.set('region', 'all');
+    ttParams.set('adv_name', name);
+    ttParams.set('type', 'all');
+    const tiktokUrl = `https://library.tiktok.com/ads?${ttParams}`;
 
     return [
-      { label: 'Meta Ad Library',         cls: 'src-meta',   ic: 'f', url: metaUrl,    hint: 'search: ' + name },
-      { label: 'Google Ads Transparency', cls: 'src-google', ic: 'G', url: googleUrl,  hint: 'search: ' + name },
-      { label: 'TikTok Creative Center',  cls: 'src-tiktok', ic: 'T', url: tiktokUrl,  hint: 'keyword: ' + name },
+      { label: 'Meta Ad Library',         cls: 'src-meta',   ic: 'f', url: metaUrl,   hint: 'name: ' + name },
+      { label: 'Google Ads Transparency', cls: 'src-google', ic: 'G', url: googleUrl, hint: domain ? 'domain: ' + domain : 'name: ' + name },
+      { label: 'TikTok Content Library',  cls: 'src-tiktok', ic: 'T', url: tiktokUrl, hint: 'name: ' + name },
     ];
   }
   function renderAds() {

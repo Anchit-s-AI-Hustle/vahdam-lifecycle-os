@@ -111,6 +111,7 @@
     meta:       '<path d="M4 16c2-7 4-8 5-8 2 0 3 4 3 4s1-4 3-4c1 0 3 1 5 8"/>',
     landing:    '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/>',
     kb:         '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M19 17H6a2 2 0 0 0-2 2"/>',
+    discover:   '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6M8 11h6"/>',
   };
   // The app automates creation of three artefact types across four regions
   // (US, UK, Global, India). Landing Pages is its own L1 — used by both
@@ -118,16 +119,18 @@
   const NAV = [
     { id: 'home',       label: 'Home',          href: '/',               icon: 'home',     match: ['/', '/index.html'] },
     { group: 'Knowledge Base', icon: 'kb', children: [
-      { id: 'kb-vahdam',     label: 'VAHDAM',     href: '/knowledge-base.html#vahdam',     icon: 'mailer' },
-      { id: 'kb-competitor', label: 'Competitor', href: '/knowledge-base.html#competitor', icon: 'competitor' },
-      { id: 'kb-manual',     label: 'Manual',     href: '/knowledge-base.html#manual',     icon: 'kb' },
+      { id: 'kb-vahdam',     label: 'VAHDAM',      href: '/knowledge-base.html#vahdam-mailers',     icon: 'mailer' },
+      { id: 'kb-competitor', label: 'Competitors', href: '/knowledge-base.html#competitor-mailers', icon: 'competitor' },
     ]},
     { id: 'analysis',   label: 'Data Analysis', href: '/dashboard.html', icon: 'analysis', match: ['/dashboard.html', '/analytics'] },
     { group: 'Competitor Benchmarking', icon: 'competitor', children: [
-      { id: 'comp-mailers', label: 'Mailers',  href: '/competitor-benchmarking.html#mailers', icon: 'mailer' },
-      { id: 'comp-ads',     label: 'Ads',      href: '/competitor-benchmarking.html#ads',     icon: 'ads' },
-      { id: 'comp-brands',  label: 'Brands',   href: '/competitor-benchmarking.html#brands',  icon: 'kb' },
+      { id: 'comp-mailers', label: 'Mailers',       href: '/competitor-benchmarking.html#mailers', icon: 'mailer' },
+      { id: 'comp-ads',     label: 'Ads',           href: '/competitor-benchmarking.html#ads',     icon: 'ads' },
+      { id: 'comp-landing', label: 'Landing Pages', href: '/competitor-benchmarking.html#landing', icon: 'landing' },
+      { id: 'comp-brands',  label: 'Brands',        href: '/competitor-benchmarking.html#brands',  icon: 'kb' },
+      { id: 'comp-insights',label: 'Insights',      href: '/competitor-benchmarking.html#insights',icon: 'analysis' },
     ]},
+    { id: 'discover',   label: 'Mailer Discovery', href: '/mailer-discovery.html', icon: 'discover', match: ['/mailer-discovery.html', '/discover'] },
     { group: 'Marketing Mailers', icon: 'mailer', children: [
       { id: 'calendar', label: 'Calendar', href: '/calendar.html', icon: 'calendar', match: ['/calendar.html', '/plan'] },
       // Mailer Studio is an OPEN feature — works as an individual app

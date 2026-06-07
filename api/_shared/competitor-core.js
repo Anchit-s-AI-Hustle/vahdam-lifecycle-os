@@ -331,14 +331,18 @@ async function getExistingKeys() {
 // System / transactional / personal mail that is NOT a competitor newsletter.
 // Applied both at capture time (skip writing) and at read time (hide legacy
 // rows already in the sheet). Matches on sender domain + a few name/subject cues.
+// CONSERVATIVE: only clearly-non-competitor system / dev-tool / personal
+// senders. Deliberately EXCLUDES amazon/amazonses/paypal/stripe — a real
+// competitor brand can legitimately send marketing via SES or mention those,
+// and in practice those rules matched 0 mails, so they're dropped to avoid
+// any false positive that hides a genuine competitor newsletter.
 const NOISE_DOMAINS = [
   'google.com', 'accounts.google.com', 'docs.google.com', 'drive.google.com',
-  'mail.google.com', 'googlemail.com', 'gmail.com', 'youtube.com',
+  'mail.google.com', 'googlemail.com', 'youtube.com',
   'htmlcsstoimage.com', 'hcti.io', 'microlink.io',
   'vercel.com', 'github.com', 'supabase.io', 'supabase.com',
   'openai.com', 'anthropic.com', 'apple.com', 'icloud.com', 'microsoft.com',
   'notion.so', 'slack.com', 'zoom.us', 'calendly.com', 'linkedin.com',
-  'paypal.com', 'stripe.com', 'amazon.com', 'amazonses.com',
 ];
 const NOISE_NAME_RE = /\b(google|gmail|security alert|verification|2[-\s]?step|password|sign[-\s]?in|account|receipt|invoice|calendar|via google sheets|html\/?css to image)\b/i;
 // The operator's own identity — never a competitor.
