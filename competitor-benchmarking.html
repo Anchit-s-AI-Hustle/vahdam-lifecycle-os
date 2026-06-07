@@ -9,7 +9,7 @@
   <meta name="theme-color" content="#004A2B">
   <meta name="apple-mobile-web-app-title" content="Lifecycle OS">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <script src="/auth.js?v=20260614" defer></script>
+  <script src="/auth.js?v=20260615" defer></script>
   <script defer src="/_vercel/speed-insights/script.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -604,41 +604,46 @@
     return { name, domain: slug ? slug + '.com' : '', keyword: name };
   }
 
-  // Build deep-link URLs per platform's own search semantics. Region is
-  // applied only when explicitly chosen ("All countries" drops it).
+  // Build deep-link URLs. Every platform gets the BRAND NAME as its search
+  // value so each link loads real results directly (not a blank library).
+  // Region applied only when explicitly chosen ("All countries" drops it).
+  // If a brand object carries an explicit `domain`, Google additionally
+  // prefers it (domain search is the most precise on Transparency Center),
+  // but we ALWAYS keep a brand-name text query as the universal fallback.
   function adSources(b, region) {
     const brand = brandObj(b);
+    const name = brand.name;
+    const enc = encodeURIComponent(name);
     const hasRegion = !!region && region !== 'ALL';
 
-    // Meta Ad Library — search by brand NAME (q=). country=ALL = worldwide.
+    // Meta Ad Library — text search by brand name (q=). country=ALL = worldwide.
     const metaParams = new URLSearchParams({
       active_status: 'all',
       ad_type: 'all',
       country: hasRegion ? region : 'ALL',
-      q: brand.name,
+      q: name,
       search_type: 'keyword_unordered',
       media_type: 'all',
     });
     const metaUrl = `https://www.facebook.com/ads/library/?${metaParams}`;
 
-    // Google Ads Transparency — search by DOMAIN. If no domain known, fall
-    // back to the home page with region pre-filtered so the user can search
-    // manually (the page has no URL-level free-text search param).
-    const googleParams = new URLSearchParams({ region: hasRegion ? region : 'anywhere' });
-    if (brand.domain) googleParams.set('domain', brand.domain);
+    // Google Ads Transparency Center — its search box reads ?searchQuery=.
+    // Pass the brand name so the advertiser results load directly. Region
+    // via ?region= (2-letter, or omit for worldwide).
+    const googleParams = new URLSearchParams({ searchQuery: name });
+    if (hasRegion) googleParams.set('region', region);
     const googleUrl = `https://adstransparency.google.com/?${googleParams}`;
 
-    // TikTok Creative Center — search by KEYWORD. We use the brand's
-    // keyword string (defaults to name) so the user can override it for
-    // category/concept-level searches like "organic loose-leaf".
-    const tiktokParams = new URLSearchParams({ period: '30', keyword: brand.keyword || brand.name });
+    // TikTok Creative Center — the Top Ads search reads ?keyword=. Brand name
+    // is the search value. Region is a 2-letter country code when chosen.
+    const tiktokParams = new URLSearchParams({ period: '30', keyword: name });
     if (hasRegion) tiktokParams.set('region', region);
     const tiktokUrl = `https://ads.tiktok.com/business/creativecenter/inspiration/topads/pc/en?${tiktokParams}`;
 
     return [
-      { label: 'Meta Ad Library',         cls: 'src-meta',   ic: 'f', url: metaUrl,  hint: 'brand: ' + brand.name },
-      { label: 'Google Ads Transparency', cls: 'src-google', ic: 'G', url: googleUrl, hint: brand.domain ? 'domain: ' + brand.domain : 'manual search — no domain set' },
-      { label: 'TikTok Creative Center',  cls: 'src-tiktok', ic: 'T', url: tiktokUrl, hint: 'keyword: ' + (brand.keyword || brand.name) },
+      { label: 'Meta Ad Library',         cls: 'src-meta',   ic: 'f', url: metaUrl,    hint: 'search: ' + name },
+      { label: 'Google Ads Transparency', cls: 'src-google', ic: 'G', url: googleUrl,  hint: 'search: ' + name },
+      { label: 'TikTok Creative Center',  cls: 'src-tiktok', ic: 'T', url: tiktokUrl,  hint: 'keyword: ' + name },
     ];
   }
   function renderAds() {
