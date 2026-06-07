@@ -36,18 +36,139 @@ const SHEET_COLUMNS = [
 ];
 
 // ── Google auth / clients ────────────────────────────────────────────────────
+//
+// Two auth modes — Workload Identity Federation (PREFERRED) and legacy JWT.
+//
+// 1. WIF (no static keys, can't be "rotated to death"):
+//      env: GCP_WORKLOAD_IDENTITY_PROVIDER  // full resource name of the provider
+//           GCP_SERVICE_ACCOUNT_EMAIL       // the SA we impersonate
+//           VERCEL_OIDC_TOKEN                // auto-injected per request by Vercel
+//    Flow: Vercel mints a short-lived OIDC token → exchange at Google STS for a
+//          federated token → use that to impersonate the SA via IAM Credentials
+//          API → cached access token expires in 1h, auto-refreshed.
+//
+// 2. Legacy JWT (key-based, what we used before):
+//      env: GOOGLE_SERVICE_ACCOUNT_EMAIL
+//           GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
+//    Used as a fallback when WIF env vars aren't set — so the existing
+//    deployments keep working during the cutover.
+//
+// All sheetsClient() callers stay synchronous: the WIF token fetch is deferred
+// into the auth client's getAccessToken/getRequestHeaders, which googleapis
+// invokes lazily before each request and we cache + refresh internally.
+
 let _sheets = null;
 function sheetsClient() {
   if (_sheets) return _sheets;
-  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  let key = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
-  if (!email || !key) throw new Error('Missing GOOGLE_SERVICE_ACCOUNT_EMAIL/PRIVATE_KEY');
-  key = key.replace(/\\n/g, '\n').replace(/^["']|["']$/g, '');
-  const auth = new google.auth.JWT({
-    email, key, scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-  });
+  const useWif = !!(process.env.GCP_WORKLOAD_IDENTITY_PROVIDER && process.env.GCP_SERVICE_ACCOUNT_EMAIL);
+  const auth = useWif ? buildWifAuth() : buildJwtAuth();
   _sheets = google.sheets({ version: 'v4', auth });
   return _sheets;
+}
+
+function buildJwtAuth() {
+  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  let key = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
+  if (!email || !key) {
+    throw new Error(
+      'Google auth not configured. Set EITHER ' +
+      '(GCP_WORKLOAD_IDENTITY_PROVIDER + GCP_SERVICE_ACCOUNT_EMAIL) for keyless WIF, ' +
+      'OR (GOOGLE_SERVICE_ACCOUNT_EMAIL + GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY) for legacy JWT.'
+    );
+  }
+  key = key.replace(/\\n/g, '\n').replace(/^["']|["']$/g, '');
+  return new google.auth.JWT({
+    email, key, scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+  });
+}
+
+function buildWifAuth() {
+  const auth = new google.auth.OAuth2();
+  let cachedToken = null;
+  let cachedExpiry = 0;
+
+  async function refreshIfNeeded() {
+    const now = Date.now();
+    if (cachedToken && cachedExpiry > now + 60_000) return cachedToken;
+    const fresh = await fetchWifAccessToken();
+    cachedToken = fresh.accessToken;
+    cachedExpiry = fresh.expiresAt;
+    return cachedToken;
+  }
+
+  // googleapis calls one of these to attach Authorization on each request.
+  auth.getAccessToken = async () => {
+    const token = await refreshIfNeeded();
+    return { token, res: null };
+  };
+  auth.getRequestHeaders = async () => {
+    const token = await refreshIfNeeded();
+    return { Authorization: `Bearer ${token}` };
+  };
+  // Some googleapis internals call request() — proxy to ensure auth headers.
+  const origRequest = auth.request.bind(auth);
+  auth.request = async (opts) => {
+    const headers = await auth.getRequestHeaders();
+    return origRequest({ ...opts, headers: { ...(opts.headers || {}), ...headers } });
+  };
+  return auth;
+}
+
+/**
+ * WIF token exchange: Vercel OIDC → Google STS → impersonated SA access token.
+ * Returns { accessToken, expiresAt(ms epoch) }. Throws with a precise reason
+ * on failure so the caller can surface it.
+ */
+async function fetchWifAccessToken() {
+  const subjectToken = process.env.VERCEL_OIDC_TOKEN;
+  if (!subjectToken) {
+    throw new Error('VERCEL_OIDC_TOKEN not present. Enable OIDC tokens in Vercel project settings → Environment Variables → OIDC Tokens.');
+  }
+  const audience = process.env.GCP_WORKLOAD_IDENTITY_PROVIDER;     // full resource name
+  const saEmail  = process.env.GCP_SERVICE_ACCOUNT_EMAIL;
+  if (!audience || !saEmail) throw new Error('GCP_WORKLOAD_IDENTITY_PROVIDER / GCP_SERVICE_ACCOUNT_EMAIL missing');
+
+  // 1. STS exchange — Vercel OIDC JWT → federated GCP access token
+  const stsRes = await fetch('https://sts.googleapis.com/v1/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
+      audience,
+      scope: 'https://www.googleapis.com/auth/cloud-platform',
+      requested_token_type: 'urn:ietf:params:oauth:token-type:access_token',
+      subject_token: subjectToken,
+      subject_token_type: 'urn:ietf:params:oauth:token-type:jwt',
+    }),
+  });
+  if (!stsRes.ok) {
+    const body = await stsRes.text().catch(() => '');
+    throw new Error(`STS exchange failed (${stsRes.status}): ${body.slice(0, 300)}`);
+  }
+  const stsJson = await stsRes.json();
+
+  // 2. IAM Credentials — impersonate the service account
+  const impUrl = `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${encodeURIComponent(saEmail)}:generateAccessToken`;
+  const impRes = await fetch(impUrl, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${stsJson.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      scope: ['https://www.googleapis.com/auth/spreadsheets'],
+      lifetime: '3600s',
+    }),
+  });
+  if (!impRes.ok) {
+    const body = await impRes.text().catch(() => '');
+    throw new Error(`SA impersonation failed (${impRes.status}): ${body.slice(0, 300)}`);
+  }
+  const impJson = await impRes.json();
+  return {
+    accessToken: impJson.accessToken,
+    expiresAt: new Date(impJson.expireTime).getTime(),
+  };
 }
 function sheetId() {
   const id = process.env.GOOGLE_SHEET_ID;
