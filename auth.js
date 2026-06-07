@@ -361,6 +361,11 @@
       </aside>
     `;
     document.body.insertBefore(wrap, document.body.firstChild);
+    // Signal to embedded apps (e.g. Mailer Studio) that they're rendering
+    // inside the Lifecycle OS shell, so they can hide their own duplicate
+    // header / tabs / sign-out chrome.
+    document.body.classList.add('lifecycle-os-mode');
+    document.documentElement.classList.add('lifecycle-os-mode');
 
     // Publish --ltb-h (mobile top-bar height, else 0) so each page's own sticky
     // header offsets correctly beneath the bar on small screens.

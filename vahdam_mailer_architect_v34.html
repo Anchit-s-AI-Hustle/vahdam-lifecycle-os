@@ -16,7 +16,23 @@
 <!-- Supabase JS SDK (used for cross-device dashboard storage) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <!-- Lifecycle OS shared auth + cross-step nav -->
-<script src="/auth.js?v=20260611a" defer></script>
+<script src="/auth.js?v=20260612" defer></script>
+<style id="lifecycle-os-overrides">
+  /* When this Studio is rendered inside the Lifecycle OS shell (auth.js
+     injects body.lifecycle-os-mode), suppress the Studio's own duplicate
+     chrome — the OS sidebar already provides nav, brand, sign-out. The
+     Studio's interior (5-step wizard, cards, previews) stays in its own
+     cream/forest design because that's the email-design canvas. */
+  body.lifecycle-os-mode header.app-hdr,
+  body.lifecycle-os-mode #mobileNav,
+  body.lifecycle-os-mode .app-hdr,
+  body.lifecycle-os-mode .site-hdr { display: none !important; }
+  /* Reset the chrome-related top padding the Studio was reserving. */
+  body.lifecycle-os-mode .app { padding-top: 0 !important; }
+  body.lifecycle-os-mode :root { --hdr: 0px !important; }
+  /* Pull the wizard up so it doesn't sit below an invisible header. */
+  body.lifecycle-os-mode .step-bar { margin-top: 18px !important; }
+</style>
 <!-- Vercel Speed Insights — static-HTML form (bare-specifier import does not resolve in the browser) -->
 <script defer src="/_vercel/speed-insights/script.js"></script>
 <style>
