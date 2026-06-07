@@ -83,6 +83,15 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    // One-shot: re-sort the entire Emails sheet by Received At (col C) DESC.
+    // Sync already does this after each append; this is for backfilling the
+    // existing rows that were appended before the sort step shipped.
+    if (action === 'sort') {
+      await core.sortEmailsByReceivedDesc();
+      res.status(200).json({ ok: true, sorted: 'received_at desc' });
+      return;
+    }
+
     // ── Phase 2: competitor brand database + discovery ──
     if (action === 'brands') {
       const brands = await core.getBrands();

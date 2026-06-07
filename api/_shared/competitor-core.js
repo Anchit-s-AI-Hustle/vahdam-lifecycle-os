@@ -116,6 +116,55 @@ async function appendEmailRow(e) {
   });
 }
 
+/**
+ * Sort the Emails tab in DESCENDING order of column C (Received At).
+ * Called after each sync batch (NOT per-row) so newest mail always sits
+ * at the top of the sheet — what the user opens to see latest first.
+ *
+ * Best-effort: any failure (no rows, transient API error) just logs and
+ * returns — never breaks the sync. The Sheets API needs the numeric
+ * sheetId (not the spreadsheet ID), so we read the metadata once.
+ */
+async function sortEmailsByReceivedDesc() {
+  const sheets = sheetsClient();
+  const tab = sheetTab();
+  try {
+    // 1. Get the numeric sheet ID for our tab + the row count.
+    const meta = await sheets.spreadsheets.get({
+      spreadsheetId: sheetId(),
+      fields: 'sheets.properties(sheetId,title,gridProperties)',
+    });
+    const sheet = (meta.data.sheets || []).find((s) => s.properties && s.properties.title === tab);
+    if (!sheet) return;
+    const gridSheetId = sheet.properties.sheetId;
+    const rowCount = (sheet.properties.gridProperties && sheet.properties.gridProperties.rowCount) || 0;
+    if (rowCount < 3) return;       // header + 0 or 1 rows — nothing to sort
+
+    // 2. SortRange: rows 1..end (0-indexed header excluded), all 11 columns,
+    //    sortSpec on column C (index 2) descending.
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: sheetId(),
+      requestBody: {
+        requests: [{
+          sortRange: {
+            range: {
+              sheetId: gridSheetId,
+              startRowIndex: 1,            // skip header row
+              endRowIndex: rowCount,
+              startColumnIndex: 0,
+              endColumnIndex: 11,           // A..K inclusive
+            },
+            sortSpecs: [{ dimensionIndex: 2, sortOrder: 'DESCENDING' }],
+          },
+        }],
+      },
+    });
+  } catch (err) {
+    // Non-fatal — sync still succeeds even if sort fails.
+    console.warn('[sortEmailsByReceivedDesc] skipped:', (err && err.message) || err);
+  }
+}
+
 async function getAllEmails() {
   const sheets = sheetsClient();
   let res;
@@ -330,6 +379,9 @@ async function runSync(limit) {
       errors.push((err && err.message) || 'unknown');
     }
   }
+  // Newest-first sort: only when we actually appended (cheap call, but no point
+  // re-sorting on a no-op poll).
+  if (appended > 0) { await sortEmailsByReceivedDesc(); }
   return { ok: true, processed: parsedList.length, appended, errors, durationMs: Date.now() - started };
 }
 
@@ -507,6 +559,7 @@ async function discoverBrands(opts) {
 
 module.exports = {
   getAllEmails, getEmailHtml, getRawHtml, runSync, ensureHeaderRow,
+  sortEmailsByReceivedDesc,
   getBrands, appendBrands, seedBrands, discoverBrands,
   DISCOVERY_CATEGORIES, DISCOVERY_GEOS,
   NONE, NO_SCREENSHOT,

@@ -59,13 +59,42 @@
     });
   }
 
-  // ─── Brand mark (proper logo, replaces the old gradient dot) ────────
-  // Stylized V with a leaf accent — VAHDAM tea brand cue inside the V monogram.
-  // Single inline SVG, two render sizes via the .lnav-mark CSS class.
+  // ─── Brand mark (refreshed: tea leaf with steam + depth gradients) ──
+  // Two layered ideas fuse: a symmetric tea-leaf silhouette (the brand)
+  // and a subtle V (the monogram) read through the leaf's central vein.
+  // Topped with a cream steam curl — fresh brew, lifecycle. Both tile
+  // and leaf use linear gradients for depth so the mark reads as crafted
+  // rather than flat at any size. Renders cleanly at 22px (mobile bar)
+  // and 30px (desktop sidebar).
   const LOGO_SVG = `<svg class="lnav-mark" viewBox="0 0 32 32" aria-label="VAHDAM Lifecycle OS" xmlns="http://www.w3.org/2000/svg">
-    <rect width="32" height="32" rx="8" fill="#004A2B"/>
-    <path class="stroke" d="M9 10 L 16 23 L 23 10" stroke="#AB8743" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-    <ellipse class="leaf" cx="16" cy="9.2" rx="2.1" ry="1.3" fill="#AB8743" transform="rotate(-12 16 9.2)"/>
+    <defs>
+      <linearGradient id="lnav-tile" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#0a6038"/>
+        <stop offset="100%" stop-color="#003920"/>
+      </linearGradient>
+      <linearGradient id="lnav-leaf" x1="0.2" y1="0.1" x2="0.8" y2="0.95">
+        <stop offset="0%"   stop-color="#e0b56b"/>
+        <stop offset="60%"  stop-color="#b48946"/>
+        <stop offset="100%" stop-color="#7d5a25"/>
+      </linearGradient>
+    </defs>
+    <rect width="32" height="32" rx="8" fill="url(#lnav-tile)"/>
+    <!-- Steam curl above the leaf — a slow S-curve in cream -->
+    <path d="M 16 5.2 C 17.3 4.3 14.7 3.5 16 2.5" stroke="#FBF5EA" stroke-width="0.85" opacity="0.65" fill="none" stroke-linecap="round"/>
+    <!-- Tea-leaf silhouette — symmetric, organic, reads as both leaf and V -->
+    <path d="M 16 26.5
+             C 10.5 24.8, 7.5 19.5, 7.5 13.5
+             C 7.5 11.2, 8.6 9.2, 10.8 8.2
+             C 13 9.4, 14.9 12, 16 15.6
+             C 17.1 12, 19 9.4, 21.2 8.2
+             C 23.4 9.2, 24.5 11.2, 24.5 13.5
+             C 24.5 19.5, 21.5 24.8, 16 26.5 Z"
+          fill="url(#lnav-leaf)"/>
+    <!-- Central vein (the implicit V monogram) -->
+    <path d="M 16 9.5 L 16 25.5" stroke="#1a3a28" stroke-width="0.75" opacity="0.55" stroke-linecap="round"/>
+    <!-- Two side veins — leaf detail -->
+    <path d="M 16 14 Q 13 16 11 19" stroke="#1a3a28" stroke-width="0.55" opacity="0.4" stroke-linecap="round" fill="none"/>
+    <path d="M 16 14 Q 19 16 21 19" stroke="#1a3a28" stroke-width="0.55" opacity="0.4" stroke-linecap="round" fill="none"/>
   </svg>`;
 
   // ─── Information architecture (left-hand sidebar) ───────────────────
@@ -254,12 +283,12 @@
           display: flex; align-items: center; gap: 10px; text-decoration: none;
           padding: 4px 8px 16px; color: #AB8743;
         }
-        /* Brand mark — proper SVG logo (replaces the old gradient dot). */
-        #lifecycle-nav .lnav-mark { width: 30px; height: 30px; flex-shrink: 0; display: block; }
-        #lifecycle-nav .lnav-mark rect { transition: fill .2s; }
-        #lifecycle-nav .lnav-brand:hover .lnav-mark rect { fill: #006a3f; }
-        #lifecycle-nav .lnav-brand:hover .lnav-mark .stroke { stroke: #d6a85a; }
-        #lifecycle-nav .lnav-brand:hover .lnav-mark .leaf  { fill: #d6a85a; }
+        /* Brand mark — refreshed leaf + steam SVG with gradient depth.
+           Hover uses filter brightness so it works with the gradients
+           (overriding `fill` would lose the gradient). */
+        #lifecycle-nav .lnav-mark { width: 30px; height: 30px; flex-shrink: 0; display: block; transition: filter .2s, transform .2s; }
+        #lifecycle-nav .lnav-brand:hover .lnav-mark,
+        #lifecycle-nav .lnav-mbrand:hover .lnav-mark { filter: brightness(1.15) saturate(1.05); transform: translateY(-1px); }
         #lifecycle-nav .lnav-brand .lnav-bt { display: flex; flex-direction: column; line-height: 1.15; }
         #lifecycle-nav .lnav-brand .lnav-bt b { font-family: 'Lora', serif; font-size: 14px; color: #FBF5EA; font-weight: 600; }
         #lifecycle-nav .lnav-brand .lnav-bt small { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #AB8743; }
