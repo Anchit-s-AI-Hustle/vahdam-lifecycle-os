@@ -292,6 +292,7 @@
     bar.innerHTML = `
       <label>✨ Or describe the landing page in plain English — AI fills every field below</label>
       <textarea data-ai-prompt placeholder="${PROMPT_HINT[channel]}"></textarea>
+      <input data-ai-ref type="url" placeholder="Reference URL (optional) — paste a sample landing page whose structure & voice to mirror" style="width:100%;background:#0a1410;border:1px solid rgba(171,135,67,0.22);border-radius:8px;color:#cdd8d2;padding:8px 11px;font-size:12.5px;font-family:inherit;margin-top:8px">
       <div style="display:flex;gap:10px;margin-top:8px;align-items:center;flex-wrap:wrap">
         <button class="btn btn-solid" data-ai-fill>✨ Autofill from prompt</button>
         <span data-ai-status class="status" style="margin-top:0"></span>
@@ -387,8 +388,10 @@
       const channel = bar.dataset.channel;             // mailers | meta | google | tiktok
       const surface = bar.dataset.surface;             // lp-mailer | lp-meta | lp-google | lp-tiktok
       const promptEl = bar.querySelector('[data-ai-prompt]');
+      const refEl = bar.querySelector('[data-ai-ref]');
       const status = bar.querySelector('[data-ai-status]');
       const prompt = (promptEl.value || '').trim();
+      const reference_url = (refEl?.value || '').trim();
       if (!prompt) { status.textContent = 'Type what you want first.'; return; }
       const region = selectedRegion[channel] || 'US';
       const orig = btn.textContent; btn.disabled = true; btn.textContent = '✨ Filling… (5-15s)';
@@ -397,7 +400,7 @@
         const r = await fetch('/api/ai/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode: 'autofill', surface, prompt, market: region, region }),
+          body: JSON.stringify({ mode: 'autofill', surface, prompt, reference_url, market: region, region }),
         });
         const d = await r.json();
         if (!r.ok || !d) { status.textContent = 'Failed: ' + (d?.error || r.statusText); return; }

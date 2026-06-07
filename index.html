@@ -185,28 +185,34 @@
     mailer:     '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
     ads:        '<path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1Z"/><path d="M15 8a4 4 0 0 1 0 8"/>',
     kb:         '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M19 17H6a2 2 0 0 0-2 2"/>',
+    landing:    '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/>',
   };
   const svg = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${IC[k]||''}</svg>`;
 
-  // Cards mirror the L1 sidebar features: Data Analysis, Competitor
-  // Benchmarking, Marketing Mailers, Ad Campaigns, Knowledge Base.
-  // L2 sub-items appear as bullets so the user sees what's inside each.
+  // Widgets mirror the LHS nav order EXACTLY (Home is the page itself,
+  // so it's omitted as a widget): Knowledge Base → Data Analysis →
+  // Competitor Benchmarking → Marketing Mailers → Ad Campaigns →
+  // Landing Pages. Each card explains what the feature is + what you
+  // can do inside it.
   const FEATURES = [
-    { icon: 'analysis',   title: 'Data Analysis',           href: '/dashboard.html',
-      desc: 'See who buys, who drifts, and what to send next.',
-      subs: ['RFM segments + cohort retention', 'Auto-insights & next moves', 'CSV upload or link a database'] },
-    { icon: 'competitor', title: 'Competitor Benchmarking', href: '/competitor-benchmarking.html',
-      desc: 'Every email your competitors send — captured for you, automatically.',
-      subs: ['Mailers · Ads · Landing Pages', 'Promo codes flagged on every email', 'Search any brand · open in Gmail'] },
-    { icon: 'mailer',     title: 'Marketing Mailers',       href: '/calendar.html',
-      desc: '30-day plan + brand-perfect emails on demand.',
-      subs: ['Calendar — one day, one email', 'Mailer Studio — type brief, get HTML', 'Festivals & send-times baked in'] },
-    { icon: 'ads',        title: 'Ad Campaigns',            href: '/ad-campaigns.html',
-      desc: 'Plan Google and Meta ads on the same calendar as your emails.',
-      subs: ['Calendar · Google Ads · Meta Ads', 'Landing Pages tied to each campaign', 'AI-written briefs & copy'] },
     { icon: 'kb',         title: 'Knowledge Base',          href: '/knowledge-base.html',
-      desc: 'Brand kit, markets, products — every output reads from here.',
-      subs: ['VAHDAM brand kit + catalog', 'Competitor profiles & assets', 'Upload any format · auto-indexed'] },
+      desc: 'The single source of truth that every generator in this app reads from. Brand kit, markets, product catalog, manual references, uploaded files.',
+      subs: ['VAHDAM brand kit + 313-product catalog', 'Competitor profiles + captured assets', 'Manual: paste any URL — AI summarises', 'Upload PDFs · CSVs · PNGs · ZIPs'] },
+    { icon: 'analysis',   title: 'Data Analysis',           href: '/dashboard.html',
+      desc: 'See who buys, who drifts, what to send next. Drives every plan + brief in the rest of the app.',
+      subs: ['9 RFM segments + cohort retention', 'Top campaigns, channel mix, AOV trend', 'Auto-insights — what changed this week', 'Upload your CSV or link a database'] },
+    { icon: 'competitor', title: 'Competitor Benchmarking', href: '/competitor-benchmarking.html',
+      desc: 'Every competitor mailer captured automatically + live ad-library deep-links + a 60-brand registry across Tea/Coffee/Supplements × US/UK.',
+      subs: ['Mailers — auto-synced, screenshotted, searchable', 'Ads — Meta / Google / TikTok deep-links per brand', 'Brands — discover with AI or seed Top 60'] },
+    { icon: 'mailer',     title: 'Marketing Mailers',       href: '/calendar.html',
+      desc: 'Plan the month + write the email. A 30-day cohort-aware calendar feeds a 5-step Mailer Studio that outputs export-ready HTML.',
+      subs: ['Calendar — one day, one email, festivals tuned', 'Mailer Studio — type a brief, get brand-perfect HTML', '6-LLM cascade · 11 layout archetypes · 2 variants each'] },
+    { icon: 'ads',        title: 'Ad Campaigns',            href: '/ad-campaigns.html',
+      desc: 'Brief and track Google + Meta + TikTok campaigns on the same calendar as your emails. AI fills every field from one prompt.',
+      subs: ['Calendar — paid + organic in one view', 'Google · Meta · TikTok forms with autofill', 'Linked to the landing pages that catch traffic'] },
+    { icon: 'landing',    title: 'Landing Pages',           href: '/landing-pages.html',
+      desc: 'One brand-locked landing-page system that serves every channel. Pick channel + region + offer; AI generates the page in the same brand voice.',
+      subs: ['For Mailers — extends the email narrative', 'For Meta Ads — mobile-first, single CTA', 'For Google Ads — keyword-matching headline', 'For TikTok Ads — UGC-native, hook-first'] },
   ];
 
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;

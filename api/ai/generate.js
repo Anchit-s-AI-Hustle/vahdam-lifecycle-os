@@ -400,6 +400,35 @@ Return ONLY the segment text. No preamble, no quotes around it, no JSON.`;
     const surface = String(body.surface || '').toLowerCase();
     const userPrompt = String(body.prompt || campaign_brief || '').trim().slice(0, 1600);
     const targetMarket = body.market || body.region || market || 'US';
+    const referenceUrl = String(body.reference_url || '').trim();
+
+    // Optional: fetch the reference URL + a tiny snippet of its text so the
+    // LLM can mirror the structure/voice. Bounded fetch (5s timeout, 8KB cap).
+    let referenceSnippet = '';
+    if (referenceUrl && /^https?:\/\//i.test(referenceUrl)) {
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 5000);
+        const rr = await fetch(referenceUrl, {
+          headers: { 'User-Agent': 'Mozilla/5.0 VahdamRef/1.0' },
+          signal: ctrl.signal,
+          redirect: 'follow',
+        }).catch(() => null);
+        clearTimeout(t);
+        if (rr && rr.ok) {
+          const html = (await rr.text()).slice(0, 60000);
+          // Strip tags + collapse whitespace
+          referenceSnippet = html
+            .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+            .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+            .replace(/<head[\s\S]*?<\/head>/gi, ' ')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .slice(0, 8000);
+        }
+      } catch { /* ignore — reference is optional */ }
+    }
 
     const BRAND_GUARDRAILS = `BRAND: VAHDAM India — premium D2C tea, single-estate, garden-fresh in 72h, B-Corp.
 PALETTE: forest green #004A2B / amber gold #AB8743 / cream #FBF5EA / black #171717.
@@ -511,7 +540,7 @@ RULES:
 
 Target market for this autofill: ${targetMarket}.`;
 
-    userMessage = `USER PROMPT:\n"""\n${userPrompt}\n"""\n\nReturn the JSON object now. Do not include any text outside the JSON.`;
+    userMessage = `USER PROMPT:\n"""\n${userPrompt}\n"""\n\n${referenceSnippet ? `REFERENCE PAGE (mirror the structure, voice, length, conversion logic — but rewrite for VAHDAM and the prompt above):\n"""\n${referenceSnippet}\n"""\n\n` : ''}Return the JSON object now. Do not include any text outside the JSON.`;
   } else {
     // create_brief mode (default)
     // Market context — informs audience psychology and visual direction

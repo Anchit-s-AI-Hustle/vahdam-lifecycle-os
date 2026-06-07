@@ -138,7 +138,7 @@
         <div class="ai-bar" data-surface="google">
           <label class="label">✨ Or describe the campaign in plain English — AI fills every field below</label>
           <textarea data-ai-prompt placeholder="e.g. Promote single-estate Darjeeling First Flush at 25% off in the US, target tea-curious buyers searching for premium loose-leaf"></textarea>
-          <div class="btn-row" style="margin-top:8px"><button class="btn btn-solid" data-ai-fill>✨ Autofill from prompt</button><span data-ai-status class="note"></span></div>
+          <input data-ai-ref type="url" placeholder="Reference URL (optional) — paste a sample ad or landing page to anchor the style" style="margin-top:8px;width:100%;background:#0a1410;border:1px solid rgba(171,135,67,0.2);border-radius:8px;color:#cdd8d2;padding:8px 11px;font-size:12.5px"><div class="btn-row" style="margin-top:8px"><button class="btn btn-solid" data-ai-fill>✨ Autofill from prompt</button><span data-ai-status class="note"></span></div>
         </div>
         <label class="label">Campaign name</label>
         <input id="g-name" placeholder="e.g. Darjeeling First Flush — Search">
@@ -177,7 +177,7 @@
         <div class="ai-bar" data-surface="meta">
           <label class="label">✨ Or describe the campaign in plain English — AI fills every field below</label>
           <textarea data-ai-prompt placeholder="e.g. Re-engage lapsed US buyers with our Chai Bestsellers bundle, $40/day, Advantage+ placements, primary text in our 'morning ritual' voice"></textarea>
-          <div class="btn-row" style="margin-top:8px"><button class="btn btn-solid" data-ai-fill>✨ Autofill from prompt</button><span data-ai-status class="note"></span></div>
+          <input data-ai-ref type="url" placeholder="Reference URL (optional) — paste a sample ad or landing page to anchor the style" style="margin-top:8px;width:100%;background:#0a1410;border:1px solid rgba(171,135,67,0.2);border-radius:8px;color:#cdd8d2;padding:8px 11px;font-size:12.5px"><div class="btn-row" style="margin-top:8px"><button class="btn btn-solid" data-ai-fill>✨ Autofill from prompt</button><span data-ai-status class="note"></span></div>
         </div>
         <label class="label">Campaign name</label>
         <input id="m-name" placeholder="e.g. Gifting Season — Advantage+">
@@ -216,7 +216,7 @@
         <div class="ai-bar" data-surface="tiktok">
           <label class="label">✨ Or describe the campaign in plain English — AI fills every field below</label>
           <textarea data-ai-prompt placeholder="e.g. UGC creator drop for our Mushroom Coffee alternative, $30/day, In-Feed + Spark Ads, hook in the 'POV: morning coffee crash' lane"></textarea>
-          <div class="btn-row" style="margin-top:8px"><button class="btn btn-solid" data-ai-fill>✨ Autofill from prompt</button><span data-ai-status class="note"></span></div>
+          <input data-ai-ref type="url" placeholder="Reference URL (optional) — paste a sample ad or landing page to anchor the style" style="margin-top:8px;width:100%;background:#0a1410;border:1px solid rgba(171,135,67,0.2);border-radius:8px;color:#cdd8d2;padding:8px 11px;font-size:12.5px"><div class="btn-row" style="margin-top:8px"><button class="btn btn-solid" data-ai-fill>✨ Autofill from prompt</button><span data-ai-status class="note"></span></div>
         </div>
         <label class="label">Campaign name</label>
         <input id="t-name" placeholder="e.g. Morning Ritual — UGC Creator Drop">
@@ -489,8 +489,10 @@
       const bar = btn.closest('.ai-bar');
       const surface = bar.dataset.surface;
       const promptEl = bar.querySelector('[data-ai-prompt]');
+      const refEl = bar.querySelector('[data-ai-ref]');
       const status = bar.querySelector('[data-ai-status]');
       const prompt = (promptEl.value || '').trim();
+      const reference_url = (refEl?.value || '').trim();
       if (!prompt) { status.textContent = 'Type what you want first.'; return; }
       const fieldMap = AI_FIELD_MAP[surface];
       if (!fieldMap) { status.textContent = 'Unknown surface: ' + surface; return; }
@@ -500,7 +502,7 @@
         const r = await fetch('/api/ai/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode: 'autofill', surface, prompt, market: document.getElementById(fieldMap.market)?.value || 'US' }),
+          body: JSON.stringify({ mode: 'autofill', surface, prompt, reference_url, market: document.getElementById(fieldMap.market)?.value || 'US' }),
         });
         const d = await r.json();
         if (!r.ok || !d) { status.textContent = 'Failed: ' + (d?.error || r.statusText); return; }

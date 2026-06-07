@@ -413,13 +413,16 @@
             <option value="India">India</option>
           </select>
           <label class="kb-cta" style="border:0;cursor:pointer">
-            <input id="kbUpFile" type="file" multiple style="display:none">⬆ Choose files
+            <input id="kbUpFile" type="file" multiple style="display:none">⬆ Choose files</label>
+          <label class="kb-cta" style="border:0;cursor:pointer;background:transparent;border:1px solid rgba(171,135,67,0.4);color:#cdd8d2" title="Pick a folder — every file inside (subfolders too) uploads with the chosen feature + region tag">
+            <input id="kbUpFolder" type="file" webkitdirectory directory multiple style="display:none">📁 Choose folder
           </label>
         </div>
         <div id="kbUpStatus" style="font-size:12.5px;color:#9aaaa1;min-height:16px"></div>
       </div>
       <div id="kbFilesList"></div>`;
     $('kbUpFile').addEventListener('change', (e) => { if (e.target.files?.length) uploadFiles(e.target.files); });
+    $('kbUpFolder').addEventListener('change', (e) => { if (e.target.files?.length) uploadFiles(e.target.files); });
     await loadFilesList();
   }
   async function loadFilesList() {
