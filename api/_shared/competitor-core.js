@@ -60,8 +60,15 @@ const SHEET_COLUMNS = [
 let _sheets = null;
 function sheetsClient() {
   if (_sheets) return _sheets;
-  const useWif = !!(process.env.GCP_WORKLOAD_IDENTITY_PROVIDER && process.env.GCP_SERVICE_ACCOUNT_EMAIL);
-  const auth = useWif ? buildWifAuth() : buildJwtAuth();
+  // Prefer WIF only when its env vars AND a live Vercel OIDC token are present.
+  // If OIDC isn't injected yet (token absent), fall back to the key-based JWT
+  // path so the feature keeps working — WIF auto-engages once the token shows
+  // up, with no code change. If neither is usable, buildJwtAuth() throws a
+  // precise "configure one of…" error.
+  const wifReady = !!(process.env.GCP_WORKLOAD_IDENTITY_PROVIDER
+    && process.env.GCP_SERVICE_ACCOUNT_EMAIL
+    && process.env.VERCEL_OIDC_TOKEN);
+  const auth = wifReady ? buildWifAuth() : buildJwtAuth();
   _sheets = google.sheets({ version: 'v4', auth });
   return _sheets;
 }
