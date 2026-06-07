@@ -285,7 +285,7 @@
         }
         /* Brand mark — refreshed leaf + steam SVG with gradient depth.
            Hover uses filter brightness so it works with the gradients
-           (overriding `fill` would lose the gradient). */
+           (overriding fill would lose the gradient). */
         #lifecycle-nav .lnav-mark { width: 30px; height: 30px; flex-shrink: 0; display: block; transition: filter .2s, transform .2s; }
         #lifecycle-nav .lnav-brand:hover .lnav-mark,
         #lifecycle-nav .lnav-mbrand:hover .lnav-mark { filter: brightness(1.15) saturate(1.05); transform: translateY(-1px); }
