@@ -306,6 +306,9 @@ async function getAllEmails() {
   return rows
     .map((row, i) => rowToRecord(row, i + 2))
     .filter((r) => r.senderEmail || r.subject || r.brand !== 'Unknown')
+    // Hide system/transactional/personal noise (Google alerts, Sheets shares,
+    // HCTI, the operator's own mail) from the competitor dashboard.
+    .filter((r) => !isNoiseSender(r.senderEmail, r.brand))
     .reverse();
 }
 
@@ -322,6 +325,33 @@ async function getEmailHtml(rowNumber) {
 async function getExistingKeys() {
   const emails = await getAllEmails();
   return new Set(emails.map((e) => `${e.senderEmail}|${e.subject}|${e.receivedAt}`));
+}
+
+// ── Noise filter ──────────────────────────────────────────────────────────────
+// System / transactional / personal mail that is NOT a competitor newsletter.
+// Applied both at capture time (skip writing) and at read time (hide legacy
+// rows already in the sheet). Matches on sender domain + a few name/subject cues.
+const NOISE_DOMAINS = [
+  'google.com', 'accounts.google.com', 'docs.google.com', 'drive.google.com',
+  'mail.google.com', 'googlemail.com', 'gmail.com', 'youtube.com',
+  'htmlcsstoimage.com', 'hcti.io', 'microlink.io',
+  'vercel.com', 'github.com', 'supabase.io', 'supabase.com',
+  'openai.com', 'anthropic.com', 'apple.com', 'icloud.com', 'microsoft.com',
+  'notion.so', 'slack.com', 'zoom.us', 'calendly.com', 'linkedin.com',
+  'paypal.com', 'stripe.com', 'amazon.com', 'amazonses.com',
+];
+const NOISE_NAME_RE = /\b(google|gmail|security alert|verification|2[-\s]?step|password|sign[-\s]?in|account|receipt|invoice|calendar|via google sheets|html\/?css to image)\b/i;
+// The operator's own identity — never a competitor.
+const SELF_HINTS = ['anchit', 'ojhapraneet', 'vahdam'];
+
+function isNoiseSender(address, displayName) {
+  const addr = (address || '').toLowerCase();
+  const domain = addr.split('@')[1] || '';
+  if (NOISE_DOMAINS.some((d) => domain === d || domain.endsWith('.' + d))) return true;
+  const nm = (displayName || '') + ' ' + addr;
+  if (NOISE_NAME_RE.test(nm)) return true;
+  if (SELF_HINTS.some((s) => nm.toLowerCase().includes(s))) return true;
+  return false;
 }
 
 // ── Text extraction ───────────────────────────────────────────────────────────
@@ -444,22 +474,39 @@ async function fetchUnreadEmails(limit) {
   const client = new ImapFlow(imapConfig());
   const out = [];
   await client.connect();
-  const lock = await client.getMailboxLock('INBOX');
-  try {
-    const uids = await client.search({ seen: false }, { uid: true });
-    if (!uids || !uids.length) return out;
-    for (const uid of uids.slice(0, limit)) {
-      try {
-        const msg = await client.fetchOne(String(uid), { source: true }, { uid: true });
-        if (!msg || !msg.source) continue;
-        out.push(await simpleParser(msg.source));
-        await client.messageFlagsAdd(String(uid), ['\\Seen'], { uid: true });
-      } catch (err) { console.error(`[competitor] uid ${uid} failed`, err.message); }
+  // Scan the primary inbox AND the Spam folder. Competitor promos are often
+  // mis-filed by Gmail as spam; the Promotions/Social/Updates tabs are already
+  // part of INBOX over IMAP, so those need no separate scan. Spam is a distinct
+  // mailbox ([Gmail]/Spam, localized name varies) that INBOX search never sees.
+  const MAILBOXES = ['INBOX', '[Gmail]/Spam', '[Google Mail]/Spam'];
+  let remaining = limit;
+  for (const box of MAILBOXES) {
+    if (remaining <= 0) break;
+    let lock;
+    try {
+      lock = await client.getMailboxLock(box);
+    } catch (err) {
+      // Mailbox doesn't exist (e.g. the [Google Mail]/ variant) — skip quietly.
+      continue;
     }
-  } finally {
-    lock.release();
-    await client.logout().catch(() => client.close());
+    try {
+      const uids = await client.search({ seen: false }, { uid: true });
+      if (uids && uids.length) {
+        for (const uid of uids.slice(0, remaining)) {
+          try {
+            const msg = await client.fetchOne(String(uid), { source: true }, { uid: true });
+            if (!msg || !msg.source) continue;
+            out.push(await simpleParser(msg.source));
+            await client.messageFlagsAdd(String(uid), ['\\Seen'], { uid: true });
+            remaining--;
+          } catch (err) { console.error(`[competitor] ${box} uid ${uid} failed`, err.message); }
+        }
+      }
+    } finally {
+      lock.release();
+    }
   }
+  await client.logout().catch(() => client.close());
   return out;
 }
 
@@ -476,6 +523,9 @@ async function runSync(limit) {
     try {
       const from = (parsed.from && parsed.from.value && parsed.from.value[0]) || {};
       const address = (from.address || '').toLowerCase();
+      // Skip system/transactional/personal mail — only competitor newsletters
+      // belong in the benchmarking sheet.
+      if (isNoiseSender(address, from.name || '')) continue;
       const brand = cleanBrandName(from.name || '', address);
       const subject = parsed.subject || '(no subject)';
       const receivedAt = (parsed.date || new Date()).toISOString();
