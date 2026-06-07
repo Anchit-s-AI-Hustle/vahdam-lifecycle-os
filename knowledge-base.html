@@ -6,7 +6,7 @@
 <title>Knowledge Base · VAHDAM Lifecycle OS</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
-<script src="/auth.js?v=20260614" defer></script>
+<script src="/auth.js?v=20260616" defer></script>
 <script defer src="/_vercel/speed-insights/script.js"></script>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
@@ -76,8 +76,6 @@
   <div class="tabs" id="srcTabs">
     <button class="tab" data-src="vahdam">VAHDAM</button>
     <button class="tab" data-src="competitor">Competitors</button>
-    <button class="tab" data-src="manual">📚 Manual Knowledge</button>
-    <button class="tab" data-src="files">📁 Files</button>
   </div>
   <div class="subtabs" id="chanTabs">
     <button class="subtab" data-chan="mailers">✉ Mailers</button>
@@ -97,15 +95,24 @@
     <button class="region-chip" data-region="India">India</button>
   </div>
 
-  <!-- Manual Knowledge form (shown only when source = manual) -->
-  <div id="kbManualForm" style="display:none; margin-top:22px; background:#0f1d18; border:1px solid rgba(171,135,67,.18); border-radius:14px; padding:18px 20px">
-    <div style="font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:#5d6e64; font-weight:600; margin-bottom:10px">Add a source</div>
-    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:stretch">
-      <input id="kbManualUrl" type="url" placeholder="https://… blog · tweet · article · video" style="flex:1; min-width:260px; background:#0a1410; border:1px solid rgba(171,135,67,.25); border-radius:9px; color:#e8ede9; padding:11px 13px; font-family:inherit; font-size:13.5px">
-      <input id="kbManualTags" type="text" placeholder="tags (comma-sep, optional)" style="min-width:200px; background:#0a1410; border:1px solid rgba(171,135,67,.25); border-radius:9px; color:#e8ede9; padding:11px 13px; font-family:inherit; font-size:13.5px">
-      <button id="kbManualAdd" class="kb-cta" style="border:0; cursor:pointer; font-family:inherit">Ingest with AI</button>
+  <!-- Unified "Add to knowledge base" bar — shown for BOTH VAHDAM and
+       Competitors. Uploads/ingests are tagged with the active source
+       (vahdam|competitor) + active channel + region so they land in the
+       right bucket. Three independent inputs: files, folder, URL. -->
+  <div id="kbAddBar" style="margin-top:18px; background:#0f1d18; border:1px solid rgba(171,135,67,.18); border-radius:14px; padding:16px 18px">
+    <div id="kbAddCtx" style="font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:#5d6e64; font-weight:600; margin-bottom:12px">Add to knowledge base</div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center">
+      <label class="kb-cta" style="border:0; cursor:pointer; font-family:inherit">
+        <input id="kbAddFile" type="file" multiple style="display:none">⬆ Upload files
+      </label>
+      <label class="kb-cta ghost" style="cursor:pointer; font-family:inherit">
+        <input id="kbAddFolder" type="file" webkitdirectory directory multiple style="display:none">📁 Upload folder
+      </label>
+      <span style="color:#5d6e64; font-size:12px">or</span>
+      <input id="kbAddUrl" type="url" placeholder="Paste a URL — blog, tweet, article, landing page…" style="flex:1; min-width:240px; background:#0a1410; border:1px solid rgba(171,135,67,.25); border-radius:9px; color:#e8ede9; padding:10px 12px; font-family:inherit; font-size:13px">
+      <button id="kbAddUrlBtn" class="kb-cta" style="border:0; cursor:pointer; font-family:inherit">Ingest URL with AI</button>
     </div>
-    <div id="kbManualStatus" style="font-size:12.5px; color:#9aaaa1; min-height:18px; margin-top:10px"></div>
+    <div id="kbAddStatus" style="font-size:12.5px; color:#9aaaa1; min-height:16px; margin-top:10px"></div>
   </div>
 
   <div class="panel" id="panel"></div>
@@ -140,14 +147,14 @@
   function setActive(){
     document.querySelectorAll('#srcTabs .tab').forEach(b=>b.classList.toggle('active',b.dataset.src===state.src));
     document.querySelectorAll('#chanTabs .subtab').forEach(b=>b.classList.toggle('active',b.dataset.chan===state.chan));
-    // Channel tabs visible only for VAHDAM + Competitors (not Manual or Files).
-    const isLibrary = state.src==='vahdam' || state.src==='competitor';
-    document.getElementById('chanTabs').style.display = isLibrary ? '' : 'none';
-    document.getElementById('kbRegions').style.display = isLibrary ? 'flex' : 'none';
-    document.getElementById('kbManualForm').style.display = state.src==='manual' ? '' : 'none';
-    // Hash schema: #<src>[-<chan>][/<region>]
-    let h = state.src;
-    if (isLibrary) { h += '-' + state.chan; if (state.region) h += '/' + state.region; }
+    // Update the add-bar context label so it's clear WHERE uploads land.
+    const who = state.src==='vahdam' ? 'VAHDAM' : 'Competitors';
+    const chanName = ({mailers:'Mailers',meta:'Meta Ads',google:'Google Ads',tiktok:'TikTok Ads',landing:'Landing Pages'})[state.chan] || state.chan;
+    const ctx = document.getElementById('kbAddCtx');
+    if (ctx) ctx.textContent = `Add to knowledge base → ${who} · ${chanName}${state.region ? ' · ' + state.region : ''}`;
+    // Hash schema: #<src>-<chan>[/<region>]
+    let h = state.src + '-' + state.chan;
+    if (state.region) h += '/' + state.region;
     location.hash = h;
   }
 
@@ -247,34 +254,13 @@
     });
   }
 
-  // ─── Manual knowledge: ingest + render ───────────────────────────────
-  async function fetchKnowledge(force){
-    if(state.knowledge && !force) return state.knowledge;
-    try{ const r=await fetch('/api/kb?action=list&limit=200'); const d=await r.json(); state.knowledge = d.items||[]; }
-    catch{ state.knowledge=[]; }
-    return state.knowledge;
-  }
-  async function ingestManual(){
-    const urlEl=$('kbManualUrl'), tagsEl=$('kbManualTags'), statusEl=$('kbManualStatus'), btn=$('kbManualAdd');
-    const url=(urlEl.value||'').trim();
-    if(!url){ statusEl.textContent='Paste a URL first.'; return; }
-    const tags=(tagsEl.value||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean);
-    btn.disabled=true; btn.style.opacity='0.6';
-    statusEl.textContent='Fetching + summarizing… (5-15s)';
-    try{
-      const r=await fetch('/api/kb?action=ingest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,tags,added_by:'dashboard'})});
-      const d=await r.json();
-      if(!r.ok || !d.ok){ statusEl.textContent='Failed: '+(d.error||r.statusText); return; }
-      statusEl.textContent='Added: '+(d.title||url);
-      urlEl.value=''; tagsEl.value='';
-      await fetchKnowledge(true);
-      if(state.src==='manual') render();
-    }catch(err){ statusEl.textContent='Error: '+err.message; }
-    finally{ btn.disabled=false; btn.style.opacity=''; }
-  }
-  document.getElementById('kbManualAdd').addEventListener('click', ingestManual);
-  document.getElementById('kbManualUrl').addEventListener('keydown', (e)=>{ if(e.key==='Enter') ingestManual(); });
+  // ─── Add-bar wiring (file / folder / URL — tagged to active bucket) ──
+  $('kbAddFile').addEventListener('change', (e)=>{ if(e.target.files?.length) uploadToKb(e.target.files); });
+  $('kbAddFolder').addEventListener('change', (e)=>{ if(e.target.files?.length) uploadToKb(e.target.files); });
+  $('kbAddUrlBtn').addEventListener('click', ingestUrl);
+  $('kbAddUrl').addEventListener('keydown', (e)=>{ if(e.key==='Enter') ingestUrl(); });
 
+  // (legacy renderManual retained below but unused — kept to avoid breaking refs)
   function renderManual(p){
     const items=state.knowledge||[];
     if(!items.length){ p.innerHTML=emptyState('Nothing in the knowledge base yet','Paste any blog post, tweet, article, or video URL above. AI fetches the page, extracts the key points, and stores it here so Mailer Studio + Ad Campaigns can use it as context.','',''); return; }
@@ -321,21 +307,8 @@
 
   async function render(){
     setActive();
+    loadBucketFiles();            // refresh "in this bucket" list in the add-bar
     const p=$('panel');
-
-    // ── Manual Knowledge ────────────────────────────────────────
-    if(state.src==='manual'){
-      p.innerHTML='<div class="loading">Loading knowledge base…</div>';
-      await fetchKnowledge();
-      renderManual(p);
-      return;
-    }
-    // ── Files ───────────────────────────────────────────────────
-    if(state.src==='files'){
-      await renderFilesTab(p);
-      return;
-    }
-
     const meta = CHANNEL_META[state.chan];
 
     // ── Competitor → Mailers (live: captured competitor emails) ─
@@ -387,102 +360,102 @@
     return 'US';
   }
 
-  // ─── Files tab: all uploaded knowledge-base files (any format) ─
-  async function renderFilesTab(p) {
-    p.innerHTML = `
-      <div class="kb-upload">
-        <div style="font-weight:600;color:#FBF5EA;margin-bottom:6px;font-size:14px">Upload anything — PDFs, CSVs, PNGs, MP4s, ZIPs</div>
-        <div style="color:#9aaaa1;font-size:12.5px;margin-bottom:12px">Tag the file by feature (which surface uses it) and region (which market it's for). Indexes via Supabase Storage.</div>
-        <div class="row" style="margin-bottom:10px">
-          <select id="kbUpFeature">
-            <option value="brand">Brand kit</option>
-            <option value="mailers">Mailers</option>
-            <option value="meta">Meta Ads</option>
-            <option value="google">Google Ads</option>
-            <option value="tiktok">TikTok Ads</option>
-            <option value="landing">Landing Pages</option>
-            <option value="products">Product catalog</option>
-            <option value="references">References</option>
-            <option value="other">Other</option>
-          </select>
-          <select id="kbUpRegion">
-            <option value="">All regions</option>
-            <option value="US">US</option>
-            <option value="UK">UK</option>
-            <option value="Global">Global</option>
-            <option value="India">India</option>
-          </select>
-          <label class="kb-cta" style="border:0;cursor:pointer">
-            <input id="kbUpFile" type="file" multiple style="display:none">⬆ Choose files</label>
-          <label class="kb-cta" style="border:0;cursor:pointer;background:transparent;border:1px solid rgba(171,135,67,0.4);color:#cdd8d2" title="Pick a folder — every file inside (subfolders too) uploads with the chosen feature + region tag">
-            <input id="kbUpFolder" type="file" webkitdirectory directory multiple style="display:none">📁 Choose folder
-          </label>
-        </div>
-        <div id="kbUpStatus" style="font-size:12.5px;color:#9aaaa1;min-height:16px"></div>
-      </div>
-      <div id="kbFilesList"></div>`;
-    $('kbUpFile').addEventListener('change', (e) => { if (e.target.files?.length) uploadFiles(e.target.files); });
-    $('kbUpFolder').addEventListener('change', (e) => { if (e.target.files?.length) uploadFiles(e.target.files); });
-    await loadFilesList();
-  }
-  async function loadFilesList() {
-    const target = $('kbFilesList');
-    target.innerHTML = '<div class="loading">Loading files…</div>';
-    try {
-      const cfgR = await fetch('/api/public-config'); const cfg = await cfgR.json();
-      const sbUrl = cfg?.supabase?.url, anon = cfg?.supabase?.anonKey;
-      if (!sbUrl || !anon) { target.innerHTML = '<div class="empty-kb"><p>Supabase config not reachable.</p></div>'; return; }
-      const r = await fetch(`${sbUrl}/rest/v1/kb_files?select=*&order=uploaded_at.desc&limit=500`, { headers: { apikey: anon, Authorization: `Bearer ${anon}` } });
-      const items = r.ok ? await r.json() : [];
-      if (!items.length) { target.innerHTML = '<div class="empty-kb"><h3>No files yet</h3><p>Upload anything above — it lands in Supabase Storage and becomes available to every generator.</p></div>'; return; }
-      target.innerHTML = items.map((f) => {
-        const ic = (f.mime_type||'').startsWith('image/') ? '🖼' : f.mime_type==='application/pdf' ? '📄' : /(sheet|csv|xlsx)/i.test(f.mime_type||f.file_name||'') ? '📊' : (f.mime_type||'').startsWith('video/') ? '🎬' : '📎';
-        return `<div class="kb-file-row">
-          <div class="ic">${ic}</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-weight:600;color:#FBF5EA;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.file_name)}</div>
-            <div class="meta-line">
-              <span class="pill">${esc(f.category||'other')}</span>
-              ${f.region ? `<span class="pill">${esc(f.region)}</span>` : ''}
-              ${fmtBytes(f.size_bytes||0)} · ${esc(f.mime_type||'unknown')} · ${new Date(f.uploaded_at).toLocaleDateString()}
-            </div>
-          </div>
-          <a href="${esc(f.public_url||'#')}" target="_blank" rel="noopener" class="kbm-act" style="text-decoration:none">Open ↗</a>
-        </div>`;
-      }).join('');
-    } catch (err) { target.innerHTML = '<div class="empty-kb"><p>Could not load files: '+esc(err.message)+'</p></div>'; }
-  }
   function fmtBytes(n){if(!n)return '0 B';const u=['B','KB','MB','GB'];let i=0,v=n;while(v>=1024&&i<u.length-1){v/=1024;i++;}return v.toFixed(v<10?1:0)+' '+u[i];}
-  async function uploadFiles(fileList) {
-    const status = $('kbUpStatus');
-    const feature = $('kbUpFeature').value;
-    const region = $('kbUpRegion').value || null;
+
+  // ─── Unified "Add to knowledge base" bar ──────────────────────────
+  // Everything uploaded/ingested is tagged with category = "<src>-<chan>"
+  // (e.g. "vahdam-landing", "competitor-meta") + the active region, so it
+  // lands in the right bucket and shows under that source+channel.
+  function bucketCategory(){ return state.src + '-' + state.chan; }
+
+  async function getSb() {
+    const cfgR = await fetch('/api/public-config'); const cfg = await cfgR.json();
+    const sbUrl = cfg?.supabase?.url, anon = cfg?.supabase?.anonKey;
+    if (!sbUrl || !anon) return null;
+    for (let i=0; i<50 && !window.supabase; i++) await new Promise(r=>setTimeout(r,60));
+    if (!window.supabase) {
+      const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+      await new Promise((res,rej)=>{s.onload=res;s.onerror=rej;document.head.appendChild(s);});
+    }
+    return { sb: window.supabase.createClient(sbUrl, anon), sbUrl, anon };
+  }
+
+  async function uploadToKb(fileList) {
+    const status = $('kbAddStatus');
+    const ctx = await getSb();
+    if (!ctx) { status.textContent = 'Supabase not configured.'; return; }
+    const { sb } = ctx;
+    const category = bucketCategory();
+    const region = state.region || null;
+    let done=0, total=fileList.length, failed=0;
+    for (const f of fileList) {
+      status.textContent = `Uploading ${++done}/${total}: ${f.name}…`;
+      // Preserve folder structure in the path when a folder was picked.
+      const rel = (f.webkitRelativePath || f.name).replace(/[^\w./\-]+/g,'_');
+      const path = `${category}/${Date.now()}_${rel}`;
+      try {
+        const { error: upErr } = await sb.storage.from('knowledge-base').upload(path, f, { upsert:false, contentType: f.type||'application/octet-stream' });
+        if (upErr) throw upErr;
+        const pub = sb.storage.from('knowledge-base').getPublicUrl(path).data?.publicUrl || '';
+        const { error: rowErr } = await sb.from('kb_files').insert({ storage_path:path, file_name:f.name, mime_type:f.type||'application/octet-stream', size_bytes:f.size, category, region, public_url:pub, uploaded_by:'dashboard' });
+        if (rowErr) throw rowErr;
+      } catch (err) { failed++; console.warn('[kb] upload', f.name, err.message); }
+    }
+    status.textContent = failed ? `Done. ${total-failed} uploaded, ${failed} failed.` : `Uploaded ${total} file${total>1?'s':''} to ${category}.`;
+    loadBucketFiles();
+  }
+
+  async function ingestUrl() {
+    const urlEl=$('kbAddUrl'), status=$('kbAddStatus'), btn=$('kbAddUrlBtn');
+    const url=(urlEl.value||'').trim();
+    if(!url){ status.textContent='Paste a URL first.'; return; }
+    btn.disabled=true; const o=btn.textContent; btn.textContent='Ingesting… (5-15s)';
+    status.textContent='Fetching + summarizing…';
+    try{
+      const tags=[state.src, state.chan]; if(state.region) tags.push(state.region.toLowerCase());
+      const r=await fetch('/api/kb?action=ingest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,tags,added_by:'dashboard'})});
+      const d=await r.json();
+      if(!r.ok||!d.ok){ status.textContent='Failed: '+(d.error||r.statusText); return; }
+      status.textContent='Added: '+(d.title||url);
+      urlEl.value='';
+      loadBucketFiles();
+    }catch(err){ status.textContent='Error: '+err.message; }
+    finally{ btn.disabled=false; btn.textContent=o; }
+  }
+
+  // List both uploaded files (kb_files) AND ingested URLs (kb_knowledge) for
+  // the current src+chan bucket, shown inside the add-bar.
+  async function loadBucketFiles() {
+    let host = $('kbAddFilesList');
+    if (!host) {
+      host = document.createElement('div');
+      host.id = 'kbAddFilesList';
+      host.style.marginTop = '12px';
+      $('kbAddBar').appendChild(host);
+    }
+    const category = bucketCategory();
     try {
-      const cfgR = await fetch('/api/public-config'); const cfg = await cfgR.json();
-      const sbUrl = cfg?.supabase?.url, anon = cfg?.supabase?.anonKey;
-      if (!sbUrl || !anon) { status.textContent = 'Supabase not configured.'; return; }
-      // Lazy-load Supabase SDK
-      for (let i=0; i<50 && !window.supabase; i++) await new Promise(r => setTimeout(r,60));
-      if (!window.supabase) {
-        const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-        await new Promise((res, rej) => { s.onload=res; s.onerror=rej; document.head.appendChild(s); });
-      }
-      const sb = window.supabase.createClient(sbUrl, anon);
-      let done = 0, total = fileList.length, failed = 0;
-      for (const f of fileList) {
-        status.textContent = `Uploading ${++done}/${total}: ${f.name}…`;
-        const path = `${feature}/${Date.now()}_${f.name.replace(/[^\w.\-]+/g,'_')}`;
-        try {
-          const { error: upErr } = await sb.storage.from('knowledge-base').upload(path, f, { upsert: false, contentType: f.type || 'application/octet-stream' });
-          if (upErr) throw upErr;
-          const pub = sb.storage.from('knowledge-base').getPublicUrl(path).data?.publicUrl || '';
-          const { error: rowErr } = await sb.from('kb_files').insert({ storage_path: path, file_name: f.name, mime_type: f.type||'application/octet-stream', size_bytes: f.size, category: feature, region, public_url: pub, uploaded_by: 'dashboard' });
-          if (rowErr) throw rowErr;
-        } catch (err) { failed++; console.warn('[kb] upload', f.name, err.message); }
-      }
-      status.textContent = failed ? `Done. ${total-failed} uploaded, ${failed} failed.` : `Uploaded ${total} file${total>1?'s':''}.`;
-      loadFilesList();
-    } catch (err) { status.textContent = 'Error: '+err.message; }
+      const ctx = await getSb(); if (!ctx) { host.innerHTML=''; return; }
+      const { sbUrl, anon } = ctx;
+      const hdr = { apikey: anon, Authorization: `Bearer ${anon}` };
+      const [fr, kr] = await Promise.all([
+        fetch(`${sbUrl}/rest/v1/kb_files?select=*&category=eq.${encodeURIComponent(category)}&order=uploaded_at.desc&limit=100`, { headers: hdr }).then(r=>r.ok?r.json():[]).catch(()=>[]),
+        fetch(`${sbUrl}/rest/v1/kb_knowledge?select=id,url,title,summary,tags,added_at&order=added_at.desc&limit=100`, { headers: hdr }).then(r=>r.ok?r.json():[]).catch(()=>[]),
+      ]);
+      // Filter ingested URLs to this bucket by tag match (src + chan).
+      const urls = (kr||[]).filter(k => Array.isArray(k.tags) && k.tags.includes(state.src) && k.tags.includes(state.chan));
+      const rows = [];
+      (fr||[]).forEach(f=>{
+        const ic=(f.mime_type||'').startsWith('image/')?'🖼':f.mime_type==='application/pdf'?'📄':/(sheet|csv|xlsx)/i.test(f.mime_type||f.file_name||'')?'📊':(f.mime_type||'').startsWith('video/')?'🎬':'📎';
+        rows.push(`<div class="kb-file-row"><div class="ic">${ic}</div><div style="flex:1;min-width:0"><div style="font-weight:600;color:#FBF5EA;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.file_name)}</div><div class="meta-line">${f.region?'<span class="pill">'+esc(f.region)+'</span>':''}${fmtBytes(f.size_bytes||0)} · ${new Date(f.uploaded_at).toLocaleDateString()}</div></div><a href="${esc(f.public_url||'#')}" target="_blank" rel="noopener" class="kbm-act" style="text-decoration:none">Open ↗</a></div>`);
+      });
+      urls.forEach(k=>{
+        rows.push(`<div class="kb-file-row"><div class="ic">🔗</div><div style="flex:1;min-width:0"><div style="font-weight:600;color:#FBF5EA;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(k.title||k.url)}</div><div class="meta-line">${esc((k.summary||'').slice(0,90))}</div></div><a href="${esc(k.url)}" target="_blank" rel="noopener" class="kbm-act" style="text-decoration:none">Open ↗</a></div>`);
+      });
+      host.innerHTML = rows.length
+        ? `<div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:#5d6e64;font-weight:600;margin:4px 0 8px">In this bucket (${rows.length})</div>` + rows.join('')
+        : '';
+    } catch { host.innerHTML=''; }
   }
 
   async function loadHtml(id){
@@ -518,19 +491,18 @@
     render();
   }));
 
-  // Deep-link parser. Modern: #<src>-<chan>[/<region>]. Legacy:
-  // #vahdam, #vahdam-ads, #competitor, #competitor-ads, #manual.
+  // Deep-link parser. #<src>-<chan>[/<region>]. Legacy #manual/#files →
+  // VAHDAM mailers; legacy 'ads' → meta.
   (function initFromHash(){
     const raw=(location.hash||'').replace('#','');
     if(!raw) return;
     const [main, region] = raw.split('/');
-    if (main==='manual' || main==='files') { state.src = main; state.chan='mailers'; return; }
+    if (main==='manual' || main==='files') { state.src='vahdam'; state.chan='mailers'; return; }
     const parts = main.split('-');
     const src = parts[0];
     if (src==='vahdam' || src==='competitor') {
       state.src = src;
       const chan = parts.slice(1).join('-') || 'mailers';
-      // Legacy 'ads' -> 'meta' (closest match)
       state.chan = (chan === 'ads') ? 'meta' : (CHANNELS.includes(chan) ? chan : 'mailers');
     }
     if (region && ['US','UK','Global','India'].includes(region)) {
