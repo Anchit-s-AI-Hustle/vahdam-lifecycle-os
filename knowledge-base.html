@@ -69,14 +69,10 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="eyebrow"><span class="dot"></span> Knowledge Base</div>
-  <h1>Design &amp; Creative <em>Knowledge Base</em></h1>
-  <p class="sub">A growing library of mailers and ads — ours and our competitors' — to reference, benchmark, and seed future campaign creation. Pick a source, then a channel.</p>
+  <div class="eyebrow"><span class="dot"></span> Knowledge Base · VAHDAM</div>
+  <h1>VAHDAM <em>Knowledge Base</em></h1>
+  <p class="sub">A growing library of VAHDAM's own mailers, ads, and landing pages — to reference, reuse, and seed future campaign creation. Competitors live in their own section under <a href="/competitor-benchmarking.html#mailers" style="color:#AB8743">Competitor Benchmarking</a>. Pick a channel.</p>
 
-  <div class="tabs" id="srcTabs">
-    <button class="tab" data-src="vahdam">VAHDAM</button>
-    <button class="tab" data-src="competitor">Competitors</button>
-  </div>
   <div class="subtabs" id="chanTabs">
     <button class="subtab" data-chan="mailers">✉ Mailers</button>
     <button class="subtab" data-chan="meta">▼ Meta Ads</button>
@@ -136,7 +132,10 @@
   const $=(id)=>document.getElementById(id);
   const esc=(s)=>(s||'').replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmtDate=(iso)=>{const d=new Date(iso);return isNaN(d)?(iso||'—'):d.toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});};
-  const state={src:'competitor',chan:'mailers',region:'',emails:null,knowledge:null,files:null};
+  // VAHDAM-only knowledge base. The source is always 'vahdam' now — competitor
+  // assets live on competitor-benchmarking.html. src is kept in state so the
+  // shared render/ingest logic below needs no further changes.
+  const state={src:'vahdam',chan:'mailers',region:'',emails:null,knowledge:null,files:null};
   const htmlCache={};
   // Sub-channels that show the email/ad library. The Mailers channel reuses
   // the existing competitor sync; Meta/Google/TikTok/Landing are placeholders
@@ -145,15 +144,14 @@
   const CHANNELS = ['mailers','meta','google','tiktok','landing'];
 
   function setActive(){
-    document.querySelectorAll('#srcTabs .tab').forEach(b=>b.classList.toggle('active',b.dataset.src===state.src));
+    state.src='vahdam'; // VAHDAM-only page
     document.querySelectorAll('#chanTabs .subtab').forEach(b=>b.classList.toggle('active',b.dataset.chan===state.chan));
     // Update the add-bar context label so it's clear WHERE uploads land.
-    const who = state.src==='vahdam' ? 'VAHDAM' : 'Competitors';
     const chanName = ({mailers:'Mailers',meta:'Meta Ads',google:'Google Ads',tiktok:'TikTok Ads',landing:'Landing Pages'})[state.chan] || state.chan;
     const ctx = document.getElementById('kbAddCtx');
-    if (ctx) ctx.textContent = `Add to knowledge base → ${who} · ${chanName}${state.region ? ' · ' + state.region : ''}`;
-    // Hash schema: #<src>-<chan>[/<region>]
-    let h = state.src + '-' + state.chan;
+    if (ctx) ctx.textContent = `Add to knowledge base → VAHDAM · ${chanName}${state.region ? ' · ' + state.region : ''}`;
+    // Hash schema: #<chan>[/<region>]
+    let h = state.chan;
     if (state.region) h += '/' + state.region;
     location.hash = h;
   }
@@ -483,7 +481,6 @@
   modal.addEventListener('click',(e)=>{if(e.target===modal)closeModal();});
   document.addEventListener('keydown',(e)=>{if(e.key==='Escape'&&modal.classList.contains('open'))closeModal();});
 
-  document.querySelectorAll('#srcTabs .tab').forEach(b=>b.addEventListener('click',()=>{state.src=b.dataset.src;render();}));
   document.querySelectorAll('#chanTabs .subtab').forEach(b=>b.addEventListener('click',()=>{state.chan=b.dataset.chan;render();}));
   document.querySelectorAll('#kbRegions .region-chip').forEach(b=>b.addEventListener('click',()=>{
     state.region = b.dataset.region;
@@ -491,19 +488,19 @@
     render();
   }));
 
-  // Deep-link parser. #<src>-<chan>[/<region>]. Legacy #manual/#files →
-  // VAHDAM mailers; legacy 'ads' → meta.
+  // Deep-link parser. New schema: #<chan>[/<region>]. Back-compat: legacy
+  // #vahdam-<chan> / #competitor-<chan> still resolve to the channel; legacy
+  // #manual/#files/#ads → mailers/meta.
   (function initFromHash(){
     const raw=(location.hash||'').replace('#','');
     if(!raw) return;
     const [main, region] = raw.split('/');
-    if (main==='manual' || main==='files') { state.src='vahdam'; state.chan='mailers'; return; }
-    const parts = main.split('-');
-    const src = parts[0];
-    if (src==='vahdam' || src==='competitor') {
-      state.src = src;
-      const chan = parts.slice(1).join('-') || 'mailers';
-      state.chan = (chan === 'ads') ? 'meta' : (CHANNELS.includes(chan) ? chan : 'mailers');
+    if (main==='manual' || main==='files') { state.chan='mailers'; }
+    else {
+      // strip a legacy "vahdam-"/"competitor-" source prefix if present
+      let chan = main.replace(/^(vahdam|competitor)-/, '');
+      if (chan === 'ads') chan = 'meta';
+      state.chan = CHANNELS.includes(chan) ? chan : 'mailers';
     }
     if (region && ['US','UK','Global','India'].includes(region)) {
       state.region = region;

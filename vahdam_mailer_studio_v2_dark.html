@@ -1,0 +1,792 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mailer Studio · VAHDAM Lifecycle OS</title>
+<link rel="icon" href="/favicon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green:#004A2B; --gold:#AB8743; --ink:#171717; --cream:#FBF5EA;
+    --bg:#0a1410; --bg2:#0b1813; --card:#0f1d18; --line:rgba(171,135,67,.18);
+    --line2:rgba(171,135,67,.32); --txt:#e8ede9; --mut:#9aaaa1; --dim:#5d6e64;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--txt);
+    font-family:'Inter',system-ui,sans-serif; font-size:14px; line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--gold)}
+  .wrap{max-width:1120px; margin:0 auto; padding:26px 26px 80px}
+  h1,h2,h3{font-family:'Lora',Georgia,serif; font-weight:600; color:var(--cream); margin:0}
+  .eyebrow{display:inline-flex; align-items:center; gap:7px; font-size:11px; font-weight:700;
+    letter-spacing:.16em; text-transform:uppercase; color:var(--gold)}
+  .eyebrow .dot{width:6px; height:6px; border-radius:50%; background:var(--gold)}
+  .sub{color:var(--mut); font-size:13.5px; margin:8px 0 0; max-width:760px}
+
+  /* Step bar */
+  .stepbar{display:flex; align-items:center; gap:0; margin:18px 0 26px; flex-wrap:wrap}
+  .step{display:flex; align-items:center; gap:9px; cursor:pointer; user-select:none}
+  .step .num{width:30px; height:30px; border-radius:50%; border:1.5px solid var(--line2);
+    display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px;
+    color:var(--mut); background:var(--bg2); transition:all .15s}
+  .step .lbl{font-size:12.5px; color:var(--mut); font-weight:600}
+  .step.active .num{background:var(--green); border-color:var(--gold); color:var(--cream)}
+  .step.active .lbl{color:var(--cream)}
+  .step.done .num{background:rgba(171,135,67,.18); border-color:var(--gold); color:var(--gold)}
+  .step.done .lbl{color:#cdd8d2}
+  .step-line{flex:1; min-width:18px; height:1.5px; background:var(--line); margin:0 10px}
+
+  .card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:22px}
+  .card + .card{margin-top:16px}
+  .hd{display:flex; align-items:flex-start; gap:12px; margin-bottom:16px}
+  .hd .n{width:30px; height:30px; border-radius:50%; background:var(--green); color:var(--cream);
+    display:flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0; font-size:13px}
+  .hd h2{font-size:21px}
+  .hd p{margin:3px 0 0; color:var(--mut); font-size:13px}
+
+  label.fld{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.1em;
+    color:var(--dim); font-weight:700; margin:16px 0 8px}
+  label.fld .req{color:#e07a5f}
+  textarea,input[type=text],select{
+    width:100%; background:var(--bg); border:1px solid var(--line2); border-radius:10px;
+    color:var(--txt); padding:12px 14px; font-family:inherit; font-size:13.5px; resize:vertical}
+  textarea:focus,input:focus,select:focus{outline:none; border-color:var(--gold)}
+  textarea{min-height:120px; line-height:1.6}
+  select{appearance:none}
+
+  .btn{display:inline-flex; align-items:center; gap:8px; border:none; cursor:pointer;
+    font-family:inherit; font-weight:600; font-size:13px; padding:11px 18px; border-radius:10px;
+    background:var(--gold); color:#1c1206; transition:filter .15s}
+  .btn:hover{filter:brightness(1.08)}
+  .btn:disabled{opacity:.55; cursor:not-allowed; filter:none}
+  .btn.ghost{background:transparent; border:1px solid var(--line2); color:#cdd8d2}
+  .btn.ghost:hover{border-color:var(--gold); color:var(--cream); filter:none}
+  .btn.solidgreen{background:var(--green); color:var(--cream)}
+  .btn.sm{padding:7px 13px; font-size:12px}
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+  .spacer{flex:1}
+
+  .chips{display:flex; gap:8px; flex-wrap:wrap}
+  .chip{border:1px solid var(--line2); background:transparent; color:#cdd8d2; cursor:pointer;
+    padding:8px 14px; border-radius:99px; font-size:12.5px; font-family:inherit; font-weight:600;
+    transition:all .14s; display:inline-flex; align-items:center; gap:6px}
+  .chip:hover{border-color:var(--gold)}
+  .chip.on{background:var(--green); border-color:var(--gold); color:var(--cream)}
+
+  .accord{border:1px solid var(--line); border-radius:12px; margin-top:14px; overflow:hidden}
+  .accord summary{cursor:pointer; padding:13px 16px; font-weight:600; color:#cdd8d2; font-size:13px;
+    display:flex; align-items:center; gap:9px; list-style:none}
+  .accord summary::-webkit-details-marker{display:none}
+  .accord[open] summary{border-bottom:1px solid var(--line)}
+  .prompt-list{padding:8px}
+  .prompt{padding:11px 13px; border-radius:9px; cursor:pointer; font-size:13px; color:#cdd8d2;
+    border:1px solid transparent}
+  .prompt:hover{background:rgba(171,135,67,.07); border-color:var(--line)}
+  .prompt b{color:var(--cream); display:block; font-size:13px; margin-bottom:2px}
+
+  .status{font-size:12.5px; color:var(--mut); min-height:18px; margin-top:10px}
+  .status.err{color:#e07a5f}
+  .status.ok{color:#86c79a}
+
+  /* product grid */
+  .pgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; margin-top:14px}
+  .pc{background:var(--bg2); border:1px solid var(--line); border-radius:12px; overflow:hidden;
+    cursor:pointer; transition:border-color .14s; position:relative}
+  .pc:hover{border-color:var(--line2)}
+  .pc.on{border-color:var(--gold); box-shadow:0 0 0 1px var(--gold) inset}
+  .pc .ph{aspect-ratio:1/1; background:#fff center/cover no-repeat}
+  .pc .pb{padding:9px 10px}
+  .pc .pn{font-size:11.5px; color:var(--cream); font-weight:600; line-height:1.3;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:30px}
+  .pc .pp{font-size:11.5px; color:var(--gold); margin-top:4px; font-weight:600}
+  .pc .pp s{color:var(--dim); font-weight:400; margin-left:4px}
+  .pc .tick{position:absolute; top:7px; right:7px; width:20px; height:20px; border-radius:50%;
+    background:var(--gold); color:#1c1206; display:none; align-items:center; justify-content:center;
+    font-size:12px; font-weight:800}
+  .pc.on .tick{display:flex}
+
+  .strip{display:flex; gap:10px; overflow-x:auto; padding:6px 2px 10px; margin-top:14px}
+  .sc{flex:0 0 auto; width:190px; background:var(--bg2); border:1px solid var(--line2);
+    border-radius:11px; padding:10px; position:relative}
+  .sc img{width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:8px; background:#fff}
+  .sc .x{position:absolute; top:6px; right:6px; width:20px; height:20px; border-radius:50%;
+    background:rgba(224,122,95,.9); color:#fff; border:none; cursor:pointer; font-size:12px}
+  .sc .nm{font-size:11.5px; color:var(--cream); font-weight:600; margin-top:7px; line-height:1.3}
+
+  /* concept cards */
+  .ccards{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; margin-top:16px}
+  .cc{background:var(--bg2); border:1px solid var(--line); border-radius:14px; padding:16px; cursor:pointer;
+    transition:border-color .14s}
+  .cc:hover{border-color:var(--line2)}
+  .cc.on{border-color:var(--gold); box-shadow:0 0 0 1px var(--gold) inset}
+  .cc .badge{font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+    padding:3px 9px; border-radius:99px; display:inline-block}
+  .b-safe{background:rgba(134,199,154,.16); color:#86c79a}
+  .b-balanced{background:rgba(171,135,67,.16); color:var(--gold)}
+  .b-bold{background:rgba(224,122,95,.16); color:#e07a5f}
+  .cc h3{font-size:17px; margin:10px 0 6px}
+  .cc .hook{color:#cdd8d2; font-size:13px; font-style:italic}
+  .cc .meta{margin-top:10px; font-size:11.5px; color:var(--mut); line-height:1.7}
+  .cc .meta b{color:#cdd8d2}
+  .cc .scores{display:flex; gap:8px; margin-top:11px}
+  .cc .sb{flex:1; text-align:center; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:6px 4px}
+  .cc .sb .v{font-family:'Lora',serif; font-size:17px; color:var(--cream)}
+  .cc .sb .k{font-size:9px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim); margin-top:2px}
+
+  /* preview */
+  .vtabs{display:flex; gap:8px; margin:4px 0 14px; flex-wrap:wrap; align-items:center}
+  .preview-frame{width:100%; height:760px; border:1px solid var(--line2); border-radius:12px; background:#fff}
+  .audit{list-style:none; padding:0; margin:14px 0 0; display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .audit li{font-size:12.5px; padding:9px 12px; border-radius:9px; background:var(--bg2);
+    border:1px solid var(--line); display:flex; align-items:center; gap:9px; color:#cdd8d2}
+  .audit li .i{width:18px; height:18px; border-radius:50%; flex-shrink:0; display:flex;
+    align-items:center; justify-content:center; font-size:11px; font-weight:800}
+  .audit li.pass .i{background:rgba(134,199,154,.2); color:#86c79a}
+  .audit li.warn .i{background:rgba(224,122,95,.2); color:#e07a5f}
+
+  pre.code{background:#06100c; border:1px solid var(--line); border-radius:10px; padding:14px;
+    overflow:auto; max-height:340px; font-size:11.5px; color:#bcd; white-space:pre-wrap; word-break:break-word}
+
+  .panel{display:none}
+  .panel.active{display:block; animation:fade .2s ease}
+  @keyframes fade{from{opacity:0; transform:translateY(4px)}to{opacity:1; transform:none}}
+
+  .navbtns{display:flex; gap:10px; margin-top:22px}
+  .hint{font-size:12px; color:var(--dim)}
+  .subj-pick{display:flex; flex-direction:column; gap:7px; margin-top:8px}
+  .subj-pick label{display:flex; gap:9px; align-items:flex-start; font-size:13px; color:#cdd8d2;
+    padding:9px 12px; border:1px solid var(--line); border-radius:9px; cursor:pointer}
+  .subj-pick label:hover{border-color:var(--line2)}
+  @media(max-width:640px){ .audit{grid-template-columns:1fr} .preview-frame{height:560px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow"><span class="dot"></span> Mailer Studio</div>
+  <h1 style="font-size:27px; margin-top:8px">VAHDAM <em style="color:var(--gold); font-style:italic">Mailer Studio</em></h1>
+  <p class="sub">Brief to broadcast-ready HTML in five steps. Every concept, every word, and every product pulls from your live catalog and brand system — on palette, on voice, on brand.</p>
+
+  <!-- STEP BAR -->
+  <div class="stepbar" id="stepbar"></div>
+
+  <!-- STEP 1 - BRIEF -->
+  <section class="panel" data-step="1">
+    <div class="card">
+      <div class="hd"><span class="n">1</span><div><h2>What are we sending today?</h2>
+        <p>Describe the campaign &mdash; or let AI draft a director-grade brief from scratch. Then set market, audience, and type.</p></div></div>
+
+      <label class="fld">Campaign description <span class="req">*</span></label>
+      <textarea id="brief" placeholder="e.g. 20% off all turmeric &amp; ginger teas with code DETOX20. Focus on gut health, daily ritual, natural ingredients. Free shipping over $49. Warm, inspiring tone."></textarea>
+      <div class="row" style="margin-top:10px">
+        <button class="btn solidgreen sm" id="btnBrief">&#10024; Create Brief with AI</button>
+        <button class="btn ghost sm" id="btnEnhance">Enhance with AI</button>
+        <span class="hint">Create writes a full brief from your market + type. Enhance polishes what you typed.</span>
+      </div>
+      <div class="status" id="briefStatus"></div>
+
+      <details class="accord" id="promptAccord">
+        <summary>&#128161; Suggested campaign prompts <span class="hint" style="margin-left:auto">click any to fill</span></summary>
+        <div class="prompt-list" id="promptList"><div class="prompt">Open to load suggestions&hellip;</div></div>
+      </details>
+    </div>
+
+    <div class="card">
+      <label class="fld">Target market <span class="req">*</span> &middot; multi-select &mdash; each market gets its own tailored mailer</label>
+      <div class="chips" id="markets"></div>
+
+      <label class="fld">Target user segment &middot; who is this for? &mdash; drives copy, imagery, tone</label>
+      <textarea id="segment" style="min-height:90px" placeholder="e.g. Urban wellness-curious professionals, 28-42, drink 1-2 cups daily, trust farm-direct origin. Lapsed buyers who tried our chai but didn't repeat."></textarea>
+      <div class="row" style="margin-top:10px">
+        <button class="btn ghost sm" id="btnSegment">&#10024; Generate with AI</button>
+        <span class="hint">Infers a precise segment from your brief, market, and type.</span>
+      </div>
+
+      <label class="fld">Campaign type &middot; pick 1&ndash;3 to blend the vibe</label>
+      <div class="chips" id="types"></div>
+    </div>
+
+    <div class="navbtns">
+      <button class="btn" id="to2">Choose products &rarr;</button>
+    </div>
+  </section>
+
+  <!-- STEP 2 - PRODUCTS -->
+  <section class="panel" data-step="2">
+    <div class="card">
+      <div class="hd"><span class="n">2</span><div><h2>Pick the heroes</h2>
+        <p>Choose 2&ndash;5 products from your live catalog. They drive the hero, the grid, and every price shown.</p></div></div>
+
+      <div class="row">
+        <select id="catRegion" style="max-width:200px"></select>
+        <div style="flex:1; min-width:200px"><input type="text" id="psearch" placeholder="Search products&hellip;"></div>
+        <button class="btn ghost sm" id="autoPick">&#10024; Auto-pick from brief</button>
+      </div>
+      <div class="chips" id="catTags" style="margin-top:12px"></div>
+      <div class="status" id="catStatus">Loading catalog&hellip;</div>
+      <div class="pgrid" id="pgrid"></div>
+
+      <label class="fld" id="selLbl" style="display:none">Selected products</label>
+      <div class="strip" id="selStrip" style="display:none"></div>
+    </div>
+    <div class="navbtns">
+      <button class="btn ghost" id="back1">&larr; Brief</button>
+      <button class="btn" id="to3">Generate concepts &rarr;</button>
+    </div>
+  </section>
+
+  <!-- STEP 3 - CONCEPTS -->
+  <section class="panel" data-step="3">
+    <div class="card">
+      <div class="hd"><span class="n">3</span><div><h2>Three strategic concepts</h2>
+        <p>AI proposes one safe, one balanced, one bold direction &mdash; each on a distinct layout archetype. Pick the one to build.</p></div></div>
+      <div class="row">
+        <button class="btn solidgreen" id="genConcepts">&#10024; Generate 3 concepts</button>
+        <button class="btn ghost sm" id="regenConcepts" style="display:none">&#8635; Regenerate</button>
+        <span class="hint" id="conceptProvider"></span>
+      </div>
+      <div class="status" id="conceptStatus"></div>
+      <div class="ccards" id="ccards"></div>
+    </div>
+    <div class="navbtns">
+      <button class="btn ghost" id="back2">&larr; Products</button>
+      <button class="btn" id="to4" disabled>Review &amp; refine &rarr;</button>
+    </div>
+  </section>
+
+  <!-- STEP 4 - REVIEW -->
+  <section class="panel" data-step="4">
+    <div class="card">
+      <div class="hd"><span class="n">4</span><div><h2>Review &amp; refine</h2>
+        <p>Two structurally distinct variants built from your concept. Preview, audit, pick a subject line.</p></div></div>
+      <div class="vtabs">
+        <button class="btn ghost sm vtab on" data-v="A">Variant A &middot; Editorial Hero</button>
+        <button class="btn ghost sm vtab" data-v="B">Variant B &middot; Narrative Story</button>
+        <span class="spacer"></span>
+        <select id="previewMarket" style="max-width:160px"></select>
+      </div>
+      <label class="fld" style="margin-top:0">Subject line</label>
+      <div class="subj-pick" id="subjPick"></div>
+      <div style="margin-top:14px"><iframe class="preview-frame" id="preview" title="Email preview"></iframe></div>
+      <label class="fld">Content audit</label>
+      <ul class="audit" id="audit"></ul>
+    </div>
+    <div class="navbtns">
+      <button class="btn ghost" id="back3">&larr; Concepts</button>
+      <button class="btn" id="to5">Final HTML &rarr;</button>
+    </div>
+  </section>
+
+  <!-- STEP 5 - FINAL -->
+  <section class="panel" data-step="5">
+    <div class="card">
+      <div class="hd"><span class="n">5</span><div><h2>Broadcast-ready HTML</h2>
+        <p>Inline-styled, table-based, email-client safe. Copy, download, or open a live preview.</p></div></div>
+      <div class="row">
+        <button class="btn" id="copyHtml">&#10697; Copy HTML</button>
+        <button class="btn ghost" id="dlHtml">&#8675; Download .html</button>
+        <button class="btn ghost" id="openHtml">&#8599; Open preview</button>
+        <span class="spacer"></span>
+        <span class="hint" id="finalMeta"></span>
+      </div>
+      <div class="status" id="finalStatus"></div>
+      <pre class="code" id="finalCode"></pre>
+    </div>
+    <div class="navbtns">
+      <button class="btn ghost" id="back4">&larr; Review</button>
+      <button class="btn ghost" id="restart">&#8634; New campaign</button>
+    </div>
+  </section>
+</div>
+
+<script src="/auth.js" defer></script>
+<script>
+(function(){
+  'use strict';
+  const $ = (id)=>document.getElementById(id);
+  const esc = (s)=>String(s==null?'':s).replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const API = '/api/ai/generate';
+
+  // Brand system
+  const BRAND = {
+    green:'#004A2B', gold:'#AB8743', ink:'#171717', cream:'#FBF5EA',
+    headFont:"'Lao MN','Cormorant Garamond',Georgia,serif",
+    bodyFont:"'Proxima Nova','Helvetica Neue',Arial,sans-serif"
+  };
+  const STORE = { US:'https://www.vahdamteas.com', UK:'https://uk.vahdamteas.com', IN:'https://www.vahdamindia.com',
+                  EU:'https://eu.vahdamteas.com', AU:'https://au.vahdamteas.com', Global:'https://www.vahdamteas.com', ME:'https://www.vahdamteas.com' };
+  const CUR = { US:'$', UK:'£', IN:'₹', EU:'€', AU:'A$', Global:'$', ME:'$' };
+  const CAT_REGION = { US:'us', UK:'uk', IN:'global', EU:'global', AU:'global', Global:'global', ME:'global' };
+  const MARKETS = [
+    {id:'US',label:'🇺🇸 United States'},{id:'UK',label:'🇬🇧 United Kingdom'},{id:'IN',label:'🇮🇳 India'},
+    {id:'Global',label:'🌐 Global'},{id:'ME',label:'🇦🇪 Middle East'},{id:'AU',label:'🇦🇺 Australia'},{id:'EU',label:'🇪🇺 Europe'}
+  ];
+  const TYPES = ['Auto','Sale','Launch','Seasonal','Bestseller','Gift','Discovery','Routine','Brand Story'];
+  const BANNED = ['wellness journey','transform','liquid gold','game-changer','limited time','hurry',"don't miss out",'last chance','while supplies last'];
+
+  // State
+  const S = {
+    step:1, brief:'', segment:'', markets:['US'], types:['Auto'],
+    catalog:[], catRegion:'us', tagFilter:'', search:'',
+    selected:[], concepts:[], chosen:null, variant:'A', subjectIdx:0,
+    previewMarket:'US', provider:'', lastHtml:''
+  };
+
+  // Step navigation
+  const STEPS = ['Brief','Products','Concepts','Review','Mailer'];
+  function maxReached(){ if(S.chosen) return 5; if(S.selected.length) return 3; if(S.brief.trim()) return 2; return 1; }
+  function renderStepbar(){
+    $('stepbar').innerHTML = STEPS.map((l,i)=>{
+      const n=i+1; const cls = n===S.step?'active':(n<S.step?'done':'');
+      return `<div class="step ${cls}" data-go="${n}"><span class="num">${n<S.step?'✓':n}</span><span class="lbl">${l}</span></div>`
+        + (n<STEPS.length?'<span class="step-line"></span>':'');
+    }).join('');
+    $('stepbar').querySelectorAll('.step').forEach(el=>el.onclick=()=>{ const n=+el.dataset.go; if(n<=maxReached()) goStep(n); });
+  }
+  function goStep(n){
+    S.step=n; renderStepbar();
+    document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', +p.dataset.step===n));
+    window.scrollTo({top:0,behavior:'smooth'});
+    if(n===2) ensureCatalog();
+    if(n===4) buildPreview();
+    if(n===5) renderFinal();
+  }
+
+  // STEP 1: chips
+  function renderChips(){
+    $('markets').innerHTML = MARKETS.map(m=>`<button class="chip ${S.markets.includes(m.id)?'on':''}" data-mkt="${m.id}">${m.label}</button>`).join('');
+    $('types').innerHTML = TYPES.map(t=>`<button class="chip ${S.types.includes(t)?'on':''}" data-type="${t}">${t}</button>`).join('');
+    $('markets').querySelectorAll('[data-mkt]').forEach(b=>b.onclick=()=>{
+      const id=b.dataset.mkt; const i=S.markets.indexOf(id);
+      if(i>=0){ if(S.markets.length>1) S.markets.splice(i,1); } else S.markets.push(id);
+      S.previewMarket=S.markets[0]; renderChips();
+    });
+    $('types').querySelectorAll('[data-type]').forEach(b=>b.onclick=()=>{
+      const t=b.dataset.type; const i=S.types.indexOf(t);
+      if(t==='Auto'){ S.types=['Auto']; }
+      else { S.types=S.types.filter(x=>x!=='Auto'); if(i>=0) S.types.splice(S.types.indexOf(t),1); else if(S.types.length<3) S.types.push(t); }
+      if(!S.types.length) S.types=['Auto']; renderChips();
+    });
+  }
+
+  // API helper
+  async function callAI(payload, statusEl){
+    if(statusEl){ statusEl.className='status'; statusEl.textContent='Thinking…'; }
+    try{
+      const r = await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const d = await r.json();
+      if(!r.ok || d.error) throw new Error(d.detail||d.error||('HTTP '+r.status));
+      if(d.provider) S.provider=d.provider;
+      if(statusEl){ statusEl.className='status ok'; statusEl.textContent = d.provider?('Done · '+d.provider):'Done'; }
+      return d;
+    }catch(e){
+      if(statusEl){ statusEl.className='status err'; statusEl.textContent='Error: '+(e.message||e); }
+      throw e;
+    }
+  }
+  const typeStr = ()=> S.types.includes('Auto')?'':S.types.join(' + ');
+
+  $('btnBrief').onclick = async ()=>{
+    try{
+      const d = await callAI({mode:'create_brief', markets:S.markets, market:S.markets[0], type:typeStr(), prompt:$('brief').value}, $('briefStatus'));
+      if(d.text){ S.brief=d.text.trim(); $('brief').value=S.brief; }
+    }catch(_){}
+  };
+  $('btnEnhance').onclick = async ()=>{
+    S.brief=$('brief').value;
+    if(!S.brief.trim()){ $('briefStatus').className='status err'; $('briefStatus').textContent='Type a seed idea first.'; return; }
+    try{
+      const d = await callAI({mode:'create_brief', markets:S.markets, market:S.markets[0], type:typeStr(), prompt:S.brief}, $('briefStatus'));
+      if(d.text){ S.brief=d.text.trim(); $('brief').value=S.brief; }
+    }catch(_){}
+  };
+  $('btnSegment').onclick = async ()=>{
+    S.brief=$('brief').value;
+    try{
+      const d = await callAI({mode:'audience_segment', market:S.markets[0], type:typeStr(), brief:S.brief, seed_segment:$('segment').value}, null);
+      if(d.text){ S.segment=d.text.trim(); $('segment').value=S.segment; }
+    }catch(e){ alert('Segment generation failed: '+e.message); }
+  };
+
+  // Suggested prompts
+  let promptsLoaded=false;
+  $('promptAccord').addEventListener('toggle', async function(){
+    if(!this.open || promptsLoaded) return; promptsLoaded=true;
+    try{
+      const d = await callAI({mode:'suggested_prompts', markets:S.markets, market:S.markets[0], type:typeStr()}, null);
+      const arr = Array.isArray(d.data)?d.data:((d.data&&d.data.prompts)||[]);
+      if(!arr.length){ $('promptList').innerHTML='<div class="prompt">No suggestions returned — type your own above.</div>'; return; }
+      $('promptList').innerHTML = arr.slice(0,6).map((p,i)=>{
+        const title = p.name||p.title||p.campaign_name||('Idea '+(i+1));
+        const body = p.brief||p.description||p.prompt||p.text||(typeof p==='string'?p:'');
+        return `<div class="prompt" data-i="${i}"><b>${esc(title)}</b>${esc(String(body).slice(0,160))}…</div>`;
+      }).join('');
+      $('promptList').querySelectorAll('[data-i]').forEach(el=>el.onclick=()=>{
+        const p=arr[+el.dataset.i]; const body=p.brief||p.description||p.prompt||p.text||(typeof p==='string'?p:'');
+        S.brief=String(body); $('brief').value=S.brief; $('promptAccord').open=false;
+        window.scrollTo({top:0,behavior:'smooth'});
+      });
+    }catch(_){ promptsLoaded=false; $('promptList').innerHTML='<div class="prompt">Could not load suggestions.</div>'; }
+  });
+
+  $('to2').onclick = ()=>{ S.brief=$('brief').value; S.segment=$('segment').value;
+    if(!S.brief.trim()){ $('briefStatus').className='status err'; $('briefStatus').textContent='Add a campaign description (or Create one with AI) to continue.'; return; }
+    goStep(2);
+  };
+
+  // STEP 2: catalog
+  function regionOptions(){
+    const regs=[['us','US catalog'],['uk','UK catalog'],['global','Global catalog']];
+    const pref = CAT_REGION[S.markets[0]]||'us';
+    S.catRegion=pref;
+    $('catRegion').innerHTML = regs.map(([v,l])=>`<option value="${v}" ${v===pref?'selected':''}>${l}</option>`).join('');
+    $('previewMarket').innerHTML = S.markets.map(m=>`<option value="${m}">${m}</option>`).join('');
+  }
+  async function ensureCatalog(){ regionOptions(); await loadCatalog(S.catRegion); }
+  async function loadCatalog(region){
+    $('catStatus').textContent='Loading '+region.toUpperCase()+' catalog…'; $('catStatus').className='status';
+    try{
+      const r = await fetch('/data/catalog/products_'+region+'.json',{cache:'force-cache'});
+      if(!r.ok) throw new Error('catalog '+r.status);
+      const arr = await r.json();
+      S.catalog = (Array.isArray(arr)?arr:[]).map(normProd);
+      $('catStatus').className='status ok'; $('catStatus').textContent=S.catalog.length+' products loaded';
+    }catch(e){
+      S.catalog=[]; $('catStatus').className='status err';
+      $('catStatus').textContent='Catalog unavailable offline — it loads on the deployed app. You can still proceed; concepts will use category defaults.';
+    }
+    renderTags(); renderGrid(); renderStrip();
+  }
+  function normProd(p){
+    return { handle:p.h||p.handle||'', name:p.n||p.name||'', image:p.i||p.image||p.image_url||'',
+      tags:p.t||p.tags||[], price:p.price||'', compare_at:p.compare_at||'', subtitle:p.subtitle||'',
+      tasting:p.tasting_notes||'', type:p.type||'' };
+  }
+  $('catRegion').onchange = (e)=>{ S.catRegion=e.target.value; loadCatalog(S.catRegion); };
+  $('psearch').oninput = (e)=>{ S.search=e.target.value.toLowerCase(); renderGrid(); };
+
+  function allTags(){ const s=new Set(); S.catalog.forEach(p=>(p.tags||[]).forEach(t=>s.add(t))); return [...s].sort(); }
+  function renderTags(){
+    const tags=allTags();
+    $('catTags').innerHTML = `<button class="chip ${!S.tagFilter?'on':''}" data-tag="">All</button>` +
+      tags.map(t=>`<button class="chip ${S.tagFilter===t?'on':''}" data-tag="${t}">${esc(t)}</button>`).join('');
+    $('catTags').querySelectorAll('[data-tag]').forEach(b=>b.onclick=()=>{ S.tagFilter=b.dataset.tag; renderTags(); renderGrid(); });
+  }
+  function filtered(){
+    return S.catalog.filter(p=>{
+      if(S.tagFilter && !(p.tags||[]).includes(S.tagFilter)) return false;
+      if(S.search && !(p.name.toLowerCase().includes(S.search) || (p.subtitle||'').toLowerCase().includes(S.search))) return false;
+      return true;
+    });
+  }
+  const curSym = ()=> CUR[S.markets[0]]||'$';
+  const isSel = (h)=>S.selected.some(p=>p.handle===h);
+  function renderGrid(){
+    const list=filtered().slice(0,60);
+    $('pgrid').innerHTML = list.map(p=>{
+      const price = p.price?(curSym()+(''+p.price).replace(/^[^\d.]*/,'')):'';
+      const cmp = p.compare_at?`<s>${curSym()+(''+p.compare_at).replace(/^[^\d.]*/,'')}</s>`:'';
+      return `<div class="pc ${isSel(p.handle)?'on':''}" data-h="${esc(p.handle)}">
+        <div class="tick">✓</div>
+        <div class="ph" style="background-image:url('${esc(p.image)}')"></div>
+        <div class="pb"><div class="pn">${esc(p.name)}</div><div class="pp">${price} ${cmp}</div></div>
+      </div>`;
+    }).join('') || '<div class="hint" style="padding:16px">No products match. Clear the filter or search.</div>';
+    $('pgrid').querySelectorAll('[data-h]').forEach(el=>el.onclick=()=>toggleProduct(el.dataset.h));
+  }
+  function toggleProduct(h){
+    const i=S.selected.findIndex(p=>p.handle===h);
+    if(i>=0) S.selected.splice(i,1);
+    else { if(S.selected.length>=8) return; const p=S.catalog.find(x=>x.handle===h); if(p) S.selected.push(p); }
+    renderGrid(); renderStrip();
+  }
+  function renderStrip(){
+    const has=S.selected.length>0;
+    $('selLbl').style.display=has?'block':'none'; $('selStrip').style.display=has?'flex':'none';
+    $('selStrip').innerHTML = S.selected.map(p=>`<div class="sc">
+      <button class="x" data-rm="${esc(p.handle)}">×</button>
+      <img src="${esc(p.image)}" alt=""><div class="nm">${esc(p.name)}</div></div>`).join('');
+    $('selStrip').querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>toggleProduct(b.dataset.rm));
+  }
+  $('autoPick').onclick = ()=>{
+    const txt=(S.brief+' '+S.segment+' '+S.types.join(' ')).toLowerCase();
+    const score=(p)=>{ let s=0; (p.tags||[]).forEach(t=>{ if(txt.includes(t)) s+=2; });
+      p.name.toLowerCase().split(/\s+/).forEach(w=>{ if(w.length>3 && txt.includes(w)) s+=1; });
+      if(/gift/.test(txt) && (p.tags||[]).includes('gift')) s+=3;
+      if(/best|popular/.test(txt) && (p.tags||[]).includes('bestseller')) s+=3;
+      return s; };
+    const ranked=[...S.catalog].map(p=>[p,score(p)]).sort((a,b)=>b[1]-a[1]);
+    let picks=ranked.filter(x=>x[1]>0).slice(0,4).map(x=>x[0]);
+    if(picks.length<3) picks = ranked.slice(0,4).map(x=>x[0]);
+    S.selected=picks.slice(0,4); renderGrid(); renderStrip();
+    $('catStatus').className='status ok'; $('catStatus').textContent='Auto-picked '+S.selected.length+' products from your brief.';
+  };
+
+  $('back1').onclick=()=>goStep(1);
+  $('to3').onclick=()=>{ if(!S.selected.length){ $('catStatus').className='status err'; $('catStatus').textContent='Select at least one product.'; return; } goStep(3); };
+
+  // STEP 3: concepts
+  let regenCount=0;
+  async function generateConcepts(){
+    const products = S.selected.map(p=>({handle:p.handle,name:p.name,category:(p.tags||[])[0]||'',price:p.price,compare_at:p.compare_at,image_url:p.image}));
+    try{
+      const d = await callAI({mode:'concepts', campaign_brief:S.brief, market:S.markets[0], theme:typeStr()||'Bestseller',
+        selected_products:products, variant:'A', regenerate_counter:regenCount}, $('conceptStatus'));
+      const concepts = (d.data && d.data.concepts) || [];
+      if(!concepts.length) throw new Error('No concepts returned');
+      S.concepts=concepts; renderConcepts();
+      $('conceptProvider').textContent = d.provider?('via '+d.provider):'';
+      $('regenConcepts').style.display='inline-flex';
+    }catch(e){
+      S.concepts = fallbackConcepts(); renderConcepts();
+      $('conceptStatus').className='status'; $('conceptStatus').textContent='Using built-in concepts (AI unavailable).';
+      $('regenConcepts').style.display='inline-flex';
+    }
+  }
+  $('genConcepts').onclick = generateConcepts;
+  $('regenConcepts').onclick = ()=>{ regenCount++; generateConcepts(); };
+
+  function fallbackConcepts(){
+    const p0=S.selected[0]||{name:'our single-estate teas'};
+    const cur=CUR[S.markets[0]]||'$';
+    const mk=(id,name,hook,driver,arch,risk,head,sub,cta,title,ann,subs)=>({
+      id,name,hook,emotional_driver:driver,layout_archetype:arch,risk_profile:risk,
+      copy:{eyebrow:typeStr()||'New from VAHDAM',headline:head,sub_copy:sub,cta,section_title:title,ann_bar:ann},
+      subject_lines:subs,preheader:sub.slice(0,88),product_handles:S.selected.map(p=>p.handle),
+      scores:{brand_fit:8,conversion_potential:7,novelty:6}
+    });
+    return [
+      mk('c1','Quiet Ritual','The cup that slows the morning down','calm-trust','founder-note','safe',
+        ['A slower','morning, steeped'],'There is a moment when the right cup does more than warm your hands — it resets the whole day. Begin yours with '+p0.name+'.','Shop the ritual','Steeped in heritage','Garden-fresh · shipped within 72 hours of harvest',
+        ['A slower kind of morning','The cup worth waking for','Begin again, one steep at a time']),
+      mk('c2','Origin & Offer','Single-estate, hand-picked, now yours','reward-upgrade','hero-led-editorial','balanced',
+        ['Hand-picked','at origin'],'From garden to cup in days, not months. Taste the difference single-estate freshness makes — and savour it while the harvest is new.','Claim the harvest','This week, fresh in','Free shipping over '+cur+'49',
+        ['Fresh harvest, just landed','From the estate to your cup','Taste what 72 hours fresh means']),
+      mk('c3','The Bold Pour','Trade the ordinary for the extraordinary','curiosity-discovery','product-grid-conversion','bold',
+        ['Leave dull','tea behind'],'Once you taste tea this fresh, the supermarket tin never comes back. Discover the blends our community keeps reordering.','Discover the set','Loved by thousands','Rated 4.8 by 50,000+ tea drinkers',
+        ['Your supermarket tea is stale','The tea people keep reordering','One sip and there is no going back'])
+    ];
+  }
+
+  function renderConcepts(){
+    $('ccards').innerHTML = S.concepts.map((c,i)=>{
+      const risk=(c.risk_profile||'balanced').toLowerCase();
+      const head=Array.isArray(c.copy&&c.copy.headline)?c.copy.headline.join(' '):((c.copy&&c.copy.headline)||c.name);
+      const sc=c.scores||{};
+      return `<div class="cc ${S.chosen&&S.chosen.id===c.id?'on':''}" data-i="${i}">
+        <span class="badge b-${risk}">${esc(risk)}</span>
+        <h3>${esc(c.name||head)}</h3>
+        <div class="hook">“${esc(c.hook||head)}”</div>
+        <div class="meta"><b>Archetype:</b> ${esc(c.layout_archetype||'—')}<br><b>Driver:</b> ${esc(c.emotional_driver||c.user_emotional_state||'—')}<br><b>Headline:</b> ${esc(head)}</div>
+        <div class="scores">
+          <div class="sb"><div class="v">${sc.brand_fit||'—'}</div><div class="k">Brand fit</div></div>
+          <div class="sb"><div class="v">${sc.conversion_potential||'—'}</div><div class="k">Convert</div></div>
+          <div class="sb"><div class="v">${sc.novelty||'—'}</div><div class="k">Novelty</div></div>
+        </div></div>`;
+    }).join('');
+    $('ccards').querySelectorAll('[data-i]').forEach(el=>el.onclick=()=>{
+      S.chosen=S.concepts[+el.dataset.i]; S.subjectIdx=0; renderConcepts(); $('to4').disabled=false;
+    });
+  }
+  $('back2').onclick=()=>goStep(2);
+  $('to4').onclick=()=>{ if(!S.chosen) return; goStep(4); };
+
+  // STEP 4: preview + audit
+  document.querySelectorAll('.vtab').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('.vtab').forEach(x=>x.classList.toggle('on',x===b));
+    S.variant=b.dataset.v; buildPreview();
+  });
+  $('previewMarket').onchange=(e)=>{ S.previewMarket=e.target.value; buildPreview(); };
+
+  function subjectLines(){
+    const c=S.chosen||{}; const arr=c.subject_lines||[];
+    return arr.length?arr:[ (c.copy&&c.copy.headline&&[].concat(c.copy.headline).join(' '))||'A fresh pour from VAHDAM' ];
+  }
+  function renderSubjectPick(){
+    const arr=subjectLines();
+    $('subjPick').innerHTML = arr.map((s,i)=>`<label><input type="radio" name="subj" value="${i}" ${i===S.subjectIdx?'checked':''}><span>${esc(s)}</span></label>`).join('');
+    $('subjPick').querySelectorAll('input').forEach(r=>r.onchange=()=>{ S.subjectIdx=+r.value; });
+  }
+  function buildPreview(){
+    if(!S.chosen) return;
+    renderSubjectPick();
+    const html=buildEmail(S.chosen,S.selected,S.previewMarket,S.variant);
+    S.lastHtml=html;
+    $('preview').srcdoc=html;
+    renderAudit(html);
+  }
+  function renderAudit(html){
+    const c=S.chosen||{}; const copy=c.copy||{};
+    const text=(JSON.stringify(copy)+' '+subjectLines().join(' ')+' '+S.brief).toLowerCase();
+    const hitBanned=BANNED.filter(b=>text.includes(b));
+    const subj=subjectLines()[S.subjectIdx]||'';
+    const checks=[
+      ['Subject under 60 chars', subj.length>0 && subj.length<=60],
+      ['On-palette colours only', !/#0f2a1c|#d4873a|#1a3a28|#faf8f4/.test(html)],
+      ['No banned phrases', hitBanned.length===0],
+      ['2–5 products featured', S.selected.length>=2 && S.selected.length<=5],
+      ['Single clear CTA', !!(copy.cta)],
+      ['Hero headline present', !!(copy.headline)],
+      ['Prices shown', S.selected.some(p=>p.price)],
+      ['Store links region-correct', html.indexOf(STORE[S.previewMarket]||STORE.US)>=0],
+      ['Brand fonts (Lao MN / Proxima)', html.indexOf('Lao MN')>=0 && html.indexOf('Proxima')>=0]
+    ];
+    $('audit').innerHTML = checks.map(([l,ok])=>`<li class="${ok?'pass':'warn'}"><span class="i">${ok?'✓':'!'}</span>${esc(l)}${(!ok&&l.indexOf('banned')>=0)?' — '+esc(hitBanned.join(', ')):''}</li>`).join('');
+  }
+  $('back3').onclick=()=>goStep(3);
+  $('to5').onclick=()=>goStep(5);
+
+  // STEP 5: final
+  function renderFinal(){
+    const html=buildEmail(S.chosen,S.selected,S.previewMarket,S.variant);
+    S.lastHtml=html;
+    $('finalCode').textContent=html;
+    $('finalMeta').textContent = `${S.previewMarket} · Variant ${S.variant} · ${Math.round(html.length/1024)} KB`;
+  }
+  $('copyHtml').onclick=async ()=>{ try{ await navigator.clipboard.writeText(S.lastHtml||''); $('finalStatus').className='status ok'; $('finalStatus').textContent='Copied to clipboard.'; }catch(_){ $('finalStatus').className='status err'; $('finalStatus').textContent='Copy failed — select the code and copy manually.'; } };
+  $('dlHtml').onclick=()=>{ const blob=new Blob([S.lastHtml||''],{type:'text/html'}); const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download=`vahdam_${((S.chosen&&S.chosen.name)||'mailer').replace(/\W+/g,'_').toLowerCase()}_${S.previewMarket}_${S.variant}.html`;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); };
+  $('openHtml').onclick=()=>{ const w=window.open('','_blank'); if(w){ w.document.open(); w.document.write(S.lastHtml||''); w.document.close(); } };
+  $('back4').onclick=()=>goStep(4);
+  $('restart').onclick=()=>{ if(!confirm('Start a new campaign? This clears the current draft.')) return;
+    Object.assign(S,{brief:'',segment:'',selected:[],concepts:[],chosen:null,variant:'A',subjectIdx:0});
+    $('brief').value=''; $('segment').value=''; regenCount=0; $('to4').disabled=true; goStep(1); };
+
+  // EMAIL BUILDER - table-based, inline-styled, client-safe
+  function money(market,v){ if(!v) return ''; return (CUR[market]||'$')+(''+v).replace(/^[^\d.]*/,''); }
+  function pdp(market,handle){ return (STORE[market]||STORE.US)+'/products/'+handle; }
+  function shopUrl(market){ return (STORE[market]||STORE.US)+'/collections/all'; }
+
+  function buildEmail(concept, products, market, variant){
+    const c=concept||{}; const copy=c.copy||{};
+    const head = [].concat(copy.headline||[c.name||'A fresh pour']).filter(Boolean);
+    const sub = copy.sub_copy || c.hook || 'Garden-fresh tea, shipped within 72 hours of harvest.';
+    const cta = copy.cta || 'Shop now';
+    const eyebrow = copy.eyebrow || (typeStr()||'VAHDAM');
+    const ann = copy.ann_bar || 'Garden-fresh · shipped within 72 hours of harvest';
+    const sectionTitle = copy.section_title || 'Steeped in heritage';
+    const G=BRAND.green, GO=BRAND.gold, CR=BRAND.cream, INK=BRAND.ink;
+    const HF=BRAND.headFont, BF=BRAND.bodyFont;
+    const prods=(products&&products.length?products:[]).slice(0,5);
+    const hero=prods[0];
+    const reorder = prods.slice(variant==='A'?1:0);
+
+    const btn=(label,url,bg,fg)=>`<a href="${url}" style="display:inline-block;background:${bg};color:${fg};text-decoration:none;font-family:${BF};font-size:14px;font-weight:700;letter-spacing:.02em;padding:13px 30px;border-radius:4px">${esc(label)}</a>`;
+
+    const productCard=(p)=>{
+      const price=money(market,p.price), cmp=p.compare_at?`<span style="color:#9a8f7c;text-decoration:line-through;font-size:12px;margin-left:6px">${money(market,p.compare_at)}</span>`:'';
+      return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #ece3d2;border-radius:6px;overflow:hidden">
+        <tr><td style="padding:0"><a href="${pdp(market,p.handle)}" style="text-decoration:none"><img src="${esc(p.image)}" width="100%" alt="${esc(p.name)}" style="display:block;width:100%;max-width:100%;background:#f6f1e6"></a></td></tr>
+        <tr><td style="padding:14px 16px 16px;font-family:${BF}">
+          <div style="font-family:${HF};font-size:16px;color:${INK};line-height:1.25;margin-bottom:4px">${esc(p.name)}</div>
+          ${p.subtitle?`<div style="font-size:12px;color:#6b6256;margin-bottom:8px">${esc(p.subtitle)}</div>`:''}
+          <div style="font-size:14px;color:${G};font-weight:700;margin-bottom:12px">${price}${cmp}</div>
+          ${btn('Shop',pdp(market,p.handle),G,CR)}
+        </td></tr></table>`;
+    };
+
+    const heroBlockA = hero?`
+      <tr><td style="padding:0 24px">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+          <td width="52%" valign="middle" style="padding:32px 20px 32px 0;font-family:${BF}">
+            <div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:${GO};font-weight:700;margin-bottom:14px">${esc(eyebrow)}</div>
+            <div style="font-family:${HF};font-size:34px;line-height:1.1;color:${INK};margin-bottom:16px">${head.map(esc).join('<br>')}</div>
+            <div style="font-size:15px;line-height:1.65;color:#4a4338;margin-bottom:24px">${esc(sub)}</div>
+            ${btn(cta,shopUrl(market),GO,'#1c1206')}
+          </td>
+          <td width="48%" valign="top"><a href="${pdp(market,hero.handle)}"><img src="${esc(hero.image)}" width="100%" alt="${esc(hero.name)}" style="display:block;width:100%;border-radius:6px;background:#f6f1e6"></a></td>
+        </tr></table>
+      </td></tr>`:'';
+
+    const heroBlockB = hero?`
+      <tr><td style="padding:0"><a href="${pdp(market,hero.handle)}"><img src="${esc(hero.image)}" width="100%" alt="${esc(hero.name)}" style="display:block;width:100%;background:#f6f1e6"></a></td></tr>
+      <tr><td align="center" style="padding:34px 36px 28px;font-family:${BF}">
+        <div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:${GO};font-weight:700;margin-bottom:14px">${esc(eyebrow)}</div>
+        <div style="font-family:${HF};font-size:32px;line-height:1.12;color:${INK};margin-bottom:16px">${head.map(esc).join('<br>')}</div>
+        <div style="font-size:15px;line-height:1.7;color:#4a4338;max-width:440px;margin:0 auto 24px">${esc(sub)}</div>
+        ${btn(cta,shopUrl(market),GO,'#1c1206')}
+      </td></tr>`:'';
+
+    const gridRows=[];
+    for(let i=0;i<reorder.length;i+=2){
+      const a=reorder[i], b=reorder[i+1];
+      gridRows.push(`<tr>
+        <td width="50%" valign="top" style="padding:8px">${productCard(a)}</td>
+        <td width="50%" valign="top" style="padding:8px">${b?productCard(b):'&nbsp;'}</td>
+      </tr>`);
+    }
+    const grid = reorder.length?`
+      <tr><td style="padding:8px 24px 0">
+        <div style="font-family:${HF};font-size:22px;color:${INK};text-align:center;margin:14px 0 6px">${esc(sectionTitle)}</div>
+      </td></tr>
+      <tr><td style="padding:0 16px 8px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${gridRows.join('')}</table></td></tr>`:'';
+
+    const testimonial=`
+      <tr><td style="padding:8px 24px 0">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${G};border-radius:8px">
+          <tr><td align="center" style="padding:30px 34px;font-family:${BF}">
+            <div style="color:${GO};font-size:18px;letter-spacing:3px;margin-bottom:10px">★★★★★</div>
+            <div style="font-family:${HF};font-size:20px;color:${CR};line-height:1.4;font-style:italic;max-width:460px;margin:0 auto 10px">“The aroma fills the whole kitchen before the first sip. It has quietly become the best part of my morning.”</div>
+            <div style="font-size:12px;color:rgba(251,245,234,.7);letter-spacing:.06em">— A VAHDAM regular, reordered 6×</div>
+          </td></tr>
+        </table>
+      </td></tr>`;
+
+    const offer=`
+      <tr><td style="padding:18px 24px 4px">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px dashed ${GO};border-radius:8px">
+          <tr><td align="center" style="padding:22px 30px;font-family:${BF}">
+            <div style="font-family:${HF};font-size:20px;color:${INK};margin-bottom:6px">${esc(sectionTitle)}</div>
+            <div style="font-size:13px;color:#4a4338;margin-bottom:16px">${esc(ann)}</div>
+            ${btn(cta,shopUrl(market),G,CR)}
+          </td></tr>
+        </table>
+      </td></tr>`;
+
+    const trust=`
+      <tr><td style="padding:22px 24px 6px">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-family:${BF}"><tr>
+          ${['Garden-fresh in 72h','B-Corp certified','Single-estate origin','Free returns'].map(t=>`<td align="center" style="padding:8px;font-size:11px;color:#6b6256;line-height:1.4">${esc(t)}</td>`).join('')}
+        </tr></table>
+      </td></tr>`;
+
+    const footer=`
+      <tr><td style="padding:26px 24px 34px;border-top:1px solid #ece3d2;font-family:${BF}" align="center">
+        <div style="font-family:${HF};font-size:18px;color:${G};letter-spacing:.18em;margin-bottom:8px">VAHDAM</div>
+        <div style="font-size:11px;color:#9a8f7c;line-height:1.7">Single-estate teas, shipped fresh from the gardens of India.<br>
+          <a href="${shopUrl(market)}" style="color:${GO};text-decoration:none">Shop all</a> ·
+          <a href="${STORE[market]||STORE.US}/pages/our-story" style="color:${GO};text-decoration:none">Our story</a> ·
+          You are receiving this because you love good tea.</div>
+      </td></tr>`;
+
+    const annBar=`<tr><td align="center" style="background:${INK};color:${CR};font-family:${BF};font-size:11px;letter-spacing:.1em;padding:9px 16px">${esc(ann)}</td></tr>`;
+    const logo=`<tr><td align="center" style="padding:22px 0 6px"><span style="font-family:${HF};font-size:24px;color:${G};letter-spacing:.22em">VAHDAM</span></td></tr>`;
+
+    const body = variant==='A'
+      ? annBar+logo+heroBlockA+grid+testimonial+offer+trust+footer
+      : annBar+logo+heroBlockB+grid+offer+testimonial+trust+footer;
+
+    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc([].concat(head).join(' '))}</title></head>
+<body style="margin:0;padding:0;background:#efe7d6">
+<span style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(copy.preheader||c.preheader||sub.slice(0,90))}</span>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#efe7d6"><tr><td align="center" style="padding:20px 12px">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:600px;background:${CR};border-radius:10px;overflow:hidden">
+${body}
+</table>
+</td></tr></table></body></html>`;
+  }
+
+  // init
+  renderStepbar(); renderChips(); goStep(1);
+})();
+</script>
+</body>
+</html>

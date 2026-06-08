@@ -100,6 +100,8 @@
   // ─── Information architecture (left-hand sidebar) ───────────────────
   // Flat items render as top-level links; `children` render as an expandable
   // group. `open:true` marks a feature that never requires sign-in.
+  // Stroke icons (inherit currentColor). Brand glyphs (Google/Meta/TikTok) live
+  // in BRAND below and render in their own official colours.
   const ICONS = {
     home:       '<path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9h5v-5h4v5h5v-9"/>',
     analysis:   '<path d="M4 19V5"/><path d="M4 19h16"/><rect x="7" y="11" width="3" height="5"/><rect x="12" y="7" width="3" height="9"/><rect x="17" y="13" width="3" height="3"/>',
@@ -107,54 +109,79 @@
     mailer:     '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
     calendar:   '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>',
     ads:        '<path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1Z"/><path d="M15 8a4 4 0 0 1 0 8"/>',
-    google:     '<circle cx="12" cy="12" r="8"/><path d="M12 8h7"/><path d="M12 12h6"/>',
-    meta:       '<path d="M4 16c2-7 4-8 5-8 2 0 3 4 3 4s1-4 3-4c1 0 3 1 5 8"/>',
     landing:    '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/>',
     kb:         '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M19 17H6a2 2 0 0 0-2 2"/>',
     discover:   '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6M8 11h6"/>',
+    cohort:     '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17.5" cy="9.5" r="2.3"/><path d="M16 14.4c2.6.4 4.5 2.6 4.5 5.6"/>',
+    studio:     '<path d="M5 3v4M3 5h4M6 17v4M4 19h4"/><path d="m13 3 2.3 6.7L22 12l-6.7 2.3L13 21l-2.3-6.7L4 12l6.7-2.3z"/>',
+    insights:   '<path d="M3 3v18h18"/><path d="m7 14 3-4 3 3 4-6"/><circle cx="7" cy="14" r="1.2"/><circle cx="10" cy="10" r="1.2"/><circle cx="13" cy="13" r="1.2"/><circle cx="17" cy="7" r="1.2"/>',
+    vahdam:     '<path d="M12 21c-1-5-4-6.5-7-7 0-5 3.5-8 7-9 3.5 1 7 4 7 9-3 .5-6 2-7 7z"/><path d="M12 13c1.5-2 3.5-3 5.5-3.5"/>',
   };
-  // The app automates creation of three artefact types across four regions
-  // (US, UK, Global, India). Landing Pages is its own L1 — used by both
-  // mailers and ads — not nested under Ad Campaigns anymore.
+  // Real, full-colour brand glyphs. Each is a complete <svg> with its own
+  // viewBox + official brand colours, so Meta / Google / TikTok read as the
+  // actual app icons rather than generic line-art.
+  const BRAND = {
+    google: '<svg viewBox="0 0 24 24" width="18" height="18" class="lnav-ic lnav-brandic"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.2-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75z"/></svg>',
+    meta:   '<svg viewBox="0 0 24 24" width="18" height="18" class="lnav-ic lnav-brandic" fill="none" stroke="#0866FF" stroke-width="2.2" stroke-linecap="round"><path d="M2.2 13.6c.9-4.2 2.6-6.6 4.8-6.6 2.8 0 4.3 3.7 6.5 7.2 1.6 2.6 2.8 3.8 4.3 3.8 1.7 0 2.6-1.7 2.6-4.2 0-3.5-1.6-6.6-4-6.6-2.7 0-4.4 3.3-6.6 6.8-1.6 2.5-2.9 4.2-4.6 4.2-1.4 0-2.3-1-2.6-2.4"/></svg>',
+    tiktok: '<svg viewBox="0 0 24 24" width="18" height="18" class="lnav-ic lnav-brandic"><path fill="#25F4EE" d="M15.3 5.6a4.3 4.3 0 0 1-1-2.6h-1.9v12.4a2.4 2.4 0 1 1-2.4-2.4c.2 0 .4 0 .6.1V11a5.5 5.5 0 1 0 4.3 5.4V8.9a7.3 7.3 0 0 0 3.3 1.2V7.5a4.3 4.3 0 0 1-2.8-1.9z"/><path fill="#FE2C55" d="M17.1 6.4a4.3 4.3 0 0 1-1-2.6h-1.9v12.4a2.4 2.4 0 1 1-2.4-2.4c.2 0 .4 0 .6.1v-2.1a5.5 5.5 0 1 0 4.3 5.4V9.7A7.3 7.3 0 0 0 20 10.9V8.3a4.3 4.3 0 0 1-2.9-1.9z"/><path fill="#FFF" d="M16.2 6a4.3 4.3 0 0 1-1-2.6h-1.9v12.4a2.4 2.4 0 1 1-2.4-2.4c.2 0 .4 0 .6.1V11.4a5.5 5.5 0 1 0 4.3 5.4V9.3a7.3 7.3 0 0 0 3.3 1.2V7.9A4.3 4.3 0 0 1 16.2 6z"/></svg>',
+  };
+  // ─── Information architecture ───────────────────────────────────────
+  // KNOWLEDGE BASE = the reference library: VAHDAM's own assets + competitors',
+  // each across Mailers / Meta / Google / TikTok / Landing Pages. Competitor
+  // Benchmarking also owns brand DISCOVERY (the old "Mailer Discovery" — now
+  // folded in, since discovery is exactly what benchmarking is for).
+  // CREATE = where VAHDAM produces its own assets (Mailers studio, Ads, Landing).
   const NAV = [
     { id: 'home',       label: 'Home',          href: '/',               icon: 'home',     match: ['/', '/index.html'] },
-    { group: 'Knowledge Base', icon: 'kb', children: [
-      { id: 'kb-vahdam',     label: 'VAHDAM',      href: '/knowledge-base.html#vahdam-mailers',     icon: 'mailer' },
-      { id: 'kb-competitor', label: 'Competitors', href: '/knowledge-base.html#competitor-mailers', icon: 'competitor' },
-    ]},
     { id: 'analysis',   label: 'Data Analysis', href: '/dashboard.html', icon: 'analysis', match: ['/dashboard.html', '/analytics'] },
-    { group: 'Competitor Benchmarking', icon: 'competitor', children: [
-      { id: 'comp-mailers', label: 'Mailers',       href: '/competitor-benchmarking.html#mailers', icon: 'mailer' },
-      { id: 'comp-ads',     label: 'Ads',           href: '/competitor-benchmarking.html#ads',     icon: 'ads' },
-      { id: 'comp-landing', label: 'Landing Pages', href: '/competitor-benchmarking.html#landing', icon: 'landing' },
-      { id: 'comp-brands',  label: 'Brands',        href: '/competitor-benchmarking.html#brands',  icon: 'kb' },
-      { id: 'comp-insights',label: 'Insights',      href: '/competitor-benchmarking.html#insights',icon: 'analysis' },
+
+    { section: 'Knowledge Base' },
+    { group: 'VAHDAM', icon: 'vahdam', children: [
+      { id: 'kbv-mailers', label: 'Mailers',       href: '/knowledge-base.html#mailers', icon: 'mailer' },
+      { id: 'kbv-meta',    label: 'Meta Ads',      href: '/knowledge-base.html#meta',    icon: 'meta' },
+      { id: 'kbv-google',  label: 'Google Ads',    href: '/knowledge-base.html#google',  icon: 'google' },
+      { id: 'kbv-tiktok',  label: 'TikTok Ads',    href: '/knowledge-base.html#tiktok',  icon: 'tiktok' },
+      { id: 'kbv-landing', label: 'Landing Pages', href: '/knowledge-base.html#landing', icon: 'landing' },
     ]},
-    { id: 'discover',   label: 'Mailer Discovery', href: '/mailer-discovery.html', icon: 'discover', match: ['/mailer-discovery.html', '/discover'] },
+    { group: 'Competitor Benchmarking', icon: 'competitor', children: [
+      { id: 'comp-discover',label: 'Discover Brands',href: '/competitor-benchmarking.html#discover', icon: 'discover' },
+      { id: 'comp-mailers', label: 'Mailers',        href: '/competitor-benchmarking.html#mailers',  icon: 'mailer' },
+      { id: 'comp-meta',    label: 'Meta Ads',       href: '/competitor-benchmarking.html#meta',     icon: 'meta' },
+      { id: 'comp-google',  label: 'Google Ads',     href: '/competitor-benchmarking.html#google',   icon: 'google' },
+      { id: 'comp-tiktok',  label: 'TikTok Ads',     href: '/competitor-benchmarking.html#tiktok',   icon: 'tiktok' },
+      { id: 'comp-landing', label: 'Landing Pages',  href: '/competitor-benchmarking.html#landing',  icon: 'landing' },
+      { id: 'comp-insights',label: 'Insights',       href: '/competitor-benchmarking.html#insights', icon: 'insights' },
+    ]},
+
+    { section: 'Create' },
     { group: 'Marketing Mailers', icon: 'mailer', children: [
-      { id: 'calendar', label: 'Calendar', href: '/calendar.html', icon: 'calendar', match: ['/calendar.html', '/plan'] },
-      // Mailer Studio is an OPEN feature — works as an individual app
-      // without forcing the Lifecycle OS sign-in.
-      { id: 'studio',   label: 'Mailers',  href: '/studio', open: true, icon: 'mailer', match: ['/studio', '/vahdam_mailer_architect_v34.html', '/app', '/mailer'] },
+      { id: 'calendar', label: 'Calendar',           href: '/calendar.html', icon: 'calendar', match: ['/calendar.html', '/plan'] },
+      { id: 'cohorts',  label: 'Cohort Definitions', href: '/cohort-definitions.html', icon: 'cohort', match: ['/cohort-definitions.html', '/cohorts'] },
+      // Mailer Studio is an OPEN feature — works standalone without sign-in.
+      { id: 'studio',   label: 'Mailer Studio',      href: '/studio', open: true, icon: 'studio', match: ['/studio', '/vahdam_mailer_architect_v34.html', '/app', '/mailer'] },
     ]},
     { group: 'Ad Campaigns', icon: 'ads', children: [
       { id: 'ads-cal',     label: 'Calendar',   href: '/ad-campaigns.html#calendar', icon: 'calendar' },
-      { id: 'ads-google',  label: 'Google Ads', href: '/ad-campaigns.html#google',   icon: 'google' },
       { id: 'ads-meta',    label: 'Meta Ads',   href: '/ad-campaigns.html#meta',     icon: 'meta' },
-      { id: 'ads-tiktok',  label: 'TikTok Ads', href: '/ad-campaigns.html#tiktok',   icon: 'ads' },
+      { id: 'ads-google',  label: 'Google Ads', href: '/ad-campaigns.html#google',   icon: 'google' },
+      { id: 'ads-tiktok',  label: 'TikTok Ads', href: '/ad-campaigns.html#tiktok',   icon: 'tiktok' },
     ]},
     { group: 'Landing Pages', icon: 'landing', children: [
       { id: 'lp-mailers', label: 'For Mailers',    href: '/landing-pages.html#mailers',  icon: 'mailer' },
       { id: 'lp-meta',    label: 'For Meta Ads',   href: '/landing-pages.html#meta',     icon: 'meta' },
       { id: 'lp-google',  label: 'For Google Ads', href: '/landing-pages.html#google',   icon: 'google' },
-      { id: 'lp-tiktok',  label: 'For TikTok Ads', href: '/landing-pages.html#tiktok',   icon: 'ads' },
+      { id: 'lp-tiktok',  label: 'For TikTok Ads', href: '/landing-pages.html#tiktok',   icon: 'tiktok' },
     ]},
   ];
 
   // Flatten to a list of leaf items for matching / open-page detection.
   function leafItems() {
     const out = [];
-    NAV.forEach((n) => { if (n.children) n.children.forEach((c) => out.push(c)); else out.push(n); });
+    NAV.forEach((n) => {
+      if (n.section) return;            // section dividers have no leaf
+      if (n.children) n.children.forEach((c) => out.push(c));
+      else out.push(n);
+    });
     return out;
   }
   // currentStepId: pick the best-matching NAV leaf for the current URL.
@@ -209,7 +236,9 @@
   function injectTopbar(user) {
     if (document.getElementById('lifecycle-nav')) return;
     const cur = currentStepId();
-    const svg = (k) => `<svg class="lnav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ICONS[k] || ''}</svg>`;
+    const svg = (k) => BRAND[k]
+      ? BRAND[k]
+      : `<svg class="lnav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ICONS[k] || ''}</svg>`;
 
     // Build the nav markup. Internal nav stays in the same tab so the back
     // button works naturally; external links elsewhere in the app keep their
@@ -224,6 +253,7 @@
     // whole IA — every feature and its sub-sections — is visible at a glance on
     // every page. The caret still lets a user collapse a group.
     const navHtml = NAV.map((n) => {
+      if (n.section) return `<div class="lnav-section">${n.section}</div>`;
       if (!n.children) return linkRow(n);
       const groupActive = n.children.some((c) => c.id === cur);
       return `<div class="lnav-group open${groupActive ? ' active-group' : ''}">
@@ -325,6 +355,19 @@
         #lifecycle-nav .lnav-scroll::-webkit-scrollbar-thumb { background: rgba(171,135,67,0.25); border-radius: 6px; }
 
         #lifecycle-nav .lnav-ic { width: 18px; height: 18px; flex-shrink: 0; }
+        #lifecycle-nav .lnav-brandic { width: 18px; height: 18px; }
+        /* Section divider label (KNOWLEDGE BASE / CREATE) */
+        #lifecycle-nav .lnav-section {
+          padding: 14px 11px 5px; margin-top: 4px;
+          font-size: 9.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+          color: #6f8278;
+        }
+        html.lnav-collapsed #lifecycle-nav .lnav-section {
+          text-align: center; padding: 10px 0 4px; font-size: 0;
+        }
+        html.lnav-collapsed #lifecycle-nav .lnav-section::before {
+          content: ''; display: inline-block; width: 18px; height: 1px; background: rgba(171,135,67,0.3);
+        }
         #lifecycle-nav .lnav-link {
           display: flex; align-items: center; gap: 11px;
           padding: 9px 11px; margin: 2px 0; border-radius: 9px;

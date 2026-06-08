@@ -567,6 +567,119 @@ async function runSync(limit) {
   return { ok: true, processed: parsedList.length, appended, errors, durationMs: Date.now() - started };
 }
 
+/**
+ * FREE capture path — no Gmail/IMAP botting required.
+ *
+ * A forwarder (Cloudflare Email Routing → n8n webhook, or any HTTP source)
+ * POSTs a single captured newsletter here. We normalise it with the SAME
+ * helpers as runSync() and append one row to the Emails sheet, de-duplicated
+ * by the address|subject|receivedAt key.
+ *
+ * Accepted payload (all optional except one of html/text):
+ *   { from, fromName, subject, html, text, receivedAt }
+ *   - `from`     : sender email address (e.g. "news@brand.com")
+ *   - `fromName` : display name (e.g. "Brand Newsletter")
+ *   - `html`     : full raw HTML of the email
+ *   - `text`     : plain-text body (used if html missing)
+ *   - `receivedAt: ISO date string (defaults to now)
+ *
+ * Returns { ok, stored:boolean, reason?, brand?, key? }.
+ */
+async function ingestEmail(payload) {
+  payload = payload || {};
+  const address = String(payload.from || payload.sender || payload.fromAddress || '').toLowerCase().trim();
+  const fromName = String(payload.fromName || payload.name || '').trim();
+  if (!address) return { ok: false, stored: false, reason: 'missing_from' };
+
+  // Same noise filter as the IMAP path — only competitor newsletters belong here.
+  if (isNoiseSender(address, fromName)) return { ok: true, stored: false, reason: 'filtered_noise' };
+
+  const subject = String(payload.subject || '(no subject)').slice(0, 998);
+  const receivedAt = payload.receivedAt ? new Date(payload.receivedAt).toISOString() : new Date().toISOString();
+  const fullHtml = payload.html || payload.rawHtml || '';
+  const bodyText = (payload.text && String(payload.text).trim()) || htmlToText(fullHtml);
+  if (!fullHtml && !bodyText) return { ok: false, stored: false, reason: 'empty_body' };
+
+  const brand = cleanBrandName(fromName, address);
+  const key = `${address}|${subject}|${receivedAt}`;
+
+  await ensureHeaderRow();
+  const existing = await getExistingKeys();
+  if (existing.has(key)) return { ok: true, stored: false, reason: 'duplicate', brand, key };
+
+  const preview = buildPreview(bodyText);
+  const promoCodes = joinOrNone(extractPromoCodes(`${subject}\n${bodyText}`));
+  const screenshotUrl = fullHtml ? screenshotUrlForKey(emailKey(address, subject, receivedAt)) : NONE;
+
+  await appendEmailRow({
+    brand, senderEmail: address, receivedAt, subject, preview, bodyText, promoCodes,
+    screenshotUrl, inlineImageUrls: NONE, attachmentUrls: NONE, rawHtml: fullHtml,
+  });
+  await sortEmailsByReceivedDesc();
+  return { ok: true, stored: true, brand, key };
+}
+
+/**
+ * Pull a competitor's CURRENTLY-ACTIVE ads from the free Meta Ad Library.
+ *
+ * Tiered, all free:
+ *   1. If APIFY_TOKEN is set → run the public Meta Ad Library scraper actor on
+ *      Apify's free plan and return structured creatives (capped to keep within
+ *      free monthly credits).
+ *   2. Otherwise → return a deep-link into the public Meta Ad Library UI so the
+ *      user can browse the same active ads manually (no key needed).
+ *
+ * @param {{brand:string, country?:string, limit?:number}} opts
+ */
+async function fetchMetaAds(opts) {
+  const brand = String((opts && opts.brand) || '').trim();
+  const country = String((opts && opts.country) || 'ALL').toUpperCase();
+  const limit = Math.min(Number(opts && opts.limit) || 20, 50);
+  if (!brand) return { ok: false, error: 'missing_brand' };
+
+  const deepLink = 'https://www.facebook.com/ads/library/?' + new URLSearchParams({
+    active_status: 'all', ad_type: 'all', country, q: brand,
+    search_type: 'keyword_unordered', media_type: 'all',
+  }).toString();
+
+  const apifyToken = (process.env.APIFY_TOKEN || process.env.APIFY_API_TOKEN || '').trim();
+  if (!apifyToken) {
+    return { ok: true, source: 'deep_link', brand, country, deepLink, ads: [],
+      note: 'Set APIFY_TOKEN (free plan) to pull structured active creatives. Deep-link returned for manual browse.' };
+  }
+
+  // Apify "run-sync-get-dataset-items" — one HTTP call, returns the dataset.
+  // Actor: curious_coder/facebook-ads-library-scraper (public). The exact actor
+  // can be swapped via APIFY_META_ADS_ACTOR.
+  const actor = (process.env.APIFY_META_ADS_ACTOR || 'curious_coder~facebook-ads-library-scraper').trim();
+  const url = `https://api.apify.com/v2/acts/${actor}/run-sync-get-dataset-items?token=${encodeURIComponent(apifyToken)}`;
+  const input = {
+    urls: [{ url: deepLink, method: 'GET' }],
+    count: limit, scrapeAdDetails: false, 'searchTerms': [brand], 'country': country,
+  };
+  try {
+    const r = await fetch(url, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
+    });
+    if (!r.ok) {
+      const detail = (await r.text()).slice(0, 200);
+      return { ok: true, source: 'deep_link', brand, country, deepLink, ads: [], error: `apify_${r.status}`, detail };
+    }
+    const items = await r.json();
+    const ads = (Array.isArray(items) ? items : []).slice(0, limit).map((a) => ({
+      id: a.adArchiveID || a.ad_archive_id || a.id || '',
+      page: a.pageName || a.page_name || brand,
+      body: (a.adText || a.body || a.snapshot?.body?.text || '').slice(0, 400),
+      image: a.imageUrl || a.snapshot?.images?.[0]?.original_image_url || '',
+      startDate: a.startDate || a.start_date || '',
+      link: a.url || a.snapshot?.link_url || deepLink,
+    }));
+    return { ok: true, source: 'apify', brand, country, deepLink, ads, count: ads.length };
+  } catch (e) {
+    return { ok: true, source: 'deep_link', brand, country, deepLink, ads: [], error: String(e && e.message || e).slice(0, 160) };
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 //  PHASE 2 — Competitor BRAND database + discovery engine
 //  Stored in a second tab ("Competitors") of the same spreadsheet.
@@ -741,7 +854,7 @@ async function discoverBrands(opts) {
 
 module.exports = {
   getAllEmails, getEmailHtml, getRawHtml, runSync, ensureHeaderRow,
-  sortEmailsByReceivedDesc,
+  sortEmailsByReceivedDesc, ingestEmail, fetchMetaAds,
   getBrands, appendBrands, seedBrands, discoverBrands,
   DISCOVERY_CATEGORIES, DISCOVERY_GEOS,
   NONE, NO_SCREENSHOT,

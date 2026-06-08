@@ -105,6 +105,35 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    // ── FREE capture webhook — no Gmail botting ──
+    // Cloudflare Email Routing forwards competitor newsletters to an n8n (or any)
+    // workflow, which POSTs the parsed mail here. Body: {from, fromName, subject,
+    // html, text, receivedAt}. Optional shared secret via INGEST_TOKEN.
+    if (action === 'ingest') {
+      if (req.method !== 'POST') { res.status(405).json({ ok: false, error: 'POST required' }); return; }
+      const secret = (process.env.INGEST_TOKEN || '').trim();
+      if (secret) {
+        const got = (req.headers['x-ingest-token'] || url.searchParams.get('token') || '').trim();
+        if (got !== secret) { res.status(401).json({ ok: false, error: 'Unauthorized' }); return; }
+      }
+      let body = req.body;
+      if (typeof body === 'string') { try { body = JSON.parse(body); } catch (_) { body = {}; } }
+      const result = await core.ingestEmail(body || {});
+      res.status(result.ok ? 200 : 400).json(result);
+      return;
+    }
+
+    // ── Free public ad discovery (Meta Ad Library via Apify free / deep-link) ──
+    if (action === 'adlibrary' || action === 'ads') {
+      const result = await core.fetchMetaAds({
+        brand: url.searchParams.get('brand') || '',
+        country: url.searchParams.get('country') || 'ALL',
+        limit: url.searchParams.get('limit'),
+      });
+      res.status(result.ok ? 200 : 400).json(result);
+      return;
+    }
+
     if (action === 'discover') {
       // Accept optional categories[]/geographies[]/limit via query (?categories=Tea,Coffee&limit=30).
       const csv = (k) => { const v = url.searchParams.get(k); return v ? v.split(',').map((s) => s.trim()).filter(Boolean) : []; };
