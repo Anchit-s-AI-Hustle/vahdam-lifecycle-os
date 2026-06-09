@@ -29,8 +29,8 @@ serverless functions (`api/*.js`, CommonJS). Deployed on Vercel Hobby.
 ## Key pages
 | File | Purpose |
 |---|---|
-| `vahdam_mailer_architect_v34.html` (748 KB) | Mailer Studio (`/studio`). Was truncated to 0 bytes in `53d16bc`, restored in `ce2242b` — that was the "blank page on create" bug. |
-| `vahdam_mailer_studio_v2_dark.html` | Dark in-app studio rebuild (`/studio-v2`) |
+| `vahdam_mailer_architect_v34.html` (748 KB) | Mailer Studio (`/studio`). Was truncated to 0 bytes in `53d16bc`, restored in `ce2242b` — that was the "blank page on create" bug. Now the SINGLE studio file: built-in light/dark toggle in the header (☾/☀), `data-theme="dark"` on `<html>`, persisted in `localStorage['vahdam-theme']`, first visit follows OS `prefers-color-scheme`. Dark themes UI chrome only — the email preview (`.preview-wrap`/iframe) and generated mailer HTML stay on-brand white/cream. |
+| `vahdam_mailer_studio_v2_dark.html` | RETIRED. The dark rebuild was merged into the single studio above; this is now a redirect stub → `/studio` (presets dark theme). `/studio-v2` rewrite also points at the main file. Kept only so old bookmarks resolve. |
 | `cohort-definitions.html` | Cohort names + definitions + target audience (`/cohorts`) |
 | `competitor-benchmarking.html` | Discover/Mailers/Ads/Landing/Insights (`/competitor`, `#discover`) |
 | `knowledge-base.html` | VAHDAM + Competitor, all channels; source set by LHS hash |

@@ -123,6 +123,26 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    // ── Auto-subscribe write-back ──
+    // The local Playwright worker (workers/auto-subscribe.js) subscribes the
+    // capture inbox to a brand's newsletter, then POSTs the outcome here so the
+    // Brands sheet reflects status without the worker holding any Google key.
+    // Body: {domain|websiteUrl, status, dateSubscribed, confirmationRequired,
+    // confirmationCompleted}. Optional shared secret via INGEST_TOKEN.
+    if (action === 'mark-subscribed' || action === 'subscribe-status') {
+      if (req.method !== 'POST') { res.status(405).json({ ok: false, error: 'POST required' }); return; }
+      const secret = (process.env.INGEST_TOKEN || '').trim();
+      if (secret) {
+        const got = (req.headers['x-ingest-token'] || url.searchParams.get('token') || '').trim();
+        if (got !== secret) { res.status(401).json({ ok: false, error: 'Unauthorized' }); return; }
+      }
+      let body = req.body;
+      if (typeof body === 'string') { try { body = JSON.parse(body); } catch (_) { body = {}; } }
+      const result = await core.markBrandSubscribed(body || {});
+      res.status(result.ok ? 200 : 400).json(result);
+      return;
+    }
+
     // ── Free public ad discovery (Meta Ad Library via Apify free / deep-link) ──
     if (action === 'adlibrary' || action === 'ads') {
       const result = await core.fetchMetaAds({

@@ -805,6 +805,41 @@ async function seedBrands(nowIso) {
   return appendBrands(SEED_BRANDS.map((b) => ({ ...b, source: 'seed' })), nowIso);
 }
 
+/**
+ * Record a brand's newsletter-subscription outcome in the Brands tab.
+ * Matches by normalized domain (falls back to websiteUrl), then updates the
+ * four status columns M:P — Subscription Status, Date Subscribed,
+ * Confirmation Required, Confirmation Completed — on that one row. Idempotent:
+ * re-running just overwrites the same cells. Written by the local auto-subscribe
+ * worker via POST /api/competitor?action=mark-subscribed.
+ */
+async function markBrandSubscribed(opts) {
+  opts = opts || {};
+  const target = normalizeDomain(opts.domain || opts.websiteUrl || '');
+  if (!target) return { ok: false, error: 'domain (or websiteUrl) required' };
+  await ensureBrandsTab();
+  const sheets = sheetsClient();
+  const tab = brandsTab();
+  const res = await sheets.spreadsheets.values.get({ spreadsheetId: sheetId(), range: `${tab}!A2:R` });
+  const rows = res.data.values || [];
+  let rowNum = -1, current = null;
+  for (let i = 0; i < rows.length; i++) {
+    const d = normalizeDomain((rows[i] && (rows[i][2] || rows[i][1])) || '');
+    if (d && d === target) { rowNum = i + 2; current = rows[i]; break; }
+  }
+  if (rowNum < 0) return { ok: false, error: 'brand not found', domain: target };
+  const status = opts.status || 'Subscribed';
+  const dateSubscribed = opts.dateSubscribed || new Date().toISOString();
+  const confReq = opts.confirmationRequired != null ? opts.confirmationRequired : ((current && current[14]) || '');
+  const confDone = opts.confirmationCompleted != null ? opts.confirmationCompleted : ((current && current[15]) || '');
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: sheetId(), range: `${tab}!M${rowNum}:P${rowNum}`,
+    valueInputOption: 'RAW',
+    requestBody: { values: [[status, dateSubscribed, confReq, confDone]] },
+  });
+  return { ok: true, domain: target, row: rowNum, status, dateSubscribed };
+}
+
 const DISCOVERY_CATEGORIES = ['Tea', 'Coffee', 'Functional Coffee', 'Botanicals', 'Adaptogens', 'Wellness Beverages', 'Supplements', 'Superfoods'];
 const DISCOVERY_GEOS = ['United States', 'United Kingdom', 'Canada', 'Australia', 'Europe', 'Global DTC Brands'];
 
@@ -855,7 +890,7 @@ async function discoverBrands(opts) {
 module.exports = {
   getAllEmails, getEmailHtml, getRawHtml, runSync, ensureHeaderRow,
   sortEmailsByReceivedDesc, ingestEmail, fetchMetaAds,
-  getBrands, appendBrands, seedBrands, discoverBrands,
+  getBrands, appendBrands, seedBrands, discoverBrands, markBrandSubscribed,
   DISCOVERY_CATEGORIES, DISCOVERY_GEOS,
   NONE, NO_SCREENSHOT,
 };
