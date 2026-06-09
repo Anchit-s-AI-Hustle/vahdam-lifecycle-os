@@ -39,7 +39,7 @@ const $ = (id) => document.getElementById(id);
 async function runDaily(){
   $('run').disabled = true; $('run').textContent = 'Running…';
   try {
-    const r = await fetch('/api/smart-brain?action=run-daily', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({days:15})});
+    const r = await fetch('/api/calendar?action=smart-brain-run-daily', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({days:15})});
     const data = await r.json();
     if(!data.ok) throw new Error(data.error || 'Smart Brain failed');
     $('mode').textContent = data.mode;
@@ -52,7 +52,7 @@ async function runDaily(){
   finally { $('run').disabled = false; $('run').textContent = 'Run daily review'; }
 }
 async function showSchema(){
-  const r = await fetch('/api/smart-brain?action=schema');
+  const r = await fetch('/api/calendar?action=smart-brain-schema');
   $('sample').textContent = JSON.stringify(await r.json(), null, 2);
 }
 $('run').addEventListener('click', runDaily); $('schema').addEventListener('click', showSchema);

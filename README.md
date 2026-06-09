@@ -120,10 +120,10 @@ An interactive React 19 + Tailwind CSS compiler SPA:
 
 ## Smart Brain MVP
 
-The Smart Brain backend is implemented as a modular, DB-driven service at `/api/smart-brain`. It covers the complete MVP requested for VAHDAM Lifecycle OS: own-data Knowledge Base, daily Data Analysis, isolated Competitor Benchmarking, 15-day Calendar Intelligence, Generation of HTML mailers/ad specs/landing pages, and Human-in-the-Loop review. Live pushing to Google, Meta, TikTok, Klaviyo, or WebEngage remains intentionally excluded for Phase 2.
+The Smart Brain backend is implemented as a modular, DB-driven service at `/api/calendar?action=smart-brain-*`. It covers the complete MVP requested for VAHDAM Lifecycle OS: own-data Knowledge Base, daily Data Analysis, isolated Competitor Benchmarking, 15-day Calendar Intelligence, Generation of HTML mailers/ad specs/landing pages, and Human-in-the-Loop review. Live pushing to Google, Meta, TikTok, Klaviyo, or WebEngage remains intentionally excluded for Phase 2.
 
 - Implementation: `lib/smart-brain/services.js`
-- API router: `api/smart-brain.js`
+- API router: `api/calendar.js` Smart Brain actions
 - DB schema assumptions: `supabase/migrations/20260609_smart_brain.sql`
 - Operating loop README: `docs/SMART_BRAIN.md`
 
