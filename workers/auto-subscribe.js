@@ -8,45 +8,71 @@
  *
  * WHY a LOCAL worker, not a Vercel function:
  *   Playwright drives a real (headless) browser, which can't run inside the
- *   12-function Hobby serverless budget. This script runs on your machine (or any
- *   Node box / CI runner), reads the brand list from the DEPLOYED API, drives the
- *   signup forms, and writes the outcome back through a token-protected endpoint —
- *   so the worker stays KEYLESS (no Google service-account key ever leaves Vercel).
+ *   12-function Hobby serverless budget. This script runs on your machine / CI.
+ *
+ * DATA PATH — talks to the Google Sheet DIRECTLY:
+ *   The deployed API sits behind Vercel SSO (Deployment Protection), so a
+ *   headless worker can't reach it. Instead this worker reuses the SAME tested
+ *   sheet logic the server uses (api/_shared/competitor-core.js) — getBrands()
+ *   to read the brand universe and markBrandSubscribed() to write status back —
+ *   authenticating with a Google service-account key from .env.local. Locally,
+ *   WIF can't engage (no Vercel OIDC token) so it correctly uses legacy JWT.
  *
  * IDENTITY SAFETY:
- *   The ONLY identity this worker ever uses is SUBSCRIBE_EMAIL (the capture inbox,
- *   ojhapraneet@gmail.com). It never reads, opens, or authenticates the signed-in
- *   app user's mailbox. It does not log into Gmail at all — it only types that
- *   address into third-party newsletter forms, exactly like a human would.
+ *   The only identity used to SUBSCRIBE is SUBSCRIBE_EMAIL (the capture inbox).
+ *   It never logs into Gmail or touches the signed-in app user — it just types
+ *   that address into third-party newsletter forms, like a human would. The SA
+ *   key is used ONLY to read/write the Brands sheet, nothing else.
  *
- * FIRST RUN:
- *   npm i                     # ensure @playwright/test is installed
- *   npx playwright install chromium
+ * SETUP:
+ *   1) npm i && npx playwright install chromium
+ *   2) Put these in .env.local (gitignored) at the repo root:
+ *        GOOGLE_SHEET_ID=<the competitor sheet id>
+ *        GOOGLE_SERVICE_ACCOUNT_EMAIL=<…@….iam.gserviceaccount.com>
+ *        GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n…\n-----END PRIVATE KEY-----\n"
+ *        GOOGLE_BRANDS_TAB=Competitors        # optional (defaults to Competitors)
+ *      (\n-escaped or real newlines both work. Use the SAME SA already shared on the sheet.)
  *
  * USAGE:
- *   INGEST_TOKEN=… node workers/auto-subscribe.js                 # subscribe every brand not yet "Subscribed"
- *   BASE_URL=https://your-app.vercel.app MAX=10 node workers/auto-subscribe.js
- *   SUBSCRIBE_EMAIL=ojhapraneet@gmail.com HEADFUL=1 node workers/auto-subscribe.js
- *   DRY_RUN=1 node workers/auto-subscribe.js                      # locate forms, fill, but DON'T submit
- *   JOURNEY=1 node workers/auto-subscribe.js                      # also seed an abandoned-cart (add a bestseller to cart)
- *   ONLY=teaforte.com,harney.com node workers/auto-subscribe.js   # restrict to specific domains
- *   FORCE=1 node workers/auto-subscribe.js                        # include brands already marked Subscribed
- *
- * npm shortcut:  npm run subscribe   (then append env vars / flags as above)
+ *   npm run subscribe                          # subscribe every brand not yet "Subscribed"
+ *   MAX=10 npm run subscribe                   # cap to 10
+ *   HEADFUL=1 npm run subscribe                # watch it run
+ *   DRY_RUN=1 npm run subscribe                # find+fill forms, DON'T submit / DON'T write back
+ *   JOURNEY=1 npm run subscribe                # also add a bestseller to cart → bait abandoned-cart emails
+ *   ONLY=teaforte.com,harney.com npm run subscribe
+ *   FORCE=1 npm run subscribe                  # re-run brands already Subscribed
  *
  * Each attempt writes a screenshot to workers/.artifacts/<domain>.png for audit.
  */
 
 const fs = require('fs');
 const path = require('path');
+
+// ── Load .env.local (no dotenv dep) — KEY=VALUE lines, # comments, optional quotes ──
+(function loadEnvLocal() {
+  const p = path.join(__dirname, '..', '.env.local');
+  if (!fs.existsSync(p)) return;
+  for (const raw of fs.readFileSync(p, 'utf8').split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    const eq = line.indexOf('=');
+    if (eq < 0) continue;
+    const key = line.slice(0, eq).trim();
+    let val = line.slice(eq + 1).trim();
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      val = val.slice(1, -1);
+    }
+    if (process.env[key] === undefined) process.env[key] = val;
+  }
+})();
+
 // @playwright/test re-exports the browser launchers; no separate `playwright` dep needed.
 const { chromium, devices } = require('@playwright/test');
+// Reuse the server's battle-tested sheet logic (JWT auth, brand schema, write-back).
+const core = require('../api/_shared/competitor-core');
 
 // ── Config (all via env, with safe defaults) ──────────────────────────────────
-const BASE_URL = (process.env.BASE_URL ||
-  'https://vahdam-lifecycle-os-anchittandon-3589s-projects.vercel.app').replace(/\/$/, '');
 const SUBSCRIBE_EMAIL = process.env.SUBSCRIBE_EMAIL || 'ojhapraneet@gmail.com';
-const INGEST_TOKEN = (process.env.INGEST_TOKEN || '').trim();
 const MAX = Number(process.env.MAX) || 0;                 // 0 = no cap
 const HEADFUL = !!process.env.HEADFUL;
 const DRY_RUN = !!process.env.DRY_RUN;
@@ -61,38 +87,15 @@ const norm = (u) => String(u || '').toLowerCase()
   .replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '').trim();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// ── Step 1: pull the brand universe from the live API ─────────────────────────
-async function fetchBrands() {
-  const r = await fetch(`${BASE_URL}/api/competitor?action=brands`, { headers: { accept: 'application/json' } });
-  if (!r.ok) throw new Error(`brands fetch failed: HTTP ${r.status}`);
-  const j = await r.json();
-  if (!j.ok || !Array.isArray(j.brands)) throw new Error('brands payload malformed');
-  return j.brands;
-}
-
-// ── Step 5: write the outcome back (keyless, token-protected) ─────────────────
-async function reportStatus(brand, status, extra) {
-  const payload = {
-    domain: brand.domain || brand.websiteUrl,
-    websiteUrl: brand.websiteUrl,
-    status,
-    dateSubscribed: new Date().toISOString(),
-    confirmationRequired: 'Yes',          // most DTC lists are double opt-in
-    confirmationCompleted: '',
-    ...(extra || {}),
-  };
-  try {
-    const r = await fetch(`${BASE_URL}/api/competitor?action=mark-subscribed`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-ingest-token': INGEST_TOKEN },
-      body: JSON.stringify(payload),
-    });
-    const j = await r.json().catch(() => ({}));
-    if (!r.ok || !j.ok) console.warn(`   ↳ status write-back failed (HTTP ${r.status}): ${j.error || ''}`);
-    return j.ok;
-  } catch (e) {
-    console.warn(`   ↳ status write-back error: ${e.message}`);
-    return false;
+// ── Preflight: credentials present? ───────────────────────────────────────────
+function preflight() {
+  const missing = ['GOOGLE_SHEET_ID', 'GOOGLE_SERVICE_ACCOUNT_EMAIL', 'GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY']
+    .filter((k) => !process.env[k]);
+  if (missing.length) {
+    console.error('✗ Missing Google credentials: ' + missing.join(', '));
+    console.error('  Add them to .env.local at the repo root (see this file\'s header). The SA must be');
+    console.error('  shared on the competitor sheet with edit access (the same one the server uses).');
+    process.exit(1);
   }
 }
 
@@ -108,13 +111,9 @@ async function dismissConsent(page) {
 }
 
 /**
- * Find the most plausible newsletter EMAIL input on the page and fill it.
- * Strategy, best-first:
- *   1. visible <input type=email>
- *   2. visible input whose name/id/placeholder/aria mentions "email"
- * Prefer inputs that sit inside a form/section whose text mentions
- * subscribe / newsletter / sign up, and prefer the LAST such match (footer
- * signup is the canonical one; header search bars rarely take an email).
+ * Find the most plausible newsletter EMAIL input on the page and return it.
+ * Prefers inputs inside a form/section mentioning subscribe/newsletter/sign up,
+ * and de-prioritises search/login fields, so the footer signup wins.
  */
 async function findEmailInput(page) {
   const candidates = page.locator(
@@ -127,7 +126,6 @@ async function findEmailInput(page) {
     const el = candidates.nth(i);
     if (!(await el.isVisible().catch(() => false))) continue;
     if (!(await el.isEditable().catch(() => false))) continue;
-    // Score by surrounding context — newsletter forms beat search/login fields.
     const ctx = await el.evaluate((node) => {
       const form = node.closest('form, section, footer, div[class*="newsletter" i], div[class*="subscribe" i]');
       return (form ? form.innerText : (node.placeholder || '')).slice(0, 400).toLowerCase();
@@ -140,7 +138,6 @@ async function findEmailInput(page) {
 }
 
 async function submitForm(page, input) {
-  // Try the submit button nearest the email input first; fall back to Enter.
   const btn = await input.evaluateHandle((node) => {
     const form = node.closest('form');
     const scope = form || node.parentElement || document;
@@ -156,12 +153,9 @@ async function submitForm(page, input) {
   }
 }
 
-// Did the signup appear to take? Heuristic: a thank-you / confirmation cue, or
-// the input got cleared/detached after submit.
 async function looksSubscribed(page) {
-  const ok = await page.locator('text=/thank you|thanks for|you.?re (now )?subscribed|check your (inbox|email)|almost there|confirm your|welcome|you.?re in|successfully/i')
+  return page.locator('text=/thank you|thanks for|you.?re (now )?subscribed|check your (inbox|email)|almost there|confirm your|welcome|you.?re in|successfully/i')
     .first().isVisible({ timeout: 4000 }).catch(() => false);
-  return ok;
 }
 
 // Optional: bait an abandoned-cart flow by adding a bestseller to the cart.
@@ -172,7 +166,6 @@ async function seedCartJourney(page, brand) {
     if (!dest) return false;
     await page.goto(dest, { waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT }).catch(() => {});
     await dismissConsent(page);
-    // If we're on a collection, click into the first product.
     const card = page.locator('a[href*="/products/"]').first();
     if (await card.isVisible({ timeout: 3000 }).catch(() => false)) {
       await card.click({ timeout: 4000 }).catch(() => {});
@@ -238,17 +231,37 @@ async function processBrand(context, brand) {
   return { domain, result };
 }
 
+// ── Write the outcome back to the Brands sheet (direct, via core) ─────────────
+async function writeBack(brand, result) {
+  const status = result.startsWith('subscribed') ? 'Subscribed' : 'Submitted (unconfirmed)';
+  try {
+    const r = await core.markBrandSubscribed({
+      domain: brand.domain || brand.websiteUrl,
+      websiteUrl: brand.websiteUrl,
+      status,
+      dateSubscribed: new Date().toISOString(),
+      confirmationRequired: 'Yes',     // most DTC lists are double opt-in
+      confirmationCompleted: '',
+    });
+    if (!r.ok) console.warn(`   ↳ write-back failed: ${r.error}`);
+    return r.ok;
+  } catch (e) {
+    console.warn(`   ↳ write-back error: ${e.message}`);
+    return false;
+  }
+}
+
 // ── Orchestrator ──────────────────────────────────────────────────────────────
 (async function main() {
-  console.log(`▶ auto-subscribe worker`);
-  console.log(`   API:    ${BASE_URL}`);
+  preflight();
+  console.log('▶ auto-subscribe worker (direct-to-sheet)');
+  console.log(`   sheet:  ${process.env.GOOGLE_SHEET_ID}  ·  tab: ${process.env.GOOGLE_BRANDS_TAB || 'Competitors'}`);
   console.log(`   email:  ${SUBSCRIBE_EMAIL}`);
-  console.log(`   mode:   ${DRY_RUN ? 'DRY-RUN ' : ''}${JOURNEY ? 'JOURNEY ' : ''}${HEADFUL ? 'HEADFUL' : 'headless'}`);
-  if (!INGEST_TOKEN) console.log('   ⚠ no INGEST_TOKEN set — status write-back will be rejected if the API requires one.');
+  console.log(`   mode:   ${DRY_RUN ? 'DRY-RUN ' : ''}${JOURNEY ? 'JOURNEY ' : ''}${HEADFUL ? 'HEADFUL' : 'headless'}\n`);
 
   let brands;
-  try { brands = await fetchBrands(); }
-  catch (e) { console.error(`✗ could not load brands: ${e.message}`); process.exit(1); }
+  try { brands = await core.getBrands(); }
+  catch (e) { console.error(`✗ could not load brands from the sheet: ${e.message}`); process.exit(1); }
 
   let queue = brands.filter((b) => b.websiteUrl || b.newsletterSignupUrl);
   if (ONLY.size) queue = queue.filter((b) => ONLY.has((b.domain || norm(b.websiteUrl))));
@@ -266,7 +279,6 @@ async function processBrand(context, brand) {
       const label = brand.brandName || brand.domain || brand.websiteUrl;
       process.stdout.write(`[${i + 1}/${queue.length}] ${label} … `);
 
-      // Fresh, isolated context per brand — clean cookies, realistic fingerprint.
       const context = await browser.newContext({
         ...devices['Desktop Chrome'],
         locale: 'en-US',
@@ -278,14 +290,7 @@ async function processBrand(context, brand) {
       console.log(result);
       summary.push({ brand: label, domain, result });
 
-      // Persist status for real attempts (skip pure dry-runs / no-url / errors-before-form).
-      if (!DRY_RUN && /^(subscribed|submitted)/.test(result)) {
-        const confDone = /\bsubscribed\b/.test(result) ? '' : '';
-        await reportStatus(brand, result.startsWith('subscribed') ? 'Subscribed' : 'Submitted (unconfirmed)', { confirmationCompleted: confDone });
-      } else if (DRY_RUN && result === 'dry-run-filled') {
-        // no write-back in dry-run
-      }
-
+      if (!DRY_RUN && /^(subscribed|submitted)/.test(result)) await writeBack(brand, result);
       if (i < queue.length - 1) await sleep(DELAY_MS);
     }
   } finally {
@@ -298,5 +303,5 @@ async function processBrand(context, brand) {
   for (const s of summary) console.log(`  ${s.result.padEnd(22)} ${s.brand}`);
   console.log('\n', tally);
   console.log(`\nScreenshots: ${ARTIFACT_DIR}`);
-  console.log('Captured mail will arrive over the next minutes–hours; run the IMAP sync (?action=sync) or wait for the cron to pull it into the sheet.');
+  console.log('Captured mail arrives over minutes–hours; the IMAP sync (?action=sync / cron) will pull it into the sheet.');
 })();
