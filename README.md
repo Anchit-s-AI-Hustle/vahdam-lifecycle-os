@@ -115,3 +115,20 @@ An interactive React 19 + Tailwind CSS compiler SPA:
 - Connects to an Express custom server (`server.ts`) to request and compile local static templates.
 - Automatically scrapes and downloads static visual assets locally to guarantee offline asset hosting reliability.
 
+
+---
+
+## Smart Brain MVP
+
+The Smart Brain backend is implemented as a modular, DB-driven service at `/api/smart-brain`. It covers the complete MVP requested for VAHDAM Lifecycle OS: own-data Knowledge Base, daily Data Analysis, isolated Competitor Benchmarking, 15-day Calendar Intelligence, Generation of HTML mailers/ad specs/landing pages, and Human-in-the-Loop review. Live pushing to Google, Meta, TikTok, Klaviyo, or WebEngage remains intentionally excluded for Phase 2.
+
+- Implementation: `lib/smart-brain/services.js`
+- API router: `api/smart-brain.js`
+- DB schema assumptions: `supabase/migrations/20260609_smart_brain.sql`
+- Operating loop README: `docs/SMART_BRAIN.md`
+
+Quick smoke test:
+
+```bash
+node -e "require('./lib/smart-brain/services').runDailySmartBrain({days:1}).then(r=>console.log(r.ok, r.calendar.entries.length, r.campaigns.length))"
+```
