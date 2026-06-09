@@ -99,6 +99,16 @@
   .ai-bar { background: rgba(171,135,67,0.06); border: 1px solid rgba(171,135,67,0.22); border-radius: 10px; padding: 12px 14px; margin: 8px 0 16px; }
   .ai-bar .label { margin-top: 0; color: #AB8743; font-size: 11.5px; }
   .ai-bar textarea { min-height: 64px; font-family: inherit; }
+
+  /* Creative (AI image) generator block on each channel form. */
+  .cre { border: 1px dashed rgba(171,135,67,0.3); border-radius: 10px; padding: 10px 12px; margin: 14px 0 4px; }
+  .cre .cre-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .cre .cre-title { font-size: 11.5px; font-weight: 600; color: #AB8743; text-transform: uppercase; letter-spacing: 0.08em; }
+  .cre-prev { margin-top: 10px; }
+  .cre-prev img { max-width: 220px; width: 100%; border-radius: 10px; border: 1px solid rgba(171,135,67,0.25); display: block; }
+  .cre-prev .cre-actions { display: flex; gap: 8px; margin-top: 8px; }
+  .cre-spin { font-size: 11.5px; color: #9aaaa1; }
+  .item-cre img { max-width: 120px; border-radius: 8px; border: 1px solid rgba(171,135,67,0.2); margin-top: 8px; display: block; }
 </style>
 </head>
 <body>
@@ -156,6 +166,14 @@
         <textarea id="g-headlines" placeholder="Single-Estate Darjeeling&#10;Garden-Fresh in 72 Hours&#10;Shop the First Flush"></textarea>
         <label class="label">Descriptions (one per line, ≤90 chars)</label>
         <textarea id="g-desc" placeholder="Hand-picked, single-estate teas shipped within 72 hours of harvest."></textarea>
+        <div class="cre" data-cre="g">
+          <div class="cre-head">
+            <span class="cre-title">🎨 Ad creative</span>
+            <button class="btn btn-ghost" type="button" id="g-cre">Generate creative image</button>
+          </div>
+          <p class="note" id="g-cre-note">Builds a brand-safe product image from this campaign's name, keywords & market.</p>
+          <div class="cre-prev" id="g-cre-prev"></div>
+        </div>
         <div class="btn-row">
           <button class="btn btn-ghost" id="g-ai">✨ Generate copy with AI</button>
           <button class="btn btn-solid" id="g-save">Save campaign</button>
@@ -195,6 +213,14 @@
         <textarea id="m-primary" placeholder="There's a moment every morning when the right cup slows the whole world down…"></textarea>
         <label class="label">Headline (≤40 chars)</label>
         <input id="m-headline" placeholder="Garden-fresh, single-estate tea">
+        <div class="cre" data-cre="m">
+          <div class="cre-head">
+            <span class="cre-title">🎨 Ad creative</span>
+            <button class="btn btn-ghost" type="button" id="m-cre">Generate creative image</button>
+          </div>
+          <p class="note" id="m-cre-note">Builds a brand-safe lifestyle/product image from this campaign's name, headline & market.</p>
+          <div class="cre-prev" id="m-cre-prev"></div>
+        </div>
         <div class="btn-row">
           <button class="btn btn-ghost" id="m-ai">✨ Generate copy with AI</button>
           <button class="btn btn-solid" id="m-save">Save campaign</button>
@@ -237,6 +263,14 @@
         <div class="row">
           <div><label class="label">Creator handle (optional)</label><input id="t-creator" placeholder="@username"></div>
           <div><label class="label">Hashtags</label><input id="t-hash" placeholder="#tea #morningritual #wellness"></div>
+        </div>
+        <div class="cre" data-cre="t">
+          <div class="cre-head">
+            <span class="cre-title">🎨 Ad creative</span>
+            <button class="btn btn-ghost" type="button" id="t-cre">Generate creative image</button>
+          </div>
+          <p class="note" id="t-cre-note">Builds a brand-safe, mobile-first creative from this campaign's hook & market.</p>
+          <div class="cre-prev" id="t-cre-prev"></div>
         </div>
         <div class="btn-row">
           <button class="btn btn-ghost" id="t-ai">✨ Generate hook + caption with AI</button>
@@ -289,6 +323,125 @@
   const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
   const save = () => localStorage.setItem(KEY, JSON.stringify(store));
   const store = Object.assign({ google: [], meta: [], tiktok: [], landing: [], calendar: {} }, load());
+
+  // ── Supabase (reuse the client auth.js already booted) ───────────────
+  const sbClient = () => (window.LifecycleAuth && window.LifecycleAuth.client) || null;
+  const sbUser   = () => (window.LifecycleAuth && window.LifecycleAuth.user) || null;
+  const AD_BUCKET = 'mailer-assets';
+  function dataUrlToBlob(d) {
+    try {
+      const [head, b64] = d.split(','); const mime = (head.match(/data:([^;]+)/) || [])[1] || 'image/png';
+      const bin = atob(b64); const arr = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      return new Blob([arr], { type: mime });
+    } catch { return null; }
+  }
+  async function uploadCreative(dataUrl) {
+    const sb = sbClient(); if (!sb || !dataUrl || dataUrl.indexOf('data:') !== 0) return '';
+    const blob = dataUrlToBlob(dataUrl); if (!blob) return '';
+    const path = 'ads/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.png';
+    try {
+      const { error } = await sb.storage.from(AD_BUCKET).upload(path, blob, { contentType: 'image/png', upsert: false, cacheControl: '31536000' });
+      if (error) { console.warn('[ads] creative upload failed:', error.message); return ''; }
+      const { data } = sb.storage.from(AD_BUCKET).getPublicUrl(path);
+      return (data && data.publicUrl) || '';
+    } catch (e) { console.warn('[ads] upload error:', e && e.message); return ''; }
+  }
+  // Persist a saved ad to Supabase (best-effort — localStorage stays the source
+  // of truth so the UI never blocks on the network). Uploads any base64 creative
+  // to Storage first, then stores only the hosted URL on the row.
+  async function persistAd(channel, c) {
+    const sb = sbClient(); if (!sb) return;
+    try {
+      let creativeUrl = c.image || '';
+      if (creativeUrl && creativeUrl.indexOf('data:') === 0) creativeUrl = await uploadCreative(creativeUrl);
+      const u = sbUser() || {};
+      const row = {
+        user_name: (u.user_metadata && (u.user_metadata.full_name || u.user_metadata.name)) || '',
+        user_email: u.email || '',
+        channel, name: c.name || '', market: c.market || '',
+        objective: c.type || c.obj || '', budget: String(c.budget || ''),
+        url: c.url || '', audience: c.aud || '',
+        copy: c, creative_url: creativeUrl || '', creative_prompt: c.imagePrompt || '',
+        origin: location.origin || ''
+      };
+      const { data, error } = await sb.from('ads_generated').insert([row]).select('id').single();
+      if (error) { console.warn('[ads] supabase insert failed:', error.message); return; }
+      // Backfill hosted URL into local record so the dashboard + list show it.
+      if (creativeUrl && data && data.id) { c.image = creativeUrl; c.supabaseId = data.id; save(); }
+    } catch (e) { console.warn('[ads] persist error:', e && e.message); }
+  }
+
+  // ── Ad creative generator (calls the shared /api/ai/image cascade) ───
+  // Holds the just-generated creative per channel until the campaign is saved.
+  const creative = { g: null, m: null, t: null };
+  const CRE_CFG = {
+    g: { market: 'g-market', name: 'g-name', a: 'g-keywords', b: 'g-headlines', size: '1024x1024' },
+    m: { market: 'm-market', name: 'm-name', a: 'm-headline', b: 'm-primary',  size: '1024x1024' },
+    t: { market: 't-market', name: 't-name', a: 't-hook',     b: 't-caption',  size: '1024x1536' },
+  };
+  function buildCreativePrompt(ch) {
+    const cfg = CRE_CFG[ch];
+    const v = (id) => (document.getElementById(id)?.value || '').trim();
+    const market = v(cfg.market) || 'US';
+    const name = v(cfg.name); const a = v(cfg.a); const b = v(cfg.b);
+    const subject = [name, a, b].filter(Boolean).join(' — ').slice(0, 320) || 'VAHDAM premium single-estate tea';
+    const orient = ch === 't' ? 'vertical 9:16 mobile-first social composition' : 'clean centered composition';
+    return [
+      'Premium advertising creative for VAHDAM India — single-estate, garden-fresh Indian tea.',
+      'Subject: ' + subject + '.',
+      'Market: ' + market + '.',
+      'Style: warm natural light, marble or wood surface, steam from a freshly brewed cup, fresh tea leaves and a branded tin, editorial product photography, shallow depth of field.',
+      'Brand palette: deep forest green #004A2B, amber gold #AB8743, cream #FBF5EA.',
+      orient + '. Photorealistic, premium, uncluttered. Absolutely NO text, NO words, NO logos, NO watermark in the image.'
+    ].join(' ');
+  }
+  async function genCreative(ch) {
+    const note = document.getElementById(ch + '-cre-note');
+    const prev = document.getElementById(ch + '-cre-prev');
+    const btn  = document.getElementById(ch + '-cre');
+    const prompt = buildCreativePrompt(ch);
+    const orig = btn.textContent; btn.disabled = true; btn.textContent = 'Generating… (10–30s)';
+    if (note) { note.innerHTML = '<span class="cre-spin">Painting your creative…</span>'; }
+    try {
+      const geminiKey = (() => { try { return localStorage.getItem('vahdam-gemini-key') || ''; } catch { return ''; } })();
+      const r = await fetch('/api/ai/image', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, geminiKey ? { 'x-user-gemini-key': geminiKey } : {}),
+        body: JSON.stringify({ prompt, size: CRE_CFG[ch].size, quality: 'high' }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.image_data_url) {
+        if (note) note.textContent = 'Couldn’t generate a creative right now — ' + (d.error || r.statusText || 'try again') + '.';
+        return;
+      }
+      creative[ch] = { dataUrl: d.image_data_url, prompt, provider: d.provider || '' };
+      prev.innerHTML = '<img src="' + d.image_data_url + '" alt="ad creative">' +
+        '<div class="cre-actions"><button class="btn btn-ghost" type="button" data-cre-redo="' + ch + '">↻ Regenerate</button>' +
+        '<button class="btn btn-ghost" type="button" data-cre-clear="' + ch + '">Remove</button></div>';
+      if (note) note.textContent = 'Creative ready' + (d.provider ? ' · ' + d.provider : '') + ' — it’ll attach when you save the campaign.';
+    } catch (e) {
+      if (note) note.textContent = 'Error: ' + (e && e.message || e);
+    } finally {
+      btn.disabled = false; btn.textContent = orig;
+    }
+  }
+  document.addEventListener('click', (e) => {
+    const gen = e.target.closest('[id$="-cre"]');
+    if (gen && /^[gmt]-cre$/.test(gen.id)) { genCreative(gen.id.charAt(0)); return; }
+    const redo = e.target.closest('[data-cre-redo]'); if (redo) { genCreative(redo.dataset.creRedo); return; }
+    const clr = e.target.closest('[data-cre-clear]');
+    if (clr) { const ch = clr.dataset.creClear; creative[ch] = null;
+      const p = document.getElementById(ch + '-cre-prev'); if (p) p.innerHTML = '';
+      const n = document.getElementById(ch + '-cre-note'); if (n) n.textContent = 'Creative removed.'; }
+  });
+  // Pull the pending creative for a channel into the saved record, then reset.
+  function attachCreative(ch, rec) {
+    if (creative[ch]) { rec.image = creative[ch].dataUrl; rec.imagePrompt = creative[ch].prompt; }
+    creative[ch] = null;
+    const p = document.getElementById(ch + '-cre-prev'); if (p) p.innerHTML = '';
+    const n = document.getElementById(ch + '-cre-note'); if (n) n.textContent = '';
+  }
 
   // ── Tabs (hash-routed to match sidebar deep-links) ───────────────────
   const TABS = ['calendar', 'google', 'meta', 'tiktok'];
@@ -396,14 +549,16 @@
         <div class="item-meta"><span><b>${esc(c.type)}</b></span><span>$${esc(String(c.budget || '—'))}/day</span><span>${esc(c.market)}</span><span>→ ${esc(c.url || '')}</span></div>
         ${(c.headlines || []).length ? `<div class="item-copy"><span class="h">Headlines:</span> ${c.headlines.map(esc).join(' · ')}</div>` : ''}
         ${(c.descriptions || []).length ? `<div class="item-copy">${c.descriptions.map(esc).join('<br>')}</div>` : ''}
+        ${c.image ? `<div class="item-cre"><img src="${esc(c.image)}" alt="creative"></div>` : ''}
       </div>`).join('') : '<div class="empty">No Google campaigns yet.</div>';
     $('#g-list').querySelectorAll('[data-rm]').forEach((b) => b.addEventListener('click', () => { store.google = store.google.filter((x) => x.id !== b.dataset.rm); save(); renderGoogle(); }));
   }
   $('#g-save').onclick = () => {
     const name = $('#g-name').value.trim(); if (!name) { toast('Enter a campaign name'); return; }
-    store.google.unshift({ id: uid(), name, type: $('#g-type').value, budget: $('#g-budget').value, market: $('#g-market').value,
-      url: $('#g-url').value.trim(), keywords: lines($('#g-keywords').value.split(',').join('\n')), headlines: lines($('#g-headlines').value), descriptions: lines($('#g-desc').value) });
-    save(); renderGoogle(); ['g-name', 'g-budget', 'g-url', 'g-keywords', 'g-headlines', 'g-desc'].forEach((id) => $('#' + id).value = ''); toast('Campaign saved');
+    const rec = { id: uid(), name, type: $('#g-type').value, budget: $('#g-budget').value, market: $('#g-market').value,
+      url: $('#g-url').value.trim(), keywords: lines($('#g-keywords').value.split(',').join('\n')), headlines: lines($('#g-headlines').value), descriptions: lines($('#g-desc').value) };
+    attachCreative('g', rec); store.google.unshift(rec);
+    save(); renderGoogle(); persistAd('google', rec); ['g-name', 'g-budget', 'g-url', 'g-keywords', 'g-headlines', 'g-desc'].forEach((id) => $('#' + id).value = ''); toast('Campaign saved');
   };
 
   // ── Meta list ──────────────────────────────────────────────────────
@@ -416,14 +571,16 @@
         ${c.aud ? `<div class="item-copy"><span class="h">Audience:</span> ${esc(c.aud)}</div>` : ''}
         ${c.primary ? `<div class="item-copy">${esc(c.primary)}</div>` : ''}
         ${c.headline ? `<div class="item-copy"><span class="h">${esc(c.headline)}</span></div>` : ''}
+        ${c.image ? `<div class="item-cre"><img src="${esc(c.image)}" alt="creative"></div>` : ''}
       </div>`).join('') : '<div class="empty">No Meta campaigns yet.</div>';
     $('#m-list').querySelectorAll('[data-rm]').forEach((b) => b.addEventListener('click', () => { store.meta = store.meta.filter((x) => x.id !== b.dataset.rm); save(); renderMeta(); }));
   }
   $('#m-save').onclick = () => {
     const name = $('#m-name').value.trim(); if (!name) { toast('Enter a campaign name'); return; }
-    store.meta.unshift({ id: uid(), name, obj: $('#m-obj').value, budget: $('#m-budget').value, market: $('#m-market').value,
-      place: $('#m-place').value, aud: $('#m-aud').value.trim(), primary: $('#m-primary').value.trim(), headline: $('#m-headline').value.trim() });
-    save(); renderMeta(); ['m-name', 'm-budget', 'm-aud', 'm-primary', 'm-headline'].forEach((id) => $('#' + id).value = ''); toast('Campaign saved');
+    const rec = { id: uid(), name, obj: $('#m-obj').value, budget: $('#m-budget').value, market: $('#m-market').value,
+      place: $('#m-place').value, aud: $('#m-aud').value.trim(), primary: $('#m-primary').value.trim(), headline: $('#m-headline').value.trim() };
+    attachCreative('m', rec); store.meta.unshift(rec);
+    save(); renderMeta(); persistAd('meta', rec); ['m-name', 'm-budget', 'm-aud', 'm-primary', 'm-headline'].forEach((id) => $('#' + id).value = ''); toast('Campaign saved');
   };
 
   // ── TikTok Ads ─────────────────────────────────────────────────────
@@ -440,10 +597,11 @@
   }
   $('#t-save').onclick = () => {
     const name = $('#t-name').value.trim(); if (!name) { toast('Enter a campaign name'); return; }
-    store.tiktok.unshift({ id: uid(), name, obj: $('#t-obj').value, budget: $('#t-budget').value, market: $('#t-market').value,
+    const rec = { id: uid(), name, obj: $('#t-obj').value, budget: $('#t-budget').value, market: $('#t-market').value,
       place: $('#t-place').value, aud: $('#t-aud').value.trim(), hook: $('#t-hook').value.trim(), caption: $('#t-caption').value.trim(),
-      creator: $('#t-creator').value.trim(), hashtags: $('#t-hash').value.trim() });
-    save(); renderTikTok(); ['t-name','t-budget','t-aud','t-hook','t-caption','t-creator','t-hash'].forEach((id) => $('#' + id).value = ''); toast('Campaign saved');
+      creator: $('#t-creator').value.trim(), hashtags: $('#t-hash').value.trim() };
+    attachCreative('t', rec); store.tiktok.unshift(rec);
+    save(); renderTikTok(); persistAd('tiktok', rec); ['t-name','t-budget','t-aud','t-hook','t-caption','t-creator','t-hash'].forEach((id) => $('#' + id).value = ''); toast('Campaign saved');
   };
   $('#t-ai').onclick = async () => {
     const name = $('#t-name').value.trim() || 'TikTok campaign';

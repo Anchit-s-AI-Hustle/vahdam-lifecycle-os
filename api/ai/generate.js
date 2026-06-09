@@ -380,6 +380,37 @@ HARD RULES:
 - Specificity comes from BEHAVIOUR ("buys premium grocery weekly", "gifts 3-4 times a year") and TRIGGER ("the 15% off code", "the new harvest"), not from city/stat name-dropping.
 Return ONLY the segment text. No preamble, no quotes around it, no JSON.`;
     userMessage = `MARKET: ${market}\nCAMPAIGN TYPE: ${theme || 'Bestseller'}\nCAMPAIGN BRIEF:\n${(campaign_brief || '').substring(0, 1200)}\n${body.seed_segment ? 'SEED (refine, do not discard): ' + String(body.seed_segment).substring(0, 400) + '\n' : ''}\nWrite the Target User Segment now. Country-level geography only.`;
+  } else if (mode === 'chat') {
+    // ─────────────────────────────────────────────────────────────────
+    // CHAT — conversational marketing copilot for the Mailer Studio.
+    // Plain-text reply. Context (brief / type / markets / current mailer
+    // copy) + short history are folded into the single user message so the
+    // generic provider waterfall below handles it unchanged.
+    // ─────────────────────────────────────────────────────────────────
+    const ctx = body.chat_context || {};
+    const histArr = Array.isArray(body.history) ? body.history.slice(-8) : [];
+    const userMsg = String(body.message || body.prompt || '').slice(0, 2000);
+    systemPrompt = [
+      'You are VAHDAM Studio Assistant — a sharp, warm marketing copilot inside the VAHDAM India (premium Indian heritage tea) email Mailer Studio.',
+      'Help the user brainstorm campaigns, sharpen subject lines and copy, critique the current mailer, and answer marketing questions.',
+      'VOICE: warm, sensory, story-driven, premium. PREFER words like ritual, restore, balance, origin, single-estate, hand-picked, steep, heritage, crafted.',
+      "NEVER use: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (all caps), hurry, don't miss out, last chance, while supplies last.",
+      'Brand palette is forest green #004A2B, gold #AB8743, near-black #171717, cream #FBF5EA. Headings Lao MN, body Proxima Nova.',
+      'Be concise and practical. Short paragraphs or tight lists. When asked for copy, give ready-to-paste options. Plain text only — no markdown headers.'
+    ].join('\n');
+    const ctxLines = [
+      ctx.brief ? 'CURRENT CAMPAIGN BRIEF: ' + String(ctx.brief).slice(0, 800) : '',
+      ctx.type ? 'CAMPAIGN TYPE: ' + ctx.type : '',
+      ctx.markets ? 'MARKETS: ' + (Array.isArray(ctx.markets) ? ctx.markets.join(', ') : ctx.markets) : '',
+      ctx.mailerText ? 'CURRENT MAILER COPY (excerpt):\n' + String(ctx.mailerText).slice(0, 1500) : ''
+    ].filter(Boolean).join('\n');
+    const transcript = histArr.map(m => (m.role === 'assistant' ? 'ASSISTANT' : 'USER') + ': ' + String(m.content || '').slice(0, 1000)).join('\n');
+    userMessage = [
+      ctxLines ? '--- STUDIO CONTEXT ---\n' + ctxLines + '\n' : '',
+      transcript ? '--- CONVERSATION SO FAR ---\n' + transcript + '\n' : '',
+      'USER: ' + userMsg,
+      '\nReply as the assistant. Plain text.'
+    ].filter(Boolean).join('\n');
   } else if (mode === 'autofill') {
     // ─────────────────────────────────────────────────────────────────
     // AUTOFILL — single-prompt → all form fields for the chosen surface.
@@ -622,7 +653,7 @@ Target market for this autofill: ${targetMarket}.`;
   const baseTemp = mode === 'create_brief' ? 0.85 : 0.7;
   const temperature = Math.min(1.1, baseTemp + Math.min(0.25, (regenerate_counter || 0) * 0.08));
   // create_brief: 4000 tokens for 450-600 word detailed production brief with full structure
-  const max_tokens = mode === 'mailer_full' ? 7000 : (mode === 'concepts' ? 4500 : (mode === 'suggested_prompts' ? 3000 : 4000));
+  const max_tokens = mode === 'mailer_full' ? 7000 : (mode === 'concepts' ? 4500 : (mode === 'suggested_prompts' ? 3000 : (mode === 'chat' ? 1200 : 4000)));
 
   function isRetryable(s) { return s === 429 || s === 503 || s === 404 || s === 400 || s === 529 || s === 403 || s === 402; }
 
