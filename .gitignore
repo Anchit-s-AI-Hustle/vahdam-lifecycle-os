@@ -60,3 +60,6 @@ supabase/.temp/
 .tokens/
 .env*.local
 .vercel
+
+# Auto-subscribe worker screenshots (audit artifacts, not source)
+workers/.artifacts/
