@@ -592,6 +592,7 @@
         <div class="item-meta"><span>${esc(c.obj || '')}</span>${c.budget ? `<span>$${esc(c.budget)}/day</span>` : ''}<span>${esc(c.market || '')}</span>${c.creator ? `<span>${esc(c.creator)}</span>` : ''}</div>
         <div class="item-copy" style="margin-top:6px"><span class="h">${esc(c.hook || '')}</span><br>${esc(c.caption || '')}</div>
         ${c.hashtags ? `<div class="item-meta" style="margin-top:6px"><span>${esc(c.hashtags)}</span></div>` : ''}
+        ${c.image ? `<div class="item-cre"><img src="${esc(c.image)}" alt="creative"></div>` : ''}
       </div>`).join('') : '<div class="empty">No TikTok campaigns yet.</div>';
     $('#t-list').querySelectorAll('[data-rm]').forEach((b) => b.addEventListener('click', () => { store.tiktok = store.tiktok.filter((x) => x.id !== b.dataset.rm); save(); renderTikTok(); }));
   }
@@ -664,8 +665,18 @@
         });
         const d = await r.json();
         if (!r.ok || !d) { status.textContent = 'Failed: ' + (d?.error || r.statusText); return; }
-        // Some providers wrap the JSON in { text: '...' }; tolerate either.
-        const fields = typeof d === 'string' ? JSON.parse(d) : (d.text ? JSON.parse(d.text) : d);
+        // Some providers wrap the JSON in { text: '...' } or in ```json fences.
+        const safeJson = (t) => {
+          if (t && typeof t === 'object') return t;
+          const s = String(t || '');
+          try { return JSON.parse(s); } catch (_) {}
+          const stripped = s.replace(/^```(?:json)?\s*/im, '').replace(/```\s*$/m, '').trim();
+          try { return JSON.parse(stripped); } catch (_) {}
+          const a = s.indexOf('{'), b = s.lastIndexOf('}');
+          if (a !== -1 && b > a) { try { return JSON.parse(s.slice(a, b + 1)); } catch (_) {} }
+          return null;
+        };
+        const fields = safeJson(typeof d === 'string' ? d : (d.text != null ? d.text : d)) || {};
         let filled = 0;
         for (const key in fieldMap) {
           if (fields[key] !== undefined) { setField(fieldMap[key], fields[key]); filled++; }

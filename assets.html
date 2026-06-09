@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VAHDAM · Created Assets</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/favicon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#004A2B">
+<meta name="apple-mobile-web-app-title" content="Lifecycle OS">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<script src="/auth.js?v=20260617" defer></script>
+<script defer src="/_vercel/speed-insights/script.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: #0a1410; color: #e8ede9; min-height: 100vh; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 32px 60px; }
+  @media (max-width: 620px) { .wrap { padding: 20px 16px 50px; } }
+
+  .page-head { margin-bottom: 8px; }
+  .eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color: #AB8743; font-weight: 600; margin-bottom: 10px; }
+  h1 { font-family: 'Lora', serif; font-size: 30px; font-weight: 600; letter-spacing: -0.01em; }
+  h1 em { font-style: italic; color: #AB8743; }
+  .sub { color: #9aaaa1; font-size: 13.5px; margin-top: 6px; }
+
+  .toprow { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 18px 0 8px; }
+  .scope { display: flex; gap: 6px; align-items: center; }
+  .chip { font-size: 12px; font-weight: 600; color: #9aaaa1; background: transparent; border: 1px solid rgba(171,135,67,0.25);
+    border-radius: 99px; padding: 6px 13px; cursor: pointer; font-family: inherit; transition: all .14s; }
+  .chip.active { color: #0a1410; background: #AB8743; border-color: #AB8743; }
+  .btn { font-family: inherit; font-size: 12.5px; font-weight: 600; border-radius: 9px; padding: 8px 14px; cursor: pointer; border: 1px solid rgba(171,135,67,0.3); background: transparent; color: #cdd8d2; }
+  .btn:hover { border-color: #AB8743; }
+
+  /* Count cards */
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 18px 0 26px; }
+  @media (max-width: 720px) { .cards { grid-template-columns: 1fr; } }
+  .card { background: linear-gradient(160deg, #0f1d18, #0c1814); border: 1px solid rgba(171,135,67,0.18); border-radius: 16px; padding: 20px 22px; text-decoration: none; color: inherit; display: block; transition: transform .14s, border-color .14s; }
+  .card:hover { transform: translateY(-2px); border-color: rgba(171,135,67,0.4); }
+  .card .k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: #AB8743; font-weight: 700; }
+  .card .v { font-family: 'Lora', serif; font-size: 46px; font-weight: 600; line-height: 1.05; margin: 8px 0 2px; }
+  .card .d { font-size: 12.5px; color: #9aaaa1; }
+  .card .go { font-size: 12px; color: #cdb98a; margin-top: 12px; font-weight: 600; }
+
+  /* Lists */
+  .lists { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 900px) { .lists { grid-template-columns: 1fr; } }
+  .col { background: #0d1814; border: 1px solid rgba(171,135,67,0.14); border-radius: 14px; padding: 16px 16px 10px; }
+  .col h3 { font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; }
+  .col h3 a { font-size: 11.5px; color: #cdb98a; text-decoration: none; font-weight: 600; }
+  .row { display: flex; gap: 11px; align-items: flex-start; padding: 11px 0; border-bottom: 1px solid rgba(171,135,67,0.08); }
+  .row:last-child { border-bottom: none; }
+  .row .thumb { width: 42px; height: 42px; border-radius: 8px; object-fit: cover; border: 1px solid rgba(171,135,67,0.2); flex: 0 0 auto; background: #0a1410; }
+  .row .body { min-width: 0; flex: 1; }
+  .row .name { font-size: 13px; font-weight: 600; color: #FBF5EA; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .meta { font-size: 11px; color: #9aaaa1; margin-top: 3px; }
+  .tag { background: rgba(171,135,67,0.14); color: #cdb98a; font-size: 10px; padding: 2px 7px; border-radius: 99px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+  .empty { font-size: 12.5px; color: #5d6e64; padding: 18px 4px; text-align: center; }
+  .src { font-size: 11px; color: #5d6e64; margin: 14px 0 0; }
+  .src b { color: #9aaaa1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="page-head">
+    <div class="eyebrow">Lifecycle OS</div>
+    <h1>Created <em>Assets</em></h1>
+    <p class="sub">Every mailer, ad, and landing page this suite has produced — counts and the most recent of each.</p>
+  </div>
+
+  <div class="toprow">
+    <div class="scope">
+      <span class="src" style="margin:0 6px 0 0">Show:</span>
+      <button class="chip active" data-scope="mine">Mine</button>
+      <button class="chip" data-scope="all">Everyone</button>
+    </div>
+    <button class="btn" id="refresh">↻ Refresh</button>
+  </div>
+
+  <div class="cards" id="cards">
+    <a class="card" href="/studio"><div class="k">Mailers</div><div class="v" data-count="mailers">—</div><div class="d">Generated in Mailer Studio</div><div class="go">Open Studio →</div></a>
+    <a class="card" href="/ads"><div class="k">Ads</div><div class="v" data-count="ads">—</div><div class="d">Google · Meta · TikTok creatives</div><div class="go">Open Ad Campaigns →</div></a>
+    <a class="card" href="/landing"><div class="k">Landing Pages</div><div class="v" data-count="landing">—</div><div class="d">Paired with mailers & ads</div><div class="go">Open Landing Pages →</div></a>
+  </div>
+
+  <div class="lists">
+    <div class="col">
+      <h3>Recent mailers <a href="/studio">all →</a></h3>
+      <div id="list-mailers"><div class="empty">Loading…</div></div>
+    </div>
+    <div class="col">
+      <h3>Recent ads <a href="/ads">all →</a></h3>
+      <div id="list-ads"><div class="empty">Loading…</div></div>
+    </div>
+    <div class="col">
+      <h3>Recent landing pages <a href="/landing">all →</a></h3>
+      <div id="list-landing"><div class="empty">Loading…</div></div>
+    </div>
+  </div>
+
+  <p class="src" id="srcline">Reading from <b>your browser</b> — connecting to the shared database…</p>
+</div>
+
+<script>
+(function () {
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => (s || '').toString().replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fmtDate = (d) => { try { return new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); } catch { return ''; } };
+
+  let SCOPE = 'mine'; // 'mine' | 'all'
+
+  const sbClient = () => (window.LifecycleAuth && window.LifecycleAuth.client) || null;
+  const myEmail  = () => { const u = (window.LifecycleAuth && window.LifecycleAuth.user) || null; return (u && u.email) || ''; };
+
+  // Wait (briefly) for auth.js to boot its Supabase client.
+  function waitForClient(ms) {
+    return new Promise((resolve) => {
+      const t0 = Date.now();
+      (function poll() {
+        if (sbClient()) return resolve(true);
+        if (Date.now() - t0 > ms) return resolve(false);
+        setTimeout(poll, 150);
+      })();
+    });
+  }
+
+  // ── localStorage fallbacks (per-browser) ──────────────────────────
+  function localMailers() {
+    try {
+      return (JSON.parse(localStorage.getItem('vhd_logs') || '[]')).map((e) => ({
+        name: (e._full && e._full.campaign_title) || e.prompt || '(mailer)',
+        market: (e.markets && e.markets[0]) || (e._full && e._full.primary_market) || '',
+        type: e.type || '', created_at: e.date || new Date(e.id || Date.now()).toISOString(),
+        image: (e._full && (e._full.hero_image_url || e._full.thumbnail_url || e._full.hero_product_image)) || '',
+        email: e.userEmail || ''
+      }));
+    } catch { return []; }
+  }
+  function localAds() {
+    try {
+      const s = JSON.parse(localStorage.getItem('vahdam-ads-v1') || '{}');
+      const out = [];
+      ['google', 'meta', 'tiktok'].forEach((ch) => (s[ch] || []).forEach((c) => out.push({
+        name: c.name || '(ad)', channel: ch, market: c.market || '',
+        image: c.image || '', created_at: new Date(parseInt((c.id || '').toString().slice(0, 8), 36) || Date.now()).toISOString(),
+        email: ''
+      })));
+      return out;
+    } catch { return []; }
+  }
+  function localLanding() {
+    const out = [];
+    ['mailers', 'meta', 'google', 'tiktok'].forEach((ch) => {
+      try {
+        (JSON.parse(localStorage.getItem('lp-' + ch) || '[]')).forEach((p) => out.push({
+          name: p.hero || '(landing page)', paired: ch === 'mailers' ? 'mailer' : ch,
+          market: p.region || '', offer: p.offer || '', created_at: p.created_at || new Date().toISOString(), email: ''
+        }));
+      } catch {}
+    });
+    return out;
+  }
+
+  // ── Supabase reads (cross-device) ─────────────────────────────────
+  async function sbFetch(table, map) {
+    const sb = sbClient(); if (!sb) return null;
+    try {
+      let q = sb.from(table).select('*').order('created_at', { ascending: false }).limit(500);
+      const { data, error } = await q;
+      if (error) { console.warn('[assets] ' + table + ' fetch failed:', error.message); return null; }
+      return (data || []).map(map);
+    } catch (e) { console.warn('[assets] ' + table + ' error:', e && e.message); return null; }
+  }
+
+  function applyScope(rows) {
+    if (SCOPE === 'all') return rows;
+    const me = myEmail();
+    if (!me) return rows; // not signed in → show everything we have
+    return rows.filter((r) => !r.email || r.email === me);
+  }
+
+  function renderList(elId, rows, kind) {
+    const el = document.getElementById(elId);
+    if (!rows.length) { el.innerHTML = '<div class="empty">Nothing yet.</div>'; return; }
+    el.innerHTML = rows.slice(0, 8).map((r) => {
+      const tag = kind === 'ads' ? (r.channel || '') : kind === 'landing' ? (r.paired || '') : (r.type || r.market || '');
+      const sub = [r.market, kind === 'landing' ? r.offer : '', fmtDate(r.created_at)].filter(Boolean).join(' · ');
+      const thumb = r.image ? '<img class="thumb" src="' + esc(r.image) + '" alt="">' : '<div class="thumb"></div>';
+      return '<div class="row">' + thumb +
+        '<div class="body"><div class="name">' + esc(r.name) + '</div>' +
+        '<div class="meta">' + (tag ? '<span class="tag">' + esc(tag) + '</span> ' : '') + esc(sub) + '</div></div></div>';
+    }).join('');
+  }
+
+  function setCount(kind, n) { const el = document.querySelector('[data-count="' + kind + '"]'); if (el) el.textContent = n; }
+
+  async function load() {
+    document.querySelectorAll('[data-count]').forEach((e) => e.textContent = '…');
+    const haveClient = await waitForClient(4000);
+
+    // Mailers
+    let mailers = haveClient ? await sbFetch('mailers_generated', (d) => ({
+      name: d.campaign_title || d.prompt_short || '(mailer)', market: d.primary_market || '', type: d.campaign_type || '',
+      created_at: d.created_at, image: d.thumbnail_url || d.canvas_image_url || d.hero_image_url || d.hero_product_image || '', email: d.user_email || ''
+    })) : null;
+    const mailersFallback = mailers === null;
+    if (mailers === null) mailers = localMailers();
+
+    // Ads
+    let ads = haveClient ? await sbFetch('ads_generated', (d) => ({
+      name: d.name || '(ad)', channel: d.channel || '', market: d.market || '',
+      created_at: d.created_at, image: d.creative_url || '', email: d.user_email || ''
+    })) : null;
+    const adsFallback = ads === null;
+    if (ads === null) ads = localAds();
+
+    // Landing pages
+    let landing = haveClient ? await sbFetch('landing_pages_generated', (d) => ({
+      name: d.hero || d.name || '(landing page)', paired: d.paired_with || '', market: d.market || '',
+      offer: d.offer || '', created_at: d.created_at, email: d.user_email || ''
+    })) : null;
+    const landingFallback = landing === null;
+    if (landing === null) landing = localLanding();
+
+    mailers = applyScope(mailers); ads = applyScope(ads); landing = applyScope(landing);
+
+    setCount('mailers', mailers.length); setCount('ads', ads.length); setCount('landing', landing.length);
+    renderList('list-mailers', mailers, 'mailers');
+    renderList('list-ads', ads, 'ads');
+    renderList('list-landing', landing, 'landing');
+
+    const usingLocal = mailersFallback || adsFallback || landingFallback;
+    $('#srcline').innerHTML = usingLocal
+      ? 'Some data is read from <b>this browser only</b> (the shared database table may not exist yet — run the migration). Sign in + apply the SQL for cross-device counts.'
+      : 'Reading from the <b>shared database</b> — counts reflect all devices.' + (myEmail() ? '' : ' Sign in to filter to just your assets.');
+  }
+
+  // Scope chips
+  document.querySelectorAll('[data-scope]').forEach((c) => c.addEventListener('click', () => {
+    document.querySelectorAll('[data-scope]').forEach((x) => x.classList.toggle('active', x === c));
+    SCOPE = c.dataset.scope; load();
+  }));
+  $('#refresh').addEventListener('click', load);
+
+  load();
+})();
+</script>
+</body>
+</html>

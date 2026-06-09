@@ -270,6 +270,39 @@
   const $  = (sel, root) => (root||document).querySelector(sel);
   const esc = (s) => (s||'').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+  // Tolerant JSON parse — some providers wrap the JSON in ```json fences or
+  // add a prose prefix. Falls back to brace-slice extraction.
+  const safeJson = (t) => {
+    if (t && typeof t === 'object') return t;
+    const s = String(t || '');
+    try { return JSON.parse(s); } catch (_) {}
+    const stripped = s.replace(/^```(?:json)?\s*/im, '').replace(/```\s*$/m, '').trim();
+    try { return JSON.parse(stripped); } catch (_) {}
+    const a = s.indexOf('{'), b = s.lastIndexOf('}');
+    if (a !== -1 && b > a) { try { return JSON.parse(s.slice(a, b + 1)); } catch (_) {} }
+    return null;
+  };
+
+  // ─── Supabase persistence (reuse the client auth.js booted) ─────────
+  const sbClient = () => (window.LifecycleAuth && window.LifecycleAuth.client) || null;
+  const sbUser   = () => (window.LifecycleAuth && window.LifecycleAuth.user) || null;
+  async function persistLanding(channel, form) {
+    const sb = sbClient(); if (!sb) return;
+    try {
+      const u = sbUser() || {};
+      const row = {
+        user_name: (u.user_metadata && (u.user_metadata.full_name || u.user_metadata.name)) || '',
+        user_email: u.email || '',
+        paired_with: channel === 'mailers' ? 'mailer' : channel,
+        name: form.hero || '', market: form.region || '',
+        hero: form.hero || '', sub: form.sub || '', offer: form.offer || '', notes: form.notes || '',
+        payload: form, origin: location.origin || ''
+      };
+      const { error } = await sb.from('landing_pages_generated').insert([row]);
+      if (error) console.warn('[landing] supabase insert failed:', error.message);
+    } catch (e) { console.warn('[landing] persist error:', e && e.message); }
+  }
+
   // ─── Inject "Generate from prompt" bar into each channel form ────
   // One bar per panel, placed right after the H3 "Brief the page" header.
   // Calls /api/ai/generate with mode=autofill + surface=lp-<channel>.
@@ -346,21 +379,28 @@
       btn.disabled = true;
       try {
         const r = await fetch('/api/landing/generate', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(form) });
-        if (r.ok) {
-          const d = await r.json();
-          status.textContent = 'Generated. URL: ' + (d.url || '—');
-          loadLibrary(channel);
-        } else {
-          status.textContent = 'Endpoint not yet live — brief saved locally. Generator API ships next.';
-          // Local fallback: store brief in localStorage so the UI still tracks it
+        const saveLocal = () => {
           const key = 'lp-' + channel;
           const list = JSON.parse(localStorage.getItem(key) || '[]');
           list.unshift({ ...form, created_at: new Date().toISOString() });
           localStorage.setItem(key, JSON.stringify(list.slice(0, 50)));
-          loadLibrary(channel);
+        };
+        if (r.ok) {
+          const d = await r.json();
+          status.textContent = 'Generated. URL: ' + (d.url || '—');
+          saveLocal(); persistLanding(channel, form); loadLibrary(channel);
+        } else {
+          status.textContent = 'Saved to your library (cross-device).';
+          saveLocal(); persistLanding(channel, form); loadLibrary(channel);
         }
       } catch (err) {
-        status.textContent = 'Saved locally. Generator API ships next.';
+        // Network/endpoint unreachable — still keep the page in the library.
+        const key = 'lp-' + channel;
+        const list = JSON.parse(localStorage.getItem(key) || '[]');
+        list.unshift({ ...form, created_at: new Date().toISOString() });
+        localStorage.setItem(key, JSON.stringify(list.slice(0, 50)));
+        persistLanding(channel, form); loadLibrary(channel);
+        status.textContent = 'Saved to your library.';
       }
       btn.disabled = false;
     });
@@ -404,7 +444,7 @@
         });
         const d = await r.json();
         if (!r.ok || !d) { status.textContent = 'Failed: ' + (d?.error || r.statusText); return; }
-        const fields = typeof d === 'string' ? JSON.parse(d) : (d.text ? JSON.parse(d.text) : d);
+        const fields = safeJson(typeof d === 'string' ? d : (d.text != null ? d.text : d)) || {};
         let filled = 0;
         ['hero','sub','offer','notes'].forEach((k) => {
           const el = $('[data-form="' + channel + '"][name="' + k + '"]');

@@ -28,6 +28,7 @@
     { "source": "/studio",    "destination": "/vahdam_mailer_architect_v34.html" },
     { "source": "/app",       "destination": "/vahdam_mailer_architect_v34.html" },
     { "source": "/mailer",    "destination": "/vahdam_mailer_architect_v34.html" },
+    { "source": "/assets",    "destination": "/assets.html" },
     { "source": "/analytics", "destination": "/dashboard.html" },
     { "source": "/plan",      "destination": "/calendar.html" },
     { "source": "/competitor-benchmarking", "destination": "/competitor-benchmarking.html" },
