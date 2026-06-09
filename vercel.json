@@ -20,12 +20,14 @@
     "api/kb.js":                   { "maxDuration": 60 },
     "api/public-config.js":        { "maxDuration": 3 }
   },
+  "redirects": [
+    { "source": "/studio-v2", "destination": "/studio?theme=dark", "permanent": false }
+  ],
   "rewrites": [
     { "source": "/c/:theme/:variant", "destination": "/campaign.html?theme=:theme&variant=:variant" },
     { "source": "/studio",    "destination": "/vahdam_mailer_architect_v34.html" },
     { "source": "/app",       "destination": "/vahdam_mailer_architect_v34.html" },
     { "source": "/mailer",    "destination": "/vahdam_mailer_architect_v34.html" },
-    { "source": "/studio-v2", "destination": "/vahdam_mailer_studio_v2_dark.html" },
     { "source": "/analytics", "destination": "/dashboard.html" },
     { "source": "/plan",      "destination": "/calendar.html" },
     { "source": "/competitor-benchmarking", "destination": "/competitor-benchmarking.html" },

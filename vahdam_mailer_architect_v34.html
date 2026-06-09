@@ -494,7 +494,123 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .panel{animation:fadeUp .25s ease both}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   DARK THEME — UI chrome only. Toggled via <html data-theme="dark">.
+   Generated mailer output & the email preview stay on-brand (cream/forest/gold);
+   .preview-wrap/iframe keep #fff so emails render true, and the HTML/prompt code
+   blocks are already dark. Palette mirrors vahdam_mailer_studio_v2_dark.html.
+   ════════════════════════════════════════════════════════════════════════════ */
+html[data-theme="dark"]{
+  --body-txt:#e8ede9; --dark:#e8ede9;
+  --muted:#9aaaa1; --subtle:#7d8e84;
+  --border:rgba(171,135,67,.18); --border2:rgba(171,135,67,.32);
+  --bg:#0a1410; --panel:#0f1d18;
+  --lightg:rgba(0,74,43,.28); --lightgold:rgba(171,135,67,.16);
+  --shadow-xs:0 1px 2px rgba(0,0,0,.4);
+  --shadow-sm:0 2px 6px rgba(0,0,0,.45),0 1px 2px rgba(0,0,0,.3);
+  --shadow-md:0 6px 18px rgba(0,0,0,.5),0 2px 6px rgba(0,0,0,.35);
+  --shadow-lg:0 16px 40px rgba(0,0,0,.55),0 4px 12px rgba(0,0,0,.4);
+}
+html[data-theme="dark"] body{
+  background:#0a1410;
+  background-image:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(0,74,43,.18) 0%,transparent 70%);
+}
+html[data-theme="dark"] .steps{background:linear-gradient(135deg,#0f1d18 0%,#0b1813 100%)}
+html[data-theme="dark"] .step-n{background:var(--panel);color:var(--subtle)}
+html[data-theme="dark"] .step-l{color:var(--muted)}
+html[data-theme="dark"] .field label{color:var(--muted)}
+html[data-theme="dark"] .field input,
+html[data-theme="dark"] .field select,
+html[data-theme="dark"] .field textarea,
+html[data-theme="dark"] .fb-area textarea{background:#0b1813;color:var(--body-txt)}
+html[data-theme="dark"] .btn-outline{background:var(--panel)}
+html[data-theme="dark"] .btn-ghost{color:var(--muted)}
+html[data-theme="dark"] .cfbtn{background:var(--panel);color:var(--muted)}
+html[data-theme="dark"] .cat-card{background:var(--panel)}
+html[data-theme="dark"] .cat-card img{background:#0b1813}
+html[data-theme="dark"] .cat-card .cn{color:var(--body-txt)}
+html[data-theme="dark"] .pchip{background:#0b1813}
+html[data-theme="dark"] .pchip-name{color:var(--body-txt)}
+html[data-theme="dark"] .stage{background:#0b1813}
+html[data-theme="dark"] .stage.done{background:rgba(0,74,43,.25);border-color:rgba(34,197,94,.4)}
+html[data-theme="dark"] .stage-txt{color:var(--muted)}
+html[data-theme="dark"] .stage.done .stage-txt{color:#4ade80}
+html[data-theme="dark"] .p4tabs,
+html[data-theme="dark"] .tab-bar{background:#0b1813}
+html[data-theme="dark"] .p4tab,
+html[data-theme="dark"] .tab{color:var(--muted)}
+html[data-theme="dark"] .p4tab.on,
+html[data-theme="dark"] .tab.on{background:var(--panel)}
+html[data-theme="dark"] .canvas-area{background:#0b1813}
+html[data-theme="dark"] .canvas-label{color:var(--muted);background:#0b1813}
+html[data-theme="dark"] .regen-count{color:var(--subtle)}
+html[data-theme="dark"] .sbox{background:#0b1813}
+html[data-theme="dark"] .sval{color:var(--body-txt)}
+html[data-theme="dark"] .copy-preview-hl{color:#7cc49b}
+html[data-theme="dark"] .copy-preview-sub{color:var(--muted)}
+html[data-theme="dark"] .empty-state-html{color:var(--muted);background:var(--panel);border-color:var(--border2)}
+html[data-theme="dark"] .subj-box{background:rgba(0,74,43,.22);border-color:rgba(110,231,183,.3)}
+html[data-theme="dark"] .subj-line{color:#6ee7b7}
+html[data-theme="dark"] .subj-line:hover{background:rgba(0,74,43,.4)}
+html[data-theme="dark"] #analyzeStatus{border-color:rgba(110,231,183,.3);color:#6ee7b7}
+html[data-theme="dark"] .mkt-chip,
+html[data-theme="dark"] .type-chip,
+html[data-theme="dark"] .mkt-tab-btn{background:var(--panel);color:var(--muted)}
+html[data-theme="dark"] .sugg-hdr{background:linear-gradient(90deg,#0f1d18 0%,#0b1813 100%)}
+html[data-theme="dark"] .sugg-hdr:hover{background:linear-gradient(90deg,#12241d 0%,#0e1f18 100%)}
+html[data-theme="dark"] .sugg-hdr-sub{color:var(--subtle)}
+html[data-theme="dark"] .sugg-grid{background:var(--panel)}
+html[data-theme="dark"] .sugg-card{background:#0b1813}
+html[data-theme="dark"] .sugg-text{color:var(--muted)}
+html[data-theme="dark"] .dash-card{background:var(--panel)}
+html[data-theme="dark"] .vhd-skel{background:linear-gradient(90deg,#0f1d18 0%,#162a22 50%,#0f1d18 100%);background-size:200% 100%}
+/* Header theme toggle button */
+.app-hdr-theme{
+  display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;
+  background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.8);
+  border:1px solid rgba(255,255,255,0.18);border-radius:8px;
+  cursor:pointer;flex-shrink:0;transition:var(--transition);font-size:15px;line-height:1;padding:0
+}
+.app-hdr-theme:hover{background:rgba(255,255,255,0.18);color:#fff}
 </style>
+<script>
+/* Theme: apply before first paint to avoid flash. Persisted in localStorage;
+   first visit follows the OS preference. ☀ in dark mode (click → light),
+   ☾ in light mode (click → dark). */
+(function(){
+  function resolve(){
+    // 1. ?theme=dark|light in the URL wins and persists — used by the
+    //    /studio-v2 → /studio?theme=dark redirect (replaces the old stub).
+    try{
+      var p=new URLSearchParams(location.search).get('theme');
+      if(p==='dark'||p==='light'){
+        try{ localStorage.setItem('vahdam-theme', p); }catch(e){}
+        return p;
+      }
+    }catch(e){}
+    // 2. Saved preference.
+    try{ var s=localStorage.getItem('vahdam-theme'); if(s==='dark'||s==='light') return s; }catch(e){}
+    // 3. OS preference.
+    return (window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+  }
+  function syncIcon(t){
+    var b=document.getElementById('themeToggle');
+    if(b) b.innerHTML = (t==='dark') ? '☀' : '☾'; // ☀ : ☾
+  }
+  window.applyTheme=function(t){
+    document.documentElement.setAttribute('data-theme', t);
+    try{ localStorage.setItem('vahdam-theme', t); }catch(e){}
+    syncIcon(t);
+  };
+  window.toggleTheme=function(){
+    var cur=document.documentElement.getAttribute('data-theme')||'light';
+    window.applyTheme(cur==='dark'?'light':'dark');
+  };
+  document.documentElement.setAttribute('data-theme', resolve());
+  document.addEventListener('DOMContentLoaded', function(){ syncIcon(document.documentElement.getAttribute('data-theme')); });
+})();
+</script>
 </head>
 <body>
 <!-- Link-loading overlay -->
@@ -561,6 +677,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
     <button class="app-hdr-tab" id="tabDashBtn" onclick="switchMainTab('dashboard')">&#128202;&nbsp; Dashboard</button>
   </nav>
   <div class="app-hdr-user">
+    <button id="themeToggle" class="app-hdr-theme" onclick="toggleTheme()" title="Toggle light / dark" aria-label="Toggle light / dark theme">&#9790;</button>
     <span id="userGreet" class="app-hdr-greet"></span>
     <button id="logoutBtn" class="app-hdr-logout" onclick="logout()">Sign Out</button>
   </div>
