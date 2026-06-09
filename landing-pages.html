@@ -406,19 +406,52 @@
     });
   });
 
-  // ─── Library renderer (reads localStorage stub + future /api/landing/list) ─
-  function loadLibrary(channel) {
+  // ─── Library renderer (merges Supabase cross-device rows + localStorage) ───
+  // localStorage is per-origin, so pages briefed on a different domain/device
+  // only appear once we also read the shared Supabase table.
+  function renderLibrary(channel, rows) {
     const list = $('[data-list="' + channel + '"]');
-    const local = JSON.parse(localStorage.getItem('lp-' + channel) || '[]');
-    if (!local.length) { list.innerHTML = '<div class="empty">No pages yet for ' + channel + '. Brief one on the left to start.</div>'; return; }
-    list.innerHTML = local.map((p) => `
+    if (!list) return;
+    if (!rows.length) { list.innerHTML = '<div class="empty">No pages yet for ' + channel + '. Brief one on the left to start.</div>'; return; }
+    list.innerHTML = rows.map((p) => `
       <div class="lp-row">
         <div class="body">
           <div class="name">${esc(p.hero || '(no headline)')}</div>
-          <div class="meta-row"><span class="region-tag">${esc(p.region || '—')}</span> · ${esc(p.offer || 'no offer')} · ${new Date(p.created_at).toLocaleDateString()}</div>
+          <div class="meta-row"><span class="region-tag">${esc(p.region || '—')}</span> · ${esc(p.offer || 'no offer')} · ${p.created_at ? new Date(p.created_at).toLocaleDateString() : ''}</div>
         </div>
       </div>`).join('');
   }
+  async function loadLibrary(channel) {
+    const local = JSON.parse(localStorage.getItem('lp-' + channel) || '[]');
+    // Render local immediately so the UI is never blank while Supabase loads.
+    renderLibrary(channel, local);
+    const sb = sbClient(); if (!sb) return;
+    try {
+      const paired = channel === 'mailers' ? 'mailer' : channel;
+      const { data, error } = await sb.from('landing_pages_generated')
+        .select('hero,offer,market,created_at')
+        .eq('paired_with', paired)
+        .order('created_at', { ascending: false }).limit(100);
+      if (error) { console.warn('[landing] library fetch:', error.message); return; }
+      const remote = (data || []).map((d) => ({ hero: d.hero, offer: d.offer, region: d.market, created_at: d.created_at }));
+      // Merge remote + local, dedupe by hero+offer, newest first.
+      const seen = new Set(); const merged = [];
+      [...remote, ...local].forEach((p) => {
+        const k = (p.hero || '') + '|' + (p.offer || '');
+        if (seen.has(k)) return; seen.add(k); merged.push(p);
+      });
+      merged.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+      renderLibrary(channel, merged);
+    } catch (e) { console.warn('[landing] library error:', e && e.message); }
+  }
+  // Re-render once auth.js has booted its Supabase client (poll briefly).
+  (function awaitClient() {
+    let tries = 0;
+    const iv = setInterval(() => {
+      tries++;
+      if (sbClient() || tries > 25) { clearInterval(iv); ['mailers','meta','google','tiktok'].forEach(loadLibrary); }
+    }, 200);
+  })();
   ['mailers','meta','google','tiktok'].forEach(loadLibrary);
 
   // ─── Autofill from prompt: POST /api/ai/generate?mode=autofill ──

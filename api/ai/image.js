@@ -71,7 +71,10 @@ module.exports = async function handler(req, res) {
   //   B) Imagen predict models (imagen-4.0-generate-001, etc.) — requires paid plan
   // ═══════════════════════════════════════════════════════════════════════════
   const geminiKey = process.env.GEMINI_API_KEY;
-  if (geminiKey) {
+  // Gemini image models (gemini-2.5-flash-image, Imagen) require a billing-enabled
+  // key. They're OFF by default so OpenAI gpt-image is the effective primary;
+  // set IMAGE_ENABLE_GEMINI=1 to bring Gemini back into the cascade (tried first).
+  if (geminiKey && process.env.IMAGE_ENABLE_GEMINI === '1') {
 
     // ── A) Native Gemini image generation via generateContent ──
     const nativeModels = [
@@ -200,10 +203,13 @@ module.exports = async function handler(req, res) {
     process.env.OPENAI_API_KEY_3
   ].filter(Boolean);
 
-  const imageModels = [
-    process.env.OPENAI_IMAGE_MODEL || 'gpt-image-2',
+  // gpt-image-1 is the real OpenAI image model (requires a verified org + credits).
+  // OPENAI_IMAGE_MODEL can override. The bogus 'gpt-image-2' default was removed —
+  // it always 404'd and wasted an attempt.
+  const imageModels = [...new Set([
+    process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1',
     'gpt-image-1'
-  ];
+  ])];
 
   if (openaiKeys.length > 0) {
     let allQuotaExhausted = false;
@@ -358,10 +364,15 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // All Pollinations models failed
+  // All providers failed. Pollinations is now paywalled (HTTP 402) so it no
+  // longer works as a free fallback — a working OpenAI (gpt-image-1) key with
+  // a verified org + credits is the supported path.
+  const noKeys = !(openaiKeys && openaiKeys.length);
   return res.status(502).json({
-    error: 'all_providers_failed', provider: 'pollinations',
+    error: 'all_providers_failed', provider: 'openai',
     quota_warning: hadKeys,
-    detail: 'All image providers failed including Pollinations free fallback'
+    detail: noKeys
+      ? 'No OpenAI image key configured. Add OPENAI_API_KEY (verified org + image credits) in Vercel.'
+      : 'OpenAI gpt-image-1 failed — usually means the org is not verified for image generation or has no image credits. Verify the org at platform.openai.com → Settings → Organization, then add credits. (Pollinations free fallback is now paywalled.)'
   });
 };
