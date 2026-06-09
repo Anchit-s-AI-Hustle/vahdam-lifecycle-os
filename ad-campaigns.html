@@ -396,30 +396,106 @@
       orient + '. Photorealistic, premium, uncluttered. Absolutely NO text, NO words, NO logos, NO watermark in the image.'
     ].join(' ');
   }
+  // Wrap text to a max width on a canvas context, return array of lines.
+  function wrapText(ctx, text, maxW, maxLines) {
+    const words = String(text || '').split(/\s+/).filter(Boolean);
+    const lines = []; let line = '';
+    for (const w of words) {
+      const test = line ? line + ' ' + w : w;
+      if (ctx.measureText(test).width > maxW && line) { lines.push(line); line = w; if (lines.length === maxLines - 1) break; }
+      else line = test;
+    }
+    if (line && lines.length < maxLines) lines.push(line);
+    return lines;
+  }
+  // Deterministic, always-works creative: a designed ad rendered on a canvas
+  // from the real campaign copy + brand palette. No external API needed.
+  function renderCanvasCreative(ch) {
+    const cfg = CRE_CFG[ch];
+    const v = (id) => (document.getElementById(id)?.value || '').trim();
+    const dims = cfg.size.split('x').map(Number); const W = dims[0], H = dims[1];
+    const market = v(cfg.market) || 'US';
+    const headline = (ch === 'g' ? (v('g-headlines').split('\n')[0]) : ch === 'm' ? v('m-headline') : v('t-hook'))
+      || v(cfg.name) || 'Steep the moment';
+    const sub = (ch === 'g' ? v('g-keywords').split(',')[0] : ch === 'm' ? v('m-primary') : v('t-caption')) || 'Single-estate · garden-fresh in 72 hours';
+    const cur = { US: '$', UK: '£', IN: '₹', EU: '€', AU: 'A$', ME: 'AED', Global: '$' }[market] || '$';
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const x = c.getContext('2d');
+    // Background — forest green with a soft radial glow
+    x.fillStyle = '#004A2B'; x.fillRect(0, 0, W, H);
+    const g = x.createRadialGradient(W * 0.5, H * 0.32, 40, W * 0.5, H * 0.32, W * 0.8);
+    g.addColorStop(0, 'rgba(171,135,67,0.28)'); g.addColorStop(1, 'rgba(0,74,43,0)');
+    x.fillStyle = g; x.fillRect(0, 0, W, H);
+    // Gold frame
+    x.strokeStyle = '#AB8743'; x.lineWidth = Math.round(W * 0.012);
+    const m = Math.round(W * 0.05); x.strokeRect(m, m, W - m * 2, H - m * 2);
+    // Wordmark
+    x.fillStyle = '#FBF5EA'; x.textAlign = 'center';
+    x.font = '700 ' + Math.round(W * 0.045) + 'px Georgia, serif';
+    x.fillText('V A H D A M', W / 2, H * 0.16);
+    x.fillStyle = '#AB8743'; x.font = '600 ' + Math.round(W * 0.02) + 'px Inter, sans-serif';
+    x.fillText('SINGLE-ESTATE INDIAN TEA', W / 2, H * 0.20);
+    // Headline (serif, wrapped, centered block)
+    x.fillStyle = '#FBF5EA';
+    const hSize = Math.round(W * 0.072); x.font = '600 ' + hSize + 'px Georgia, serif';
+    const hLines = wrapText(x, headline, W * 0.78, 4);
+    let y = H * (ch === 't' ? 0.40 : 0.42) - (hLines.length - 1) * hSize * 0.6;
+    hLines.forEach((ln) => { x.fillText(ln, W / 2, y); y += hSize * 1.15; });
+    // Sub copy
+    x.fillStyle = 'rgba(251,245,234,0.82)';
+    const sSize = Math.round(W * 0.028); x.font = '400 ' + sSize + 'px Inter, sans-serif';
+    wrapText(x, sub, W * 0.7, 2).forEach((ln, i) => x.fillText(ln, W / 2, y + sSize * 0.6 + i * sSize * 1.4));
+    // Offer / CTA pill
+    const pillY = H * 0.82, pillW = W * 0.6, pillH = Math.round(H * 0.075), pillX = (W - pillW) / 2;
+    x.fillStyle = '#AB8743';
+    if (x.roundRect) { x.beginPath(); x.roundRect(pillX, pillY, pillW, pillH, pillH / 2); x.fill(); }
+    else x.fillRect(pillX, pillY, pillW, pillH);
+    x.fillStyle = '#0a1410'; x.font = '700 ' + Math.round(W * 0.032) + 'px Inter, sans-serif';
+    x.fillText('Shop now · garden-fresh', W / 2, pillY + pillH * 0.64);
+    // Market chip
+    x.fillStyle = 'rgba(251,245,234,0.5)'; x.font = '600 ' + Math.round(W * 0.02) + 'px Inter, sans-serif';
+    x.fillText(market + ' · ' + cur, W / 2, H * 0.93);
+    return c.toDataURL('image/png');
+  }
+  function showCreative(ch, dataUrl, label, note) {
+    const prev = document.getElementById(ch + '-cre-prev');
+    const noteEl = document.getElementById(ch + '-cre-note');
+    creative[ch] = { dataUrl, prompt: buildCreativePrompt(ch), provider: label };
+    prev.innerHTML = '<img src="' + dataUrl + '" alt="ad creative">' +
+      '<div class="cre-actions">' +
+        '<button class="btn btn-ghost" type="button" data-cre-redo="' + ch + '">↻ Regenerate</button>' +
+        '<a class="btn btn-ghost" href="' + dataUrl + '" download="vahdam-' + ch + '-creative.png">⬇ Download</a>' +
+        '<button class="btn btn-ghost" type="button" data-cre-clear="' + ch + '">Remove</button>' +
+      '</div>';
+    if (noteEl) noteEl.textContent = note;
+  }
   async function genCreative(ch) {
     const note = document.getElementById(ch + '-cre-note');
-    const prev = document.getElementById(ch + '-cre-prev');
     const btn  = document.getElementById(ch + '-cre');
     const prompt = buildCreativePrompt(ch);
-    const orig = btn.textContent; btn.disabled = true; btn.textContent = 'Generating… (10–30s)';
-    if (note) { note.innerHTML = '<span class="cre-spin">Painting your creative…</span>'; }
+    const orig = btn.textContent; btn.disabled = true; btn.textContent = 'Generating…';
+    if (note) { note.innerHTML = '<span class="cre-spin">Generating your creative…</span>'; }
     try {
-      const geminiKey = (() => { try { return localStorage.getItem('vahdam-gemini-key') || ''; } catch { return ''; } })();
-      const r = await fetch('/api/ai/image', {
-        method: 'POST',
-        headers: Object.assign({ 'Content-Type': 'application/json' }, geminiKey ? { 'x-user-gemini-key': geminiKey } : {}),
-        body: JSON.stringify({ prompt, size: CRE_CFG[ch].size, quality: 'high' }),
-      });
-      const d = await r.json().catch(() => ({}));
-      if (!r.ok || !d.image_data_url) {
-        if (note) note.textContent = 'Couldn’t generate a creative right now — ' + (d.error || r.statusText || 'try again') + '.';
-        return;
+      // 1) Try AI photo-real image (works once OpenAI image is enabled).
+      let aiUrl = '', provider = '';
+      try {
+        const geminiKey = (() => { try { return localStorage.getItem('vahdam-gemini-key') || ''; } catch { return ''; } })();
+        const r = await fetch('/api/ai/image', {
+          method: 'POST',
+          headers: Object.assign({ 'Content-Type': 'application/json' }, geminiKey ? { 'x-user-gemini-key': geminiKey } : {}),
+          body: JSON.stringify({ prompt, size: CRE_CFG[ch].size, quality: 'high' }),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (r.ok && d.image_data_url) { aiUrl = d.image_data_url; provider = d.provider || 'ai'; }
+      } catch (_) { /* fall through to canvas */ }
+
+      if (aiUrl) {
+        showCreative(ch, aiUrl, provider, 'AI creative ready · ' + provider + ' — attaches when you save.');
+      } else {
+        // 2) Always-works fallback: render a designed creative on canvas.
+        const url = renderCanvasCreative(ch);
+        showCreative(ch, url, 'designed', 'Designed creative ready (AI image unavailable) — attaches when you save. Download or regenerate above.');
       }
-      creative[ch] = { dataUrl: d.image_data_url, prompt, provider: d.provider || '' };
-      prev.innerHTML = '<img src="' + d.image_data_url + '" alt="ad creative">' +
-        '<div class="cre-actions"><button class="btn btn-ghost" type="button" data-cre-redo="' + ch + '">↻ Regenerate</button>' +
-        '<button class="btn btn-ghost" type="button" data-cre-clear="' + ch + '">Remove</button></div>';
-      if (note) note.textContent = 'Creative ready' + (d.provider ? ' · ' + d.provider : '') + ' — it’ll attach when you save the campaign.';
     } catch (e) {
       if (note) note.textContent = 'Error: ' + (e && e.message || e);
     } finally {
