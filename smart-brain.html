@@ -18,30 +18,18 @@
 <main class="wrap">
   <section class="top">
     <div>
-<<<<<<< HEAD
       <div class="eyebrow">VAHDAM Lifecycle OS · Autopilot</div>
       <h1>Autopilot: Data, Plan, Write</h1>
       <p>Runs the first 3 steps of the workflow together: Looks at your data, plans the month's calendar based on cohorts, and writes the emails. Generates a fully integrated plan ready for review.</p>
     </div>
     <div><button id="run" class="btn">✨ Run Autopilot (Steps 1-3)</button> <button id="schema" class="btn secondary">Schema</button></div>
-=======
-      <div class="eyebrow">VAHDAM Lifecycle OS · Smart Brain</div>
-      <h1>Daily DB-linked marketing brain</h1>
-      <p>Runs Knowledge Base indexing, own-data analysis, isolated competitor benchmarking, 15-day calendar intelligence, campaign generation, and human-review policy — without live platform push.</p>
-    </div>
-    <div><button id="run" class="btn">Run daily review</button> <button id="schema" class="btn secondary">Schema</button></div>
->>>>>>> acdfe52a6c4ed835673c3b9e52cbe06da0f33c4b
   </section>
 
   <section class="grid">
     <div class="card"><div class="label">Mode</div><div id="mode" class="metric">—</div></div>
     <div class="card"><div class="label">Calendar entries</div><div id="entries" class="metric">—</div></div>
     <div class="card"><div class="label">Campaign objects</div><div id="campaigns" class="metric">—</div></div>
-<<<<<<< HEAD
     <div class="card two"><h2>30-day rolling calendar preview</h2><div id="calendar"><p>Click Run Autopilot.</p></div></div>
-=======
-    <div class="card two"><h2>15-day rolling calendar preview</h2><div id="calendar"><p>Click Run daily review.</p></div></div>
->>>>>>> acdfe52a6c4ed835673c3b9e52cbe06da0f33c4b
     <div class="card"><h2>Daily insights</h2><div id="insights"><p>Waiting for analysis.</p></div></div>
     <div class="card wide"><h2>Platform-ready sample campaign</h2><pre id="sample">No campaign generated yet.</pre></div>
   </section>
@@ -51,15 +39,9 @@ const $ = (id) => document.getElementById(id);
 async function runDaily(){
   $('run').disabled = true; $('run').textContent = 'Running…';
   try {
-<<<<<<< HEAD
-    const r = await fetch('/api/smart-brain?action=run-daily', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({days:30})});
+    const r = await fetch('/api/calendar?action=smart-brain-run-daily', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({days:30})});
     const data = await r.json();
     if(!data.ok) throw new Error(data.error || 'Autopilot failed');
-=======
-    const r = await fetch('/api/calendar?action=smart-brain-run-daily', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({days:15})});
-    const data = await r.json();
-    if(!data.ok) throw new Error(data.error || 'Smart Brain failed');
->>>>>>> acdfe52a6c4ed835673c3b9e52cbe06da0f33c4b
     $('mode').textContent = data.mode;
     $('entries').textContent = data.calendar.entries.length;
     $('campaigns').textContent = data.campaigns.length;
@@ -67,17 +49,10 @@ async function runDaily(){
     $('calendar').innerHTML = data.calendar.entries.slice(0,8).map(e=>`<div class="entry"><b>${e.date} · ${e.market}</b><br>${e.objective}<br><span class="pill">${e.cohort.name}</span>${e.channels.map(c=>`<span class="pill">${c}</span>`).join('')}</div>`).join('');
     $('sample').textContent = JSON.stringify(data.campaigns[0], null, 2);
   } catch(e) { $('sample').textContent = e.stack || e.message; }
-<<<<<<< HEAD
   finally { $('run').disabled = false; $('run').textContent = '✨ Run Autopilot (Steps 1-3)'; }
 }
 async function showSchema(){
-  const r = await fetch('/api/smart-brain?action=schema');
-=======
-  finally { $('run').disabled = false; $('run').textContent = 'Run daily review'; }
-}
-async function showSchema(){
   const r = await fetch('/api/calendar?action=smart-brain-schema');
->>>>>>> acdfe52a6c4ed835673c3b9e52cbe06da0f33c4b
   $('sample').textContent = JSON.stringify(await r.json(), null, 2);
 }
 $('run').addEventListener('click', runDaily); $('schema').addEventListener('click', showSchema);
