@@ -13,14 +13,22 @@ This repo now includes a working, DB-linked Smart Brain for VAHDAM Lifecycle OS.
 | Generation | `lib/smart-brain/services.js` | Produces HTML mailers, platform ad specs, landing pages, retargeting, similar-audience logic, and full-funnel campaign objects. |
 | Human Review | `lib/smart-brain/services.js` | Enforces human verification for every campaign and a hard weekly recalibration checklist. |
 
+<<<<<<< HEAD
 The single serverless entrypoint is `api/smart-brain.js`.
+=======
+The Smart Brain is multiplexed through the existing `api/calendar.js` serverless function to keep the Vercel Hobby deployment under the 12-function cap.
+>>>>>>> acdfe52a6c4ed835673c3b9e52cbe06da0f33c4b
 
 ## API
 
 ### Health
 
 ```http
+<<<<<<< HEAD
 GET /api/smart-brain?action=health
+=======
+GET /api/calendar?action=smart-brain-health
+>>>>>>> acdfe52a6c4ed835673c3b9e52cbe06da0f33c4b
 ```
 
 Returns module availability and whether Supabase DB env vars are linked.
@@ -28,7 +36,11 @@ Returns module availability and whether Supabase DB env vars are linked.
 ### Schema contract
 
 ```http
+<<<<<<< HEAD
 GET /api/smart-brain?action=schema
+=======
+GET /api/calendar?action=smart-brain-schema
+>>>>>>> acdfe52a6c4ed835673c3b9e52cbe06da0f33c4b
 ```
 
 Returns expected table names and columns.
@@ -36,7 +48,11 @@ Returns expected table names and columns.
 ### Daily automated review + generation
 
 ```http
+<<<<<<< HEAD
 POST /api/smart-brain?action=run-daily
+=======
+POST /api/calendar?action=smart-brain-run-daily
+>>>>>>> acdfe52a6c4ed835673c3b9e52cbe06da0f33c4b
 Content-Type: application/json
 
 {
@@ -63,7 +79,11 @@ If Supabase env vars are missing, the endpoint runs against local CSV samples so
 ### Generate one approved slot
 
 ```http
+<<<<<<< HEAD
 POST /api/smart-brain?action=generate-slot
+=======
+POST /api/calendar?action=smart-brain-generate-slot
+>>>>>>> acdfe52a6c4ed835673c3b9e52cbe06da0f33c4b
 Content-Type: application/json
 
 { "entry": { ...calendarEntry } }
@@ -72,7 +92,11 @@ Content-Type: application/json
 ### Capture human feedback
 
 ```http
+<<<<<<< HEAD
 POST /api/smart-brain?action=feedback
+=======
+POST /api/calendar?action=smart-brain-feedback
+>>>>>>> acdfe52a6c4ed835673c3b9e52cbe06da0f33c4b
 Content-Type: application/json
 
 {
@@ -88,7 +112,11 @@ The feedback is written to `smart_feedback` when DB env vars are configured and 
 ### Weekly recalibration
 
 ```http
+<<<<<<< HEAD
 POST /api/smart-brain?action=weekly-recalibration
+=======
+POST /api/calendar?action=smart-brain-weekly-recalibration
+>>>>>>> acdfe52a6c4ed835673c3b9e52cbe06da0f33c4b
 Content-Type: application/json
 
 {
@@ -111,7 +139,11 @@ Competitive data informs calendar and creative decisions through `competitorCont
 
 ## Daily operating loop
 
+<<<<<<< HEAD
 1. Scheduler calls `POST /api/smart-brain?action=run-daily` for a 15-day window.
+=======
+1. Scheduler calls `POST /api/calendar?action=smart-brain-run-daily` for a 15-day window.
+>>>>>>> acdfe52a6c4ed835673c3b9e52cbe06da0f33c4b
 2. Knowledge Base re-indexes own DB data and campaign assets.
 3. Analysis rebuilds cohorts, product scores, thresholds, and MVT learnings.
 4. Competitor Benchmarking pulls the separate competitive stream.
@@ -121,7 +153,11 @@ Competitive data informs calendar and creative decisions through `competitorCont
 
 ## Weekly human loop
 
+<<<<<<< HEAD
 1. Lifecycle owner calls `POST /api/smart-brain?action=weekly-recalibration`.
+=======
+1. Lifecycle owner calls `POST /api/calendar?action=smart-brain-weekly-recalibration`.
+>>>>>>> acdfe52a6c4ed835673c3b9e52cbe06da0f33c4b
 2. Reviewer checks calendar, cohorts, thresholds, competitive usage, and generated assets.
 3. Reviewer records decisions and/or granular feedback through `action=feedback`.
 4. The next daily run applies the updated feedback and any config changes.

@@ -1,8 +1,12 @@
 # VAHDAM Lifecycle OS
 
-**Data Analysis + Marketing Calendar + Mailer Creator** — one workflow, three stages, deployable as a single Vercel project.
+**Data Analysis + Marketing Calendar + Mailer Creator** — one workflow, three
+stages, deployable as a single Vercel project.
 
-Forked from [`marketing_mailers__html_architect`](https://github.com/Anchit-s-AI-Hustle/marketing_mailers__html_architect) so the original Mailer Studio stays untouched in production. This repo adds the retention dashboard + calendar generator on top.
+Forked from
+[`marketing_mailers__html_architect`](https://github.com/Anchit-s-AI-Hustle/marketing_mailers__html_architect)
+so the original Mailer Studio stays untouched in production. This repo adds the
+retention dashboard + calendar generator on top.
 
 ---
 
@@ -18,20 +22,27 @@ Forked from [`marketing_mailers__html_architect`](https://github.com/Anchit-s-AI
 ```
 
 ### Stage 01 — Data Analysis (`/dashboard.html`)
-- Upload CSV / XLSX (campaigns, customers, orders, products) or run on synthetic seed
+
+- Upload CSV / XLSX (campaigns, customers, orders, products) or run on synthetic
+  seed
 - Computes 9 RFM segments, channel mix, retention cohorts, cross-sell affinity
 - 10 auto-generated strategic insights (severity-ranked)
 - Exports any view as CSV
-- Source: ported from `vahdam_dtc_data_engine/reports/retention-intelligence.html`
+- Source: ported from
+  `vahdam_dtc_data_engine/reports/retention-intelligence.html`
 
 ### Stage 02 — Marketing Calendar (`/calendar.html`)
+
 - Reads the analytics state from localStorage (or generates a seed if missing)
 - POSTs to `/api/calendar/generate` which returns a 30-day plan
 - Plan is segment-aware, festival-aware, capacity-guarded
 - Each calendar entry is one-click → buildable into 4 mailer variants
-- Festivals data: `data/festivals.json` (US / UK / India / Global, ~100 cultural moments — incl. Diwali, Raksha Bandhan, Holi, Republic Day, Independence Day for IN)
+- Festivals data: `data/festivals.json` (US / UK / India / Global, ~100 cultural
+  moments — incl. Diwali, Raksha Bandhan, Holi, Republic Day, Independence Day
+  for IN)
 
 ### Stage 03 — Mailer Studio (`/studio`)
+
 - The original `vahdam_mailer_architect_v34.html`
 - Now produces **4 variants** per send:
   - **A** — Image · Hero (close-up product photography)
@@ -44,10 +55,10 @@ Forked from [`marketing_mailers__html_architect`](https://github.com/Anchit-s-AI
 
 ## New API endpoints
 
-| Endpoint | Purpose |
-|---|---|
-| `POST /api/calendar/generate` | Body: `{ days, markets, capacity_per_market_per_week, analytics }`. Returns a 30-day plan with per-send segment, archetype, content type, hero SKU, subject hint, festival, rationale. |
-| `POST /api/calendar/trigger-mailer` | Body: `{ entry }` (one calendar row). Runs strategy stage via the LLM cascade, returns 4 variants (A / B / T1 / T2). Does **not** send. |
+| Endpoint                            | Purpose                                                                                                                                                                                |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /api/calendar/generate`       | Body: `{ days, markets, capacity_per_market_per_week, analytics }`. Returns a 30-day plan with per-send segment, archetype, content type, hero SKU, subject hint, festival, rationale. |
+| `POST /api/calendar/trigger-mailer` | Body: `{ entry }` (one calendar row). Runs strategy stage via the LLM cascade, returns 4 variants (A / B / T1 / T2). Does **not** send.                                                |
 
 ---
 
@@ -79,63 +90,61 @@ vercel --prod
 ## Brand + voice constraints
 
 All inherited from the parent repo (see `CLAUDE.md`):
-- Palette: `#004A2B` forest green · `#AB8743` gold · `#171717` ink · `#FBF5EA` cream
+
+- Palette: `#004A2B` forest green · `#AB8743` gold · `#171717` ink · `#FBF5EA`
+  cream
 - Type: Lao MN (headings) + Proxima Nova (body)
-- Banned phrases enforced: "wellness journey", "transform", "liquid gold", "LIMITED TIME", "hurry", "don't miss out"
+- Banned phrases enforced: "wellness journey", "transform", "liquid gold",
+  "LIMITED TIME", "hurry", "don't miss out"
 
 ---
 
 ## What's NOT included yet
 
-- **Automatic send**. Calendar rows currently produce HTML variants — they don't fire emails. Adding a send queue (Klaviyo flow trigger / Postmark / SendGrid) is the next phase.
-- **Image variants A & B** when triggered from the calendar UI: the brief is generated but the actual image render runs in the Mailer Studio. Inline image rendering from the calendar is a small extra wire-up.
+- **Automatic send**. Calendar rows currently produce HTML variants — they don't
+  fire emails. Adding a send queue (Klaviyo flow trigger / Postmark / SendGrid)
+  is the next phase.
+- **Image variants A & B** when triggered from the calendar UI: the brief is
+  generated but the actual image render runs in the Mailer Studio. Inline image
+  rendering from the calendar is a small extra wire-up.
 
 ---
 
 ## Merged Automation Modules
 
 ### 1. Data Ingestion Engine (`/ingest`)
-Contains scripts to pull, parse, and ingest customer lifecycle and DTC transaction records:
+
+Contains scripts to pull, parse, and ingest customer lifecycle and DTC
+transaction records:
+
 - `ingest_matrixify.py`: Matrixify raw Shopify exports loader.
 - `ingest_shopify_analytics.py`: Shopify Analytics transactions loader.
 - `ingest_klaviyo.py`: Klaviyo list and email engagement data loader.
 - `ingest_webengage.py`: WebEngage customer CDP data loader.
-- `sync_to_supabase.py`: Synchronizes the processed DuckDB database data back to Supabase.
-- Master execution script: `run_all.py` (runs all four ingestion scripts sequentially).
+- `sync_to_supabase.py`: Synchronizes the processed DuckDB database data back to
+  Supabase.
+- Master execution script: `run_all.py` (runs all four ingestion scripts
+  sequentially).
 
 ### 2. Automated Campaign Trigger Engine (`/mailer_system`)
-A Python-based automated campaign generator that runs on a metrics-driven trigger sequence:
-- Evaluates at-risk revenue, 90-day cohort retention, subscription share, and list health against threshold definitions in `targets.json`.
-- Integrates with the Anthropic Claude API to generate formatted, occasion-aware brand emails.
-- Saves campaign results dynamically to `outputs/` (HTML + metadata files) and logs historical run metadata to `campaign_log.json`.
+
+A Python-based automated campaign generator that runs on a metrics-driven
+trigger sequence:
+
+- Evaluates at-risk revenue, 90-day cohort retention, subscription share, and
+  list health against threshold definitions in `targets.json`.
+- Integrates with the Anthropic Claude API to generate formatted, occasion-aware
+  brand emails.
+- Saves campaign results dynamically to `outputs/` (HTML + metadata files) and
+  logs historical run metadata to `campaign_log.json`.
 
 ### 3. Interactive Campaign Compiler (`/marketing_automation`)
+
 An interactive React 19 + Tailwind CSS compiler SPA:
-- Renders a visual workspace allowing you to select campaign themes and creative variants.
-- Connects to an Express custom server (`server.ts`) to request and compile local static templates.
-- Automatically scrapes and downloads static visual assets locally to guarantee offline asset hosting reliability.
 
-
----
-
-## Smart Brain MVP
-
-<<<<<<< HEAD
-The Smart Brain backend is implemented as a modular, DB-driven service at `/api/smart-brain`. It covers the complete MVP requested for VAHDAM Lifecycle OS: own-data Knowledge Base, daily Data Analysis, isolated Competitor Benchmarking, 15-day Calendar Intelligence, Generation of HTML mailers/ad specs/landing pages, and Human-in-the-Loop review. Live pushing to Google, Meta, TikTok, Klaviyo, or WebEngage remains intentionally excluded for Phase 2.
-
-- Implementation: `lib/smart-brain/services.js`
-- API router: `api/smart-brain.js`
-=======
-The Smart Brain backend is implemented as a modular, DB-driven service at `/api/calendar?action=smart-brain-*`. It covers the complete MVP requested for VAHDAM Lifecycle OS: own-data Knowledge Base, daily Data Analysis, isolated Competitor Benchmarking, 15-day Calendar Intelligence, Generation of HTML mailers/ad specs/landing pages, and Human-in-the-Loop review. Live pushing to Google, Meta, TikTok, Klaviyo, or WebEngage remains intentionally excluded for Phase 2.
-
-- Implementation: `lib/smart-brain/services.js`
-- API router: `api/calendar.js` Smart Brain actions
->>>>>>> acdfe52a6c4ed835673c3b9e52cbe06da0f33c4b
-- DB schema assumptions: `supabase/migrations/20260609_smart_brain.sql`
-- Operating loop README: `docs/SMART_BRAIN.md`
-
-Quick smoke test:
-
-```bash
-node -e "require('./lib/smart-brain/services').runDailySmartBrain({days:1}).then(r=>console.log(r.ok, r.calendar.entries.length, r.campaigns.length))"
-```
+- Renders a visual workspace allowing you to select campaign themes and creative
+  variants.
+- Connects to an Express custom server (`server.ts`) to request and compile
+  local static templates.
+- Automatically scrapes and downloads static visual assets locally to guarantee
+  offline asset hosting reliability.
