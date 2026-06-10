@@ -141,16 +141,18 @@
   <div class="grid" id="feature-grid"></div>
 
   <section class="flow">
-    <div class="flow-row">
-      <span class="flow-step"><b>1.</b> Look at your data</span>
-      <span class="flow-arrow">→</span>
-      <span class="flow-step"><b>2.</b> Plan a month</span>
-      <span class="flow-arrow">→</span>
-      <span class="flow-step"><b>3.</b> Write the emails</span>
-      <span class="flow-arrow">→</span>
-      <span class="flow-step"><b>4.</b> Send & compare</span>
+    <div class="flow-row" style="justify-content: space-between; align-items: center;">
+      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <span class="flow-step"><b>1.</b> Look at your data</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step"><b>2.</b> Plan a month</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step"><b>3.</b> Write the emails</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step"><b>4.</b> Send & compare</span>
+      </div>
+      <a class="btn btn-solid" href="/smart-brain.html" style="background: #16a34a; color: #fff; border: none; padding: 10px 18px;">✨ Run Autopilot (Steps 1-3)</a>
     </div>
-    <div class="flow-tip">Each card has two buttons. <b>Open →</b> goes to the full tool. <b>◱ Preview</b> opens a quick look right here.</div>
   </section>
 
   <footer class="foot">
@@ -158,23 +160,6 @@
   </footer>
 </div>
 
-<!-- Preview modal -->
-<div id="preview-modal" aria-hidden="true">
-  <div class="pm-backdrop" data-close></div>
-  <div class="pm-card" role="dialog" aria-modal="true">
-    <div class="pm-head">
-      <span class="pm-badge">Preview</span>
-      <span class="pm-title" id="pm-title"></span>
-      <span class="pm-spacer"></span>
-      <a class="pm-act pm-detail" id="pm-detail" href="#">View in Detail →</a>
-      <button class="pm-act pm-close" data-close aria-label="Close preview">×</button>
-    </div>
-    <div class="pm-body">
-      <div class="pm-load" id="pm-load">Loading preview…</div>
-      <iframe class="pm-frame" id="pm-frame" title="Feature preview"></iframe>
-    </div>
-  </div>
-</div>
 
 <script>
 (function () {
@@ -202,7 +187,7 @@
     { icon: 'kb',         title: 'Knowledge Base',          href: '/knowledge-base.html',
       desc: 'The single source of truth that every generator in this app reads from. Brand kit, markets, product catalog, manual references, uploaded files.',
       subs: ['VAHDAM brand kit + 313-product catalog', 'Competitor profiles + captured assets', 'Manual: paste any URL — AI summarises', 'Upload PDFs · CSVs · PNGs · ZIPs'] },
-    { icon: 'analysis',   title: 'Data Analysis',           href: '/dashboard.html',
+    { icon: 'analysis',   title: 'Compiled Dashboard',      href: '/dashboard.html',
       desc: 'See who buys, who drifts, what to send next. Drives every plan + brief in the rest of the app.',
       subs: ['9 RFM segments + cohort retention', 'Top campaigns, channel mix, AOV trend', 'Auto-insights — what changed this week', 'Upload your CSV or link a database'] },
     { icon: 'competitor', title: 'Competitor Benchmarking', href: '/competitor-benchmarking.html',
@@ -231,49 +216,9 @@
       <ul class="card-subs">${f.subs.map((s) => `<li>${s}</li>`).join('')}</ul>
       <div class="card-ctas">
         <a class="btn btn-solid" href="${f.href}">Open →</a>
-        <button class="btn btn-ghost" data-preview="${i}" title="Quick look without leaving this page">◱ Preview</button>
       </div>
     </div>`).join('');
-
-  // ─── Preview modal ─────────────────────────────────────────────────
-  const modal = document.getElementById('preview-modal');
-  const frame = document.getElementById('pm-frame');
-  const load = document.getElementById('pm-load');
-  const titleEl = document.getElementById('pm-title');
-  const detailLink = document.getElementById('pm-detail');
-  let lastActive = null;
-
-  function openPreview(f) {
-    titleEl.textContent = f.title;
-    detailLink.href = f.href;
-    if (!isStandalone) { detailLink.target = '_blank'; detailLink.rel = 'noopener'; }
-    load.style.display = 'flex';
-    frame.style.visibility = 'hidden';
-    frame.src = f.href;
-    modal.classList.add('open');
-    modal.setAttribute('aria-hidden', 'false');
-    document.body.style.overflow = 'hidden';
-  }
-  function closePreview() {
-    modal.classList.remove('open');
-    modal.setAttribute('aria-hidden', 'true');
-    document.body.style.overflow = '';
-    frame.src = 'about:blank';
-    if (lastActive) lastActive.focus();
-  }
-  frame.addEventListener('load', () => {
-    if (frame.src && frame.src !== 'about:blank' && !frame.src.endsWith('about:blank')) {
-      load.style.display = 'none';
-      frame.style.visibility = 'visible';
-    }
-  });
-  grid.querySelectorAll('[data-preview]').forEach((btn) => {
-    btn.addEventListener('click', () => { lastActive = btn; openPreview(FEATURES[+btn.dataset.preview]); });
-  });
-  modal.querySelectorAll('[data-close]').forEach((el) => el.addEventListener('click', closePreview));
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('open')) closePreview(); });
 })();
 </script>
-
 </body>
 </html>
