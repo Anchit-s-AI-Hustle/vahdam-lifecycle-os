@@ -2,6 +2,48 @@
 
 This repo now includes a working, DB-linked Smart Brain for VAHDAM Lifecycle OS. It stops before live platform push: generated objects are platform-ready for Google, Meta, TikTok, Klaviyo, and WebEngage, but every object is marked `push_status: not_integrated_phase_2`.
 
+## Persistent rolling plan (the daily loop)
+
+The brain keeps a durable tentative **15-day calendar** in `smart_calendar_entries`
+(one row per date+market, stable id `cal_<date>_<market>`), implemented in
+`api/_shared/smart-brain-plan.js` and reviewed daily:
+
+1. **Vercel Cron** (03:30 UTC, `vercel.json` → `/api/cron/smart-brain` →
+   `/api/calendar?action=smart-brain-cron`, protected by `CRON_SECRET`) calls
+   `syncDaily()`.
+2. `syncDaily()` re-runs KB → Analysis → Competitor Benchmarking on the latest
+   data, regenerates the window, then **diff-updates** the stored plan:
+   - `approved`/`final` entries are never touched (human decisions are locked),
+   - `tentative` entries are updated only on material change (cohort, hero
+     product, objective, channels, confidence ±5pts) with a `change_log` entry,
+   - `rejected` entries are re-planned,
+   - new days are appended so the window stays 15 days ahead; past tentative
+     days are `archived`.
+3. The **Smart Brain console** (`/brain` → `smart-brain.html`) shows the plan,
+   the change feed, and per-entry **Approve / Reject** buttons.
+4. **Approve** generates the full funnel for that slot — LLM-written copy via
+   the 6-provider waterfall (template fallback) for the mailer, Meta/Google/
+   TikTok ads, and a landing page — persisted to `smart_generated_campaigns`,
+   mirrored into `ads_generated` + `landing_pages_generated` (so the Ads and
+   Landing Pages dashboards list them), and the landing page is served at
+   **`/lp/<campaign_id>`**.
+5. **Reject** stores feedback in `smart_feedback`; the slot regenerates on the
+   next daily sync with feedback applied.
+
+### Plan API
+
+```http
+GET  /api/calendar?action=smart-brain-plan          # current rolling plan
+POST /api/calendar?action=smart-brain-sync-daily    # manual daily review  { "days": 15 }
+GET  /api/calendar?action=smart-brain-cron          # cron entrypoint (Bearer CRON_SECRET)
+POST /api/calendar?action=smart-brain-approve       # { "id": "cal_2026-06-12_us", "reviewer": "..." }
+POST /api/calendar?action=smart-brain-reject        # { "id": "...", "notes": "...", "reviewer": "..." }
+GET  /lp/:campaignId                                # hosted generated landing page
+```
+
+Without Supabase env vars everything still runs statelessly against local CSV
+samples (plan preview + inline-entry approval), so the MVP stays demonstrable.
+
 ## Service boundaries
 
 | Service | File | Responsibility |

@@ -134,6 +134,7 @@
   const NAV = [
     { id: 'home',       label: 'Home',          href: '/',               icon: 'home',     match: ['/', '/index.html'] },
     { id: 'analysis',   label: 'Data Analysis', href: '/dashboard.html', icon: 'analysis', match: ['/dashboard.html', '/analytics'] },
+    { id: 'brain',      label: 'Smart Brain',   href: '/brain',          icon: 'insights', match: ['/brain', '/smart-brain', '/smart-brain.html'] },
     { id: 'assets',     label: 'Created Assets',href: '/assets',         icon: 'analysis', match: ['/assets', '/assets.html'] },
 
     { section: 'Knowledge Base' },
