@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 'use strict';
 
 /**
@@ -91,4 +89,3 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   return res.status(400).json({ ok: false, error: 'Use ?action=generate, ?action=trigger-mailer, or ?action=smart-brain-run-daily' });
 };
->>>>>>> acdfe52a6c4ed835673c3b9e52cbe06da0f33c4b
