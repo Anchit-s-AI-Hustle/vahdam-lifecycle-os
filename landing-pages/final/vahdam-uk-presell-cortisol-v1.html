@@ -2046,7 +2046,32 @@
     .compare-table-wrap {
       max-width: 920px;
       margin: 0 auto;
-      overflow-x: auto
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      scrollbar-color: var(--gold) rgba(0, 73, 43, .08);
+      padding-bottom: 6px
+    }
+
+    .compare-table-wrap::-webkit-scrollbar {
+      height: 6px
+    }
+
+    .compare-table-wrap::-webkit-scrollbar-track {
+      background: rgba(0, 73, 43, .08);
+      border-radius: 4px
+    }
+
+    .compare-table-wrap::-webkit-scrollbar-thumb {
+      background: var(--gold);
+      border-radius: 4px
+    }
+
+    .compare-table thead th:first-child {
+      position: sticky;
+      left: 0;
+      background: var(--cream-warm);
+      z-index: 3
     }
 
     .compare-table {
@@ -2113,7 +2138,10 @@
       font-weight: 700;
       letter-spacing: -.005em;
       color: var(--moss);
-      background: var(--cream)
+      background: var(--cream);
+      position: sticky;
+      left: 0;
+      z-index: 2
     }
 
     .compare-table tbody td.yes {
@@ -3152,28 +3180,24 @@
       }
 
       .testi-track-container {
-        overflow-x: visible;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
         -webkit-mask-image: none;
         mask-image: none
       }
 
       .testi-track {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        grid-template-rows: repeat(2, auto);
+        display: flex;
         gap: 12px;
-        padding: 0
+        padding: 0 16px
       }
 
       .testi-card {
-        flex: none;
-        width: 100%;
+        flex: 0 0 82%;
         min-height: auto;
-        padding: 16px
-      }
-
-      .testi-card:nth-child(n+5) {
-        display: none !important
+        padding: 16px;
+        scroll-snap-align: center
       }
 
       .testi-card .stars {
@@ -3191,9 +3215,12 @@
         font-size: 9.5px
       }
 
-      .testi-nav,
-      .testi-dots {
+      .testi-nav {
         display: none !important
+      }
+
+      .testi-dots {
+        margin-top: 14px
       }
 
       /* Compare */
@@ -4273,7 +4300,6 @@
       }
 
       function scrollToIndex(index) {
-        if (isMobile()) return;
         const { cardWidth, gap } = getScrollParams();
         const scrollLeft = index * (cardWidth + gap);
         container.scrollTo({
@@ -4283,7 +4309,7 @@
       }
 
       function updateActiveDot() {
-        if (isMobile() || !dots.length) return;
+        if (!dots.length) return;
         const { cardWidth, gap } = getScrollParams();
         const scrollLeft = container.scrollLeft;
         const index = Math.round(scrollLeft / (cardWidth + gap));
@@ -4366,6 +4392,44 @@
         for (var k = 0; k < dots.length; k++) dots[k].classList.toggle('active', k === best);
       }, { passive: true });
     })();
+  </script>
+  <style>
+    .rv {
+      opacity: 0;
+      transform: translateY(26px);
+      transition: opacity .7s cubic-bezier(.22, 1, .36, 1), transform .7s cubic-bezier(.22, 1, .36, 1)
+    }
+
+    .rv.in {
+      opacity: 1;
+      transform: none
+    }
+
+    @media(prefers-reduced-motion:reduce) {
+      .rv {
+        opacity: 1;
+        transform: none;
+        transition: none
+      }
+    }
+  </style>
+  <script type="module">
+  // Motion reveal layer — graceful: page fully usable without it
+  try {
+    const { animate, inView } = await import('https://cdn.jsdelivr.net/npm/motion@11/+esm');
+    document.querySelectorAll('.ben-card,.bf-card,.ing-card,.testi-card,.truth-warn').forEach((el, i) => {
+      el.style.opacity = 0;
+      inView(el, () => { animate(el, { opacity: [0, 1], transform: ['translateY(28px)', 'translateY(0)'] }, { duration: .65, delay: (i % 6) * .07, easing: [.22, 1, .36, 1] }); }, { margin: '-10% 0px' });
+    });
+    document.querySelectorAll('h2').forEach(el => {
+      inView(el, () => { animate(el, { opacity: [0, 1], transform: ['translateY(18px)', 'translateY(0)'] }, { duration: .6, easing: 'ease-out' }); });
+    });
+  } catch (e) {
+    const els = document.querySelectorAll('.ben-card,.bf-card,.ing-card,.testi-card,.truth-warn,h2');
+    els.forEach(el => el.classList.add('rv'));
+    const io = new IntersectionObserver(es => es.forEach(en => { if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); } }), { rootMargin: '-8% 0px' });
+    els.forEach(el => io.observe(el));
+  }
   </script>
   <script src="/agent-widget.js" data-agent="agent_ashwagandha_coffee" defer></script>
 </body>
