@@ -1251,7 +1251,7 @@
     /* ============ § 11. UGC — CREAM ============ */
     .ugc-section {
       padding: 90px 0;
-      background: var(--cream)
+      background: radial-gradient(ellipse at 18% 12%, rgba(171, 135, 67, .18) 0%, transparent 45%), radial-gradient(ellipse at 82% 85%, rgba(171, 135, 67, .12) 0%, transparent 50%), radial-gradient(ellipse at 50% 50%, #0a3a26 0%, var(--moss-deep) 80%)
     }
 
     .ugc-eyebrow {
@@ -1259,7 +1259,7 @@
       font-size: 12px;
       font-weight: 700;
       letter-spacing: .18em;
-      color: var(--gold-deep);
+      color: var(--gold);
       text-align: center;
       margin-bottom: 14px;
       text-transform: uppercase
@@ -1269,7 +1269,7 @@
       font-family: var(--sans);
       font-size: 56px;
       font-weight: 900;
-      color: var(--moss);
+      color: var(--cream);
       text-align: center;
       line-height: 1.02;
       margin-bottom: 48px;
@@ -1280,17 +1280,100 @@
       color: var(--gold)
     }
 
+    .ugc-wrap {
+      position: relative;
+      width: 100vw;
+      margin-left: calc(50% - 50vw);
+      padding: 0 5vw
+    }
+
     .ugc-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
       gap: 14px;
-      max-width: 1180px;
-      margin: 0 auto
+      padding: 0 4px 14px;
+      mask-image: linear-gradient(to right, transparent 0%, #000 4%, #000 96%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 4%, #000 96%, transparent 100%);
+      scrollbar-width: thin;
+      scrollbar-color: var(--gold) rgba(251, 245, 234, .12)
+    }
+
+    .ugc-grid::-webkit-scrollbar {
+      height: 6px
+    }
+
+    .ugc-grid::-webkit-scrollbar-track {
+      background: rgba(251, 245, 234, .12);
+      border-radius: 4px;
+      margin: 0 24px
+    }
+
+    .ugc-grid::-webkit-scrollbar-thumb {
+      background: var(--gold);
+      border-radius: 4px
+    }
+
+    .ugc-grid .ugc-card {
+      flex: 0 0 290px;
+      min-width: 260px;
+      scroll-snap-align: start
+    }
+
+    .ugc-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--moss);
+      color: var(--cream);
+      border: 2px solid var(--gold);
+      border-radius: 50%;
+      width: 52px;
+      height: 52px;
+      font-size: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 10;
+      transition: background .2s
+    }
+
+    .ugc-nav:hover {
+      background: var(--moss-dk)
+    }
+
+    .ugc-nav.prev {
+      left: 1.2vw
+    }
+
+    .ugc-nav.next {
+      right: 1.2vw
+    }
+
+    .ugc-dots {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 20px
+    }
+
+    .ugc-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(251, 245, 234, .28);
+      cursor: pointer;
+      transition: background .3s
+    }
+
+    .ugc-dot.active {
+      background: var(--gold)
     }
 
     .ugc-card {
       background: linear-gradient(180deg, #1d3d2c 0%, var(--moss-deep) 100%);
-      border-radius: 10px;
+      border-radius: 18px;
       aspect-ratio: 9/16;
       position: relative;
       overflow: hidden;
@@ -1299,7 +1382,7 @@
       color: var(--cream);
       padding: 16px;
       font-family: var(--mono);
-      border: 2px solid var(--moss)
+      border: 1px solid rgba(171, 135, 67, .35)
     }
 
     .ugc-card::before {
@@ -2891,9 +2974,28 @@
         margin-bottom: 24px
       }
 
+      .ugc-wrap {
+        padding: 0 16px
+      }
+
+      .ugc-nav {
+        display: none
+      }
+
       .ugc-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px
+        gap: 10px;
+        padding: 0 0 10px;
+        scrollbar-width: none;
+        -ms-overflow-style: none
+      }
+
+      .ugc-grid::-webkit-scrollbar {
+        display: none
+      }
+
+      .ugc-grid .ugc-card {
+        flex: 0 0 75%;
+        scroll-snap-align: center
       }
 
       .ugc-card .ucap {
@@ -3670,7 +3772,9 @@
     <div class="container">
       <div class="ugc-eyebrow">148,000+ WOMEN GOT THEIR DAY BACK</div>
       <h2 class="ugc-h2">What Women Love<br>About <span class="gold">Vahdam Coffee</span></h2>
-      <div class="ugc-grid">
+      <div class="ugc-wrap">
+        <button class="ugc-nav prev" aria-label="Previous">&#10094;</button>
+        <div class="ugc-grid">
         <div class="ugc-card has-video"><video preload="none" data-lazy-video
             src="https://cdn.shopify.com/videos/c/o/v/d21ba03634f04641a0951ed61d26f3fa.mp4#t=0.1" loop muted playsinline
             controls
@@ -3713,6 +3817,9 @@
             style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;"></video>
           <div class="ucap">"LOST WEIGHT AND GAINED ENERGY"</div>
         </div>
+        </div>
+        <button class="ugc-nav next" aria-label="Next">&#10095;</button>
+        <div class="ugc-dots"></div>
       </div>
     </div>
   </section>
@@ -4236,6 +4343,29 @@
         updateActiveDot();
       });
     });
+  </script>
+  <script>
+    (function () {
+      var wrap = document.querySelector('.ugc-wrap');
+      if (!wrap) return;
+      var grid = wrap.querySelector('.ugc-grid');
+      var cards = grid.children;
+      var dotsBox = wrap.querySelector('.ugc-dots');
+      for (var i = 0; i < cards.length; i++) (function (i) {
+        var d = document.createElement('div');
+        d.className = 'ugc-dot' + (i === 0 ? ' active' : '');
+        d.addEventListener('click', function () { grid.scrollTo({ left: cards[i].offsetLeft - grid.offsetLeft, behavior: 'smooth' }); });
+        dotsBox.appendChild(d);
+      })(i);
+      wrap.querySelector('.ugc-nav.prev').addEventListener('click', function () { grid.scrollBy({ left: -(cards[0].offsetWidth + 14), behavior: 'smooth' }); });
+      wrap.querySelector('.ugc-nav.next').addEventListener('click', function () { grid.scrollBy({ left: cards[0].offsetWidth + 14, behavior: 'smooth' }); });
+      grid.addEventListener('scroll', function () {
+        var x = grid.scrollLeft, best = 0, min = Infinity;
+        for (var j = 0; j < cards.length; j++) { var dlt = Math.abs(x - (cards[j].offsetLeft - grid.offsetLeft)); if (dlt < min) { min = dlt; best = j; } }
+        var dots = dotsBox.children;
+        for (var k = 0; k < dots.length; k++) dots[k].classList.toggle('active', k === best);
+      }, { passive: true });
+    })();
   </script>
   <script src="/agent-widget.js" data-agent="agent_ashwagandha_coffee" defer></script>
 </body>

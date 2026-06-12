@@ -1280,7 +1280,7 @@
     /* ============ § 11. UGC — CREAM ============ */
     .ugc-section {
       padding: 90px 0;
-      background: var(--cream)
+      background: radial-gradient(ellipse at 18% 12%, rgba(171, 135, 67, .18) 0%, transparent 45%), radial-gradient(ellipse at 82% 85%, rgba(171, 135, 67, .12) 0%, transparent 50%), radial-gradient(ellipse at 50% 50%, #0a3a26 0%, var(--moss-deep) 80%)
     }
 
     .ugc-eyebrow {
@@ -1288,7 +1288,7 @@
       font-size: 12px;
       font-weight: 700;
       letter-spacing: .18em;
-      color: var(--gold-deep);
+      color: var(--gold);
       text-align: center;
       margin-bottom: 14px;
       text-transform: uppercase
@@ -1298,7 +1298,7 @@
       font-family: var(--sans);
       font-size: 56px;
       font-weight: 900;
-      color: var(--moss);
+      color: var(--cream);
       text-align: center;
       line-height: 1.02;
       margin-bottom: 48px;
@@ -1325,7 +1325,7 @@
       mask-image: linear-gradient(to right, transparent 0%, #000 4%, #000 96%, transparent 100%);
       -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 4%, #000 96%, transparent 100%);
       scrollbar-width: thin;
-      scrollbar-color: var(--gold) rgba(0, 73, 43, .1)
+      scrollbar-color: var(--gold) rgba(251, 245, 234, .12)
     }
 
     .ugc-nav {
@@ -1370,13 +1370,13 @@
       width: 10px;
       height: 10px;
       border-radius: 50%;
-      background: rgba(0, 73, 43, .2);
+      background: rgba(251, 245, 234, .28);
       cursor: pointer;
       transition: background .3s
     }
 
     .ugc-dot.active {
-      background: var(--moss)
+      background: var(--gold)
     }
 
     .ugc-grid::-webkit-scrollbar {
@@ -1384,7 +1384,7 @@
     }
 
     .ugc-grid::-webkit-scrollbar-track {
-      background: rgba(0, 73, 43, .1);
+      background: rgba(251, 245, 234, .12);
       border-radius: 4px;
       margin: 0 24px
     }
@@ -1402,7 +1402,7 @@
 
     .ugc-card {
       background: linear-gradient(180deg, #1d3d2c 0%, var(--moss-deep) 100%);
-      border-radius: 10px;
+      border-radius: 18px;
       aspect-ratio: 9/16;
       position: relative;
       overflow: hidden;
@@ -1411,7 +1411,7 @@
       color: var(--cream);
       padding: 16px;
       font-family: var(--mono);
-      border: 2px solid var(--moss)
+      border: 1px solid rgba(171, 135, 67, .35)
     }
 
     .ugc-card::before {
@@ -4681,7 +4681,8 @@
         vids.forEach(function (v) { io.observe(v); });
       } else {
         vids.forEach(function (v) { v.preload = 'auto'; v.autoplay = true; v.load(); });
-      }) ();
+      }
+    })();
   </script>
 
   <script>
